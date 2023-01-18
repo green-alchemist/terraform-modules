@@ -28,12 +28,6 @@ ssh: ## generate ssh keypair usage `make ssh NAME=testKey`
 
 .PHONY: ssh
 
-# sshtest: ## generate ssh keypair separates each pair in individual folder usage `make ssh NAME=testKey`
-# 	@echo "Generating new ssh key path = $(AWS_ACCESS) flags = $(SSHFLAGS)"; \
-# 	mkdir $(AWS_ACCESS)$(NAME); \
-# 	ssh-keygen -f $(AWS_ACCESS)$(NAME)/$(NAME) -t ed25519
-
-# .PHONY: sshtest
 
 clean: ## Remove Terraform build files
 	@echo "Cleaning terraform files"; \
