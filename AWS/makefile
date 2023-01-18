@@ -18,39 +18,39 @@ TF_PATH = "./simple"
 
 
 
-init:
+init: ## Terraform Init
 	@echo "Running terraform init"; \
 	terraform -chdir=${TF_PATH} init
 
 .PHONY: init
 
-plan:
+plan: ## Terraform Plan
 	@echo "Running terraform plan"; \
 	terraform -chdir=${TF_PATH} plan
 
 .PHONY: plan
 
-validate:
+validate: ## Terraform Validate
 	@echo "Running terraform validate"; \
 	terraform -chdir=${TF_PATH} validate
 
 .PHONY: validate
 
-apply:
+apply: ## Terraform Apply
 	@echo "Running terraform apply"; \
 	terraform -chdir=${TF_PATH} apply
 
 .PHONY: apply
 
-destroy:
+destroy: ## Terraform Destroy
 	@echo "Running terraform destroy"; \
 	terraform -chdir=${TF_PATH} destroy
 
 .PHONY: destroy
 
-clean:
+clean: ## Destroy Terraform cache files
 	@echo "Cleaning terraform files"; \
-	find ./terraform/dev/us-east-1/t2.micro/three-tier-deployment -name .terraform | xargs rm -rf
+	find ./ -name .terraform | xargs rm -rf
 
 .PHONY: clean
 
