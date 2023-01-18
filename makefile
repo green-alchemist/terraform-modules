@@ -2,23 +2,19 @@
 OVERRIDE_MODULES ?= $(shell git show --oneline ${CIRCLE_SHA1} | head -1 | grep "\#modules" | sed -E 's/^.*\#modules(.*)\#modules.*/\1/g')
 
 MODULES := $(shell git show --name-only --oneline ${CIRCLE_SHA1} | awk -F"/" '/^AWS\/modules\// {print $$3}' | grep -v README | sort -u)
-ALL_MODULES := $(shell for service in $(sort $(wildcard ./AWS/modules/**/main.tf)); do echo $$service | cut -d/ -f4 | tr "\n" " "; done)
+ALL_MODULES := $(shell for module in $(sort $(wildcard ./AWS/modules/**/main.tf)); do echo $$module | cut -d/ -f4 | tr "\n" " "; done)
+TF_PATH = "./AWS/modules"
 
-
-# ifneq "${OVERRIDE_MODULES}" ""
-# 	override MODULES := ${OVERRIDE_MODULES}
-# endif
-
-AWS_ACCESS = "./AWS/simple/access/"
+AWS_ACCESS = "./AWS/example/access/"
 
 ### ---------------------------------- ### 
 
-modules: ## display what services will be applied to
+modules: ## display what modules will be applied to
 	@echo ${MODULES}
 
 .PHONY: modules
 
-all-modules: ## generates a list of all services
+all-modules: ## generates a list of all modules
 	@echo ${ALL_MODULES}
 
 .PHONY: all-modules
@@ -45,22 +41,11 @@ clean: ## Remove Terraform build files
 
 .PHONY: clean
 
-init: ## Terraform Init
-	@echo "Running terraform init"; \
-	terraform -chdir=${TF_PATH} init
-
-.PHONY: init
-
-plan: ## Terraform Plan
-	@echo "Running terraform plan"; \
-	terraform -chdir=${TF_PATH} plan | tfmask
-
-.PHONY: plan
 
 fmt: clean ## run terraform fmt to see diffs in formatting
 	@echo "Running Terraform format to check code for formatting issues"; \
-	for service in ${MODULES}; do \
-		terraform -chdir=./services/$$service fmt -check=true -write=false -diff=true; \
+	for module in ${MODULES}; do \
+		terraform -chdir=./AWS/modules/$$module fmt -check=true -write=false -diff=true; \
 	done; \
 	echo "Done running Terraform format"
 
@@ -68,8 +53,8 @@ fmt: clean ## run terraform fmt to see diffs in formatting
 
 fmt-write: clean ## run terraform fmt write to correct any basic formatting issues
 	@echo "Running Terraform format write to correct any basic formatting issues"; \
-	for service in ${MODULES}; do \
-		terraform -chdir=./services/$$service fmt -write=true; \
+	for module in ${MODULES}; do \
+		terraform -chdir=./AWS/modules/$$module fmt -write=true; \
 	done; \
 	echo "Done running Terraform format with write"
 
