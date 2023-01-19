@@ -14,17 +14,17 @@ variable "tags" {
 # IAM Policy for Executing Terraform with Remote States
 #---------------------------------------------------------------------------------------------------
 
-variable "terraform_iam_policy_create" {
-  description = "Specifies whether to terraform IAM policy is created."
-  type        = bool
-  default     = true
-}
+# variable "terraform_iam_policy_create" {
+#   description = "Specifies whether to terraform IAM policy is created."
+#   type        = bool
+#   default     = true
+# }
 
-variable "terraform_iam_policy_name_prefix" {
-  description = "Creates a unique name beginning with the specified prefix."
-  type        = string
-  default     = "terraform"
-}
+# variable "terraform_iam_policy_name_prefix" {
+#   description = "Creates a unique name beginning with the specified prefix."
+#   type        = string
+#   default     = "terraform"
+# }
 
 #---------------------------------------------------------------------------------------------------
 # KMS Key for Encrypting S3 Buckets
@@ -58,11 +58,11 @@ variable "kms_key_enable_key_rotation" {
 # S3 Buckets
 #---------------------------------------------------------------------------------------------------
 
-variable "enable_replication" {
-  description = "Set this to true to enable S3 bucket replication in another region"
-  type        = bool
-  default     = true
-}
+# variable "enable_replication" {
+#   description = "Set this to true to enable S3 bucket replication in another region"
+#   type        = bool
+#   default     = true
+# }
 
 variable "state_bucket_prefix" {
   description = "Creates a unique state bucket name beginning with the specified prefix."
@@ -70,11 +70,11 @@ variable "state_bucket_prefix" {
   default     = "tf-remote-state"
 }
 
-variable "replica_bucket_prefix" {
-  description = "Creates a unique replica bucket name beginning with the specified prefix."
-  type        = string
-  default     = "tf-remote-state-replica"
-}
+# variable "replica_bucket_prefix" {
+#   description = "Creates a unique replica bucket name beginning with the specified prefix."
+#   type        = string
+#   default     = "tf-remote-state-replica"
+# }
 
 variable "iam_role_arn" {
   description = "Use IAM role of specified ARN for s3 replication instead of creating it."
@@ -191,60 +191,60 @@ variable "s3_bucket_name" {
     error_message = "Input variable s3_bucket_name is invalid. Please refer to https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html."
   }
 }
-variable "s3_bucket_name_replica" {
-  description = "If override_s3_bucket_name is true, use this bucket name for replica instead of dynamic name with bucket_prefix"
-  type        = string
-  default     = ""
-  validation {
-    condition     = length(var.s3_bucket_name_replica) == 0 || length(regexall("^[a-z0-9][a-z0-9\\-.]{1,61}[a-z0-9]$", var.s3_bucket_name_replica)) > 0
-    error_message = "Input variable s3_bucket_name_replica is invalid. Please refer to https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html."
-  }
-}
+# variable "s3_bucket_name_replica" {
+#   description = "If override_s3_bucket_name is true, use this bucket name for replica instead of dynamic name with bucket_prefix"
+#   type        = string
+#   default     = ""
+#   validation {
+#     condition     = length(var.s3_bucket_name_replica) == 0 || length(regexall("^[a-z0-9][a-z0-9\\-.]{1,61}[a-z0-9]$", var.s3_bucket_name_replica)) > 0
+#     error_message = "Input variable s3_bucket_name_replica is invalid. Please refer to https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html."
+#   }
+# }
 
 #---------------------------------------------------------------------------------------------------
 # Optionally specifying a fixed iam policy name
 #---------------------------------------------------------------------------------------------------
 
-variable "override_iam_policy_name" {
-  description = "override iam policy name to disable policy_prefix and create policy with static name"
-  type        = bool
-  default     = false
-}
+# variable "override_iam_policy_name" {
+#   description = "override iam policy name to disable policy_prefix and create policy with static name"
+#   type        = bool
+#   default     = false
+# }
 
-variable "iam_policy_name" {
-  description = "If override_iam_policy_name is true, use this policy name instead of dynamic name with policy_prefix"
-  type        = string
-  default     = ""
-}
+# variable "iam_policy_name" {
+#   description = "If override_iam_policy_name is true, use this policy name instead of dynamic name with policy_prefix"
+#   type        = string
+#   default     = ""
+# }
 
 #---------------------------------------------------------------------------------------------------
 # Optionally specifying a fixed iam role name
 #---------------------------------------------------------------------------------------------------
 
-variable "override_iam_role_name" {
-  description = "override iam role name to disable role_prefix and create role with static name"
-  type        = bool
-  default     = false
-}
+# variable "override_iam_role_name" {
+#   description = "override iam role name to disable role_prefix and create role with static name"
+#   type        = bool
+#   default     = false
+# }
 
-variable "iam_role_name" {
-  description = "If override_iam_role_name is true, use this role name instead of dynamic name with role_prefix"
-  type        = string
-  default     = ""
-}
+# variable "iam_role_name" {
+#   description = "If override_iam_role_name is true, use this role name instead of dynamic name with role_prefix"
+#   type        = string
+#   default     = ""
+# }
 
 #---------------------------------------------------------------------------------------------------
 # Optionally specifying a fixed terraform iam policy name
 #---------------------------------------------------------------------------------------------------
 
-variable "override_terraform_iam_policy_name" {
-  description = "override terraform iam policy name to disable policy_prefix and create policy with static name"
-  type        = bool
-  default     = false
-}
+# variable "override_terraform_iam_policy_name" {
+#   description = "override terraform iam policy name to disable policy_prefix and create policy with static name"
+#   type        = bool
+#   default     = false
+# }
 
-variable "terraform_iam_policy_name" {
-  description = "If override_terraform_iam_policy_name is true, use this policy name instead of dynamic name with policy_prefix"
-  type        = string
-  default     = ""
-}
+# variable "terraform_iam_policy_name" {
+#   description = "If override_terraform_iam_policy_name is true, use this policy name instead of dynamic name with policy_prefix"
+#   type        = string
+#   default     = ""
+# }

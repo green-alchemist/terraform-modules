@@ -46,20 +46,19 @@ data "aws_iam_policy_document" "state_force_ssl" {
 #---------------------------------------------------------------------------------------------------
 # Bucket
 #---------------------------------------------------------------------------------------------------
-
-resource "aws_s3_bucket_policy" "state_force_ssl" {
-  bucket = aws_s3_bucket.state.id
-  policy = data.aws_iam_policy_document.state_force_ssl.json
-
-  depends_on = [aws_s3_bucket_public_access_block.state]
-}
-
 resource "aws_s3_bucket" "state" {
   bucket_prefix = var.override_s3_bucket_name ? null : var.state_bucket_prefix
   bucket        = var.override_s3_bucket_name ? var.s3_bucket_name : null
   force_destroy = var.s3_bucket_force_destroy
 
   tags = var.tags
+}
+
+resource "aws_s3_bucket_policy" "state_force_ssl" {
+  bucket = aws_s3_bucket.state.id
+  policy = data.aws_iam_policy_document.state_force_ssl.json
+
+  depends_on = [aws_s3_bucket_public_access_block.state]
 }
 
 resource "aws_s3_bucket_acl" "state" {
