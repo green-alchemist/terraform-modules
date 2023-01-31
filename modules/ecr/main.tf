@@ -1,6 +1,6 @@
 locals {
   defaults = {
-    scan_on_push         = true
+    scan_on_push = true
     # The tag mutability setting for the repository. Must be one of: MUTABLE or IMMUTABLE. Defaults to MUTABLE.
     image_tag_mutability = "MUTABLE"
     lifecycle_policy = {
@@ -15,19 +15,19 @@ locals {
           countType   = "imageCountMoreThan"
           countNumber = 20
         }
-      },
-      {
-        rulePriority = 1
-        description  = "Expire untagged images older than 14 days"
-        action = {
-          type = "expire"
-        }
-        selection = {
-          tagStatus   = "untagged"
-          countType   = "sinceImagePushed"
-          countUnit   = "days"
-          countNumber = 14
-        }
+        },
+        {
+          rulePriority = 1
+          description  = "Expire untagged images older than 14 days"
+          action = {
+            type = "expire"
+          }
+          selection = {
+            tagStatus   = "untagged"
+            countType   = "sinceImagePushed"
+            countUnit   = "days"
+            countNumber = 14
+          }
       }]
     }
   }
@@ -52,10 +52,10 @@ resource "aws_ecr_repository" "this" {
 
 resource "aws_ecr_lifecycle_policy" "this" {
   for_each = { for k, v in var.ecrs : k => v if lookup(v, "lifecycle_policy", null) != null
-    && try(length(v.lifecycle_policy) > 0, false) }
+  && try(length(v.lifecycle_policy) > 0, false) }
 
   repository = aws_ecr_repository.this[each.key].id
-  policy     = try( jsonencode(each.value.lifecycle_policy), jsonencode(each.defaults.lifecycle_policy) )
+  policy     = try(jsonencode(each.value.lifecycle_policy), jsonencode(each.defaults.lifecycle_policy))
 
   depends_on = [aws_ecr_repository.this]
 }

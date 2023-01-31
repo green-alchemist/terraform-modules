@@ -1,7 +1,7 @@
 ## Base Makefile for working with Terraform locally for help type `make help`
 OVERRIDE_MODULES ?= $(shell git show --oneline ${CIRCLE_SHA1} | head -1 | grep "\#modules" | sed -E 's/^.*\#modules(.*)\#modules.*/\1/g')
 
-MODULES := $(shell git show --name-only --oneline ${CIRCLE_SHA1} | awk -F"/" '/^modules\// {print $$3}' | grep -v README | sort -u)
+MODULES := $(shell git show --name-only --oneline ${CIRCLE_SHA1} | awk -F"/" '/^modules\// {print $$2}' | grep -v README | sort -u)
 ALL_MODULES := $(shell for module in $(sort $(wildcard ./modules/**/main.tf)); do echo $$module | cut -d/ -f3 | tr "\n" " "; done)
 TF_PATH = "./modules"
 
