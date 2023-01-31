@@ -55,7 +55,7 @@ resource "aws_ecr_lifecycle_policy" "this" {
   && try(length(v.lifecycle_policy) > 0, false) }
 
   repository = aws_ecr_repository.this[each.key].id
-  policy     = try(jsonencode(each.value.lifecycle_policy), jsonencode(each.defaults.lifecycle_policy))
+  policy     = try(jsonencode(each.value.lifecycle_policy), jsonencode(local.defaults.lifecycle_policy))
 
   depends_on = [aws_ecr_repository.this]
 }
