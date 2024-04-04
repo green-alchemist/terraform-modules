@@ -6,18 +6,18 @@ locals {
 # KMS Key to Encrypt S3 Bucket
 #---------------------------------------------------------------------------------------------------
 
-resource "aws_kms_key" "this" {
-  description             = var.kms_key_description
-  deletion_window_in_days = var.kms_key_deletion_window_in_days
-  enable_key_rotation     = var.kms_key_enable_key_rotation
+# resource "aws_kms_key" "this" {
+#   description             = var.kms_key_description
+#   deletion_window_in_days = var.kms_key_deletion_window_in_days
+#   enable_key_rotation     = var.kms_key_enable_key_rotation
 
-  tags = var.tags
-}
+#   tags = var.tags
+# }
 
-resource "aws_kms_alias" "this" {
-  name          = "alias/${var.kms_key_alias}"
-  target_key_id = aws_kms_key.this.key_id
-}
+# resource "aws_kms_alias" "this" {
+#   name          = "alias/${var.kms_key_alias}"
+#   target_key_id = aws_kms_key.this.key_id
+# }
 #---------------------------------------------------------------------------------------------------
 # Bucket Policies
 #---------------------------------------------------------------------------------------------------
@@ -87,8 +87,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "state" {
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm     = "aws:kms"
-      kms_master_key_id = aws_kms_key.this.arn
+      sse_algorithm     = "AES256"
+      # kms_master_key_id = aws_kms_key.this.arn
     }
   }
 }
@@ -152,7 +152,7 @@ resource "aws_dynamodb_table" "lock" {
 
   server_side_encryption {
     enabled     = var.dynamodb_enable_server_side_encryption
-    kms_key_arn = aws_kms_key.this.arn
+    # kms_key_arn = aws_kms_key.this.arn
   }
 
   point_in_time_recovery {
