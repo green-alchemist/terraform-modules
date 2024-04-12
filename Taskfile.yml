@@ -1,0 +1,157 @@
+version: 3
+
+vars:
+  MODULES: 
+    sh: git show --name-only --oneline ${CIRCLE_SHA1} | awk -F"/" '/^modules\// {print $2}' | grep -v README | sort -u
+  ALL_MODULES:
+    sh: for module in ./modules/**/main.tf; do echo $module | cut -d/ -f3 | tr "\n" " "; done
+
+env:
+  TF_DATA_DIR: ../.terraform
+
+tasks:
+  show:
+    desc: show MODULES and ALL_MODULES
+    cmds:
+      - echo {{.MODULES}}
+      - echo {{.ALL_MODULES}}
+
+  clean:
+    desc: Remove terraform build files
+    cmds:
+      - find . -name .terraform | xargs rm -rf;
+
+  init:
+    desc: terraform init on new module changes found in git
+    cmds:
+      - |
+        echo "Starting terraform init"; \
+        for module in {{.MODULES}}; do \
+          echo $module; \
+          terraform -chdir=./modules/$module init; \
+        done; \
+        echo "Done running terraform init";
+
+  init-all:
+    desc: terraform init on all modules
+    cmds:
+      - |
+        echo "Starting terraform init"; \
+        for module in {{.ALL_MODULES}}; do \
+          echo $module; \
+          terraform -chdir=./modules/$module init; \
+        done; \
+        echo "Done running terraform init"; 
+  
+  plan:
+    deps: [init]
+    desc: terraform plan on new module changes found in git
+    cmds:
+      - |
+        echo "Starting terraform plan"; \
+        for module in {{.MODULES}}; do \
+          echo $module; \
+          terraform -chdir=./modules/$module plan; \
+        done; \
+        echo "Done running terraform plan"; 
+
+  apply:
+    deps: [clean, init]
+    desc: terraform plan on new module changes found in git
+    cmds:
+      - |
+        echo "Starting terraform apply"; \
+        for module in {{.MODULES}}; do \
+          echo $module; \
+          terraform -chdir=./modules/$module apply; \
+        done; \
+        echo "Done running terraform plan";
+
+  fmt:
+    deps: [clean]
+    desc: terraform fmt check only
+    cmds:
+      - |
+        echo "Starting terraform fmt -check"; \
+        for module in {{.MODULES}}; do \
+          terraform -chdir=./modules/$module fmt -check=true -write=false -diff=true; \
+        done; \
+        echo "Done running terraform fmt"; 
+  
+  fmt-all:
+    deps: [clean]
+    desc: terraform fmt-all check only
+    cmds:
+      - |
+        echo "Starting terraform fmt -check"; \
+        for module in {{.ALL_MODULES}}; do \
+          terraform -chdir=./modules/$module fmt -check=true -write=false -diff=true; \
+        done; \
+        echo "Done running terraform fmt-all"; 
+  
+  fmt-write:
+    deps: [clean]
+    desc: terraform fmt write
+    cmds:
+      - |
+        echo "Starting terraform fmt-write"; \
+        for module in {{.MODULES}}; do \
+          terraform -chdir=./modules/$module fmt -write=true; \
+        done; \
+        echo "Done running terraform fmt-write"; 
+
+  validate:
+    deps: [clean, init]
+    desc: Validates terraform code
+    cmds:
+      - echo "Running terraform validate"
+      - |
+        for module in {{.MODULES}}; do \
+          terraform -chdir=./modules/$module validate; \
+        done; \
+      - echo "Done running terraform validate"
+
+  validate-all:
+    deps: [clean, init-all]
+    desc: Validates all terraform modules
+    cmds:
+      - echo "Running terraform validate"
+      - |
+        for module in {{.ALL_MODULES}}; do \
+          terraform -chdir=./modules/$module validate; \
+        done; \
+      - echo "Done running terraform validate"
+
+  destroy:
+    deps: [prompt]
+    desc: terraform destroy
+    prompt: "Are you sure you want to run this? It will destroy everything in {{.MODULES}}"
+    cmds:
+      - |
+        echo "Starting terraform destroy": \
+        for module in {{.MODULES}}: do \
+          echo $module; \
+          terraform -chdir=./modules/$module destroy; \
+        done; \
+        echo "Done running terraform destroy";
+
+  prompt:
+    desc: universal prompt
+    prompt: Are you sure?
+
+  documentation:
+    deps: [prompt]
+    desc: generate terraform documentation
+    cmds:
+      - |
+        echo "# KC Terraform modules" > ./modules/README.md; \
+        for module in {{.MODULES}}; do \
+          echo "* [`basename $module`](`basename $module`/README.md)" >> ./modules/README.md; \
+          echo "Generating docs for $module"; \
+          terraform-docs  md table ./modules/$module > ./modules/$module/README.md; \
+        done; \
+        echo "## [Back](../README.md)" >> ./modules/README.md \
+
+
+
+          
