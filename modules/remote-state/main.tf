@@ -87,7 +87,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "state" {
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm     = "AES256"
+      sse_algorithm = "AES256"
       # kms_master_key_id = aws_kms_key.this.arn
     }
   }
@@ -151,7 +151,7 @@ resource "aws_dynamodb_table" "lock" {
   }
 
   server_side_encryption {
-    enabled     = var.dynamodb_enable_server_side_encryption
+    enabled = var.dynamodb_enable_server_side_encryption
     # kms_key_arn = aws_kms_key.this.arn
   }
 

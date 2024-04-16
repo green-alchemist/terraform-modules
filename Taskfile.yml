@@ -82,12 +82,17 @@ tasks:
     deps: [clean]
     desc: terraform fmt-all check only
     cmds:
-      - |
-        echo "Starting terraform fmt -check"; \
-        for module in {{.ALL_MODULES}}; do \
-          terraform -chdir=./modules/$module fmt -check=true -write=false -diff=true; \
-        done; \
-        echo "Done running terraform fmt-all"; 
+      - echo "Starting terraform fmt -check";
+      - terraform fmt --recursive -check=true -write=false -diff=true;
+      - echo "Done running terraform fmt-all"; 
+  
+  fmt-all-write:
+    deps: [clean]
+    desc: terraform fmt-all write
+    cmds:
+      - echo "Starting terraform fmt";
+      - terraform fmt --recursive -write=true;
+      - echo "Done running terraform fmt-all-write"; 
   
   fmt-write:
     deps: [clean]
