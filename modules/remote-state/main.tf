@@ -22,25 +22,67 @@
 # Bucket Policies
 #---------------------------------------------------------------------------------------------------
 
-data "aws_iam_policy_document" "state_force_ssl" {
+
+data "aws_iam_policy_document" "s3_policy" {
   statement {
-    sid     = "AllowSSLRequestsOnly"
-    actions = ["s3:*"]
-    effect  = "Deny"
+    sid    = "EnforceSSL"
+    effect = "Deny"
+    principals {
+      type        = "AWS"
+      identifiers = ["*"]
+    }
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject"
+    ]
     resources = [
       aws_s3_bucket.state.arn,
-      "${aws_s3_bucket.state.arn}/*"
+      "${aws_s3_bucket.state.arn}/*",
     ]
     condition {
       test     = "Bool"
       variable = "aws:SecureTransport"
       values   = ["false"]
     }
-    principals {
-      type        = "*"
-      identifiers = ["*"]
-    }
   }
+
+  # dynamic "statement" {
+  #   for_each = var.iam_access_principals
+  #   content {
+  #     sid    = "AllowTerraformActions"
+  #     effect = "Allow"
+  #     principals {
+  #       type        = "AWS"
+  #       identifiers = [statement.value]
+  #     }
+  #     actions = [
+  #       "s3:ListBucket",
+  #     ]
+  #     resources = [
+  #       aws_s3_bucket.state.arn
+  #     ]
+  #   }
+  # }
+
+  # dynamic "statement" {
+  #   for_each = var.iam_access_principals
+  #   content {
+  #     sid    = "AllowTerraformStateActions"
+  #     effect = "Allow"
+  #     principals {
+  #       type        = "AWS"
+  #       identifiers = [statement.value]
+  #     }
+  #     actions = [
+  #       "s3:GetObject",
+  #       "s3:PutObject",
+  #       "s3:DeleteObject"
+  #     ]
+  #     resources = [
+  #       "${aws_s3_bucket.state.arn}/*"
+  #     ]
+  #   }
+  # }
 }
 
 #---------------------------------------------------------------------------------------------------
@@ -54,9 +96,9 @@ resource "aws_s3_bucket" "state" {
   tags = var.tags
 }
 
-resource "aws_s3_bucket_policy" "state_force_ssl" {
+resource "aws_s3_bucket_policy" "s3_policy" {
   bucket = aws_s3_bucket.state.id
-  policy = data.aws_iam_policy_document.state_force_ssl.json
+  policy = data.aws_iam_policy_document.s3_policy.json
 
   depends_on = [aws_s3_bucket_public_access_block.state]
 }
