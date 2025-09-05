@@ -1,6 +1,6 @@
-locals {
-  define_lifecycle_rule = var.noncurrent_version_expiration != null || length(var.noncurrent_version_transitions) > 0
-}
+# locals {
+#   define_lifecycle_rule = var.noncurrent_version_expiration != null || length(var.noncurrent_version_transitions) > 0
+# }
 
 #---------------------------------------------------------------------------------------------------
 # KMS Key to Encrypt S3 Bucket
@@ -94,27 +94,29 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "state" {
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "state" {
-  count  = local.define_lifecycle_rule ? 1 : 0
   bucket = aws_s3_bucket.state.id
 
-  rule {
-    id     = "auto-archive"
-    status = "Enabled"
+  dynamic "rule" {
+    for_each = var.lifecycle_rules
+    content {
+      id     = rule.value.id
+      status = rule.value.enabled ? "Enabled" : "Disabled"
 
-    dynamic "noncurrent_version_transition" {
-      for_each = var.noncurrent_version_transitions
-
-      content {
-        noncurrent_days = noncurrent_version_transition.value.days
-        storage_class   = noncurrent_version_transition.value.storage_class
+      filter {
+        prefix = rule.value.prefix
       }
-    }
 
-    dynamic "noncurrent_version_expiration" {
-      for_each = var.noncurrent_version_expiration != null ? [var.noncurrent_version_expiration] : []
+      # Add a dynamic block for the new transition rule
+      dynamic "noncurrent_version_transition" {
+        for_each = rule.value.noncurrent_version_transitions
+        content {
+          noncurrent_days = noncurrent_version_transition.value.noncurrent_days
+          storage_class   = noncurrent_version_transition.value.storage_class
+        }
+      }
 
-      content {
-        noncurrent_days = noncurrent_version_expiration.value.days
+      noncurrent_version_expiration {
+        noncurrent_days = rule.value.noncurrent_version_expiration_days
       }
     }
   }

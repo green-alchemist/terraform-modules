@@ -106,31 +106,60 @@ variable "iam_policy_attachment_name" {
   default     = "tf-iam-role-attachment-replication-configuration"
 }
 
-variable "noncurrent_version_transitions" {
-  description = "Specifies when noncurrent object versions transitions. See the aws_s3_bucket document for detail."
-
+variable "lifecycle_rules" {
+  description = "A list of lifecycle rules to apply to the bucket."
   type = list(object({
-    days          = number
-    storage_class = string
+    id                                 = string
+    enabled                            = bool
+    prefix                             = string
+    noncurrent_version_expiration_days = number
+    # Add a new optional block for transitions
+    noncurrent_version_transitions = optional(list(object({
+      noncurrent_days = number
+      storage_class   = string
+      })), [])
   }))
-
   default = [
     {
-      days          = 7
-      storage_class = "GLACIER"
+      id                                 = "main"
+      enabled                            = true
+      prefix                             = "" # An empty prefix applies the rule to all objects
+      noncurrent_version_expiration_days = 90
+      noncurrent_version_transitions = [
+        {
+          noncurrent_days = 30
+          storage_class   = "STANDARD_IA"
+        }
+      ]
     }
   ]
 }
 
-variable "noncurrent_version_expiration" {
-  description = "Specifies when noncurrent object versions expire. See the aws_s3_bucket document for detail."
+# variable "noncurrent_version_transitions" {
+#   description = "Specifies when noncurrent object versions transitions. See the aws_s3_bucket document for detail."
 
-  type = object({
-    days = number
-  })
+#   type = list(object({
+#     days          = number
+#     storage_class = string
+#   }))
 
-  default = null
-}
+#   default = [
+#     {
+#       days          = 7
+#       storage_class = "GLACIER"
+#     }
+#   ]
+# }
+
+# variable "noncurrent_version_expiration" {
+#   description = "Specifies when noncurrent object versions expire. See the aws_s3_bucket document for detail."
+
+#   type = object({
+#     days = number
+#   })
+
+#   default = null
+# }
 
 variable "s3_bucket_force_destroy" {
   description = "A boolean that indicates all objects should be deleted from S3 buckets so that the buckets can be destroyed without error. These objects are not recoverable."
