@@ -1,162 +1,251 @@
-version: 3
+# version: 3
+
+# vars:
+#   MODULES: 
+#     sh: git show --name-only --oneline ${CIRCLE_SHA1} | awk -F"/" '/^modules\// {print $2}' | grep -v README | sort -u
+#   ALL_MODULES:
+#     sh: for module in ./modules/**/main.tf; do echo $module | cut -d/ -f3 | tr "\n" " "; done
+
+# env:
+#   TF_DATA_DIR: ../.terraform
+
+# tasks:
+#   show:
+#     desc: show MODULES and ALL_MODULES
+#     cmds:
+#       - echo {{.MODULES}}
+#       - echo {{.ALL_MODULES}}
+
+#   clean:
+#     desc: Remove terraform build files
+#     cmds:
+#       - find . -name .terraform | xargs rm -rf;
+
+#   init:
+#     desc: terraform init on new module changes found in git
+#     cmds:
+#       - |
+#         echo "Starting terraform init"; \
+#         for module in {{.MODULES}}; do \
+#           echo $module; \
+#           terraform -chdir=./modules/$module init; \
+#         done; \
+#         echo "Done running terraform init";
+
+#   init-all:
+#     desc: terraform init on all modules
+#     cmds:
+#       - |
+#         echo "Starting terraform init"; \
+#         for module in {{.ALL_MODULES}}; do \
+#           echo $module; \
+#           terraform -chdir=./modules/$module init; \
+#         done; \
+#         echo "Done running terraform init"; 
+  
+#   plan:
+#     deps: [init]
+#     desc: terraform plan on new module changes found in git
+#     cmds:
+#       - |
+#         echo "Starting terraform plan"; \
+#         for module in {{.MODULES}}; do \
+#           echo $module; \
+#           terraform -chdir=./modules/$module plan; \
+#         done; \
+#         echo "Done running terraform plan"; 
+
+#   apply:
+#     deps: [clean, init]
+#     desc: terraform plan on new module changes found in git
+#     cmds:
+#       - |
+#         echo "Starting terraform apply"; \
+#         for module in {{.MODULES}}; do \
+#           echo $module; \
+#           terraform -chdir=./modules/$module apply; \
+#         done; \
+#         echo "Done running terraform plan";
+
+#   fmt:
+#     deps: [clean]
+#     desc: terraform fmt check only
+#     cmds:
+#       - |
+#         echo "Starting terraform fmt -check"; \
+#         for module in {{.MODULES}}; do \
+#           terraform -chdir=./modules/$module fmt -check=true -write=false -diff=true; \
+#         done; \
+#         echo "Done running terraform fmt"; 
+  
+#   fmt-all:
+#     deps: [clean]
+#     desc: terraform fmt-all check only
+#     cmds:
+#       - echo "Starting terraform fmt -check";
+#       - terraform fmt --recursive -check=true -write=false -diff=true;
+#       - echo "Done running terraform fmt-all"; 
+  
+#   fmt-all-write:
+#     deps: [clean]
+#     desc: terraform fmt-all write
+#     cmds:
+#       - echo "Starting terraform fmt";
+#       - terraform fmt --recursive -write=true;
+#       - echo "Done running terraform fmt-all-write"; 
+  
+#   fmt-write:
+#     deps: [clean]
+#     desc: terraform fmt write
+#     cmds:
+#       - |
+#         echo "Starting terraform fmt-write"; \
+#         for module in {{.MODULES}}; do \
+#           terraform -chdir=./modules/$module fmt -write=true; \
+#         done; \
+#         echo "Done running terraform fmt-write"; 
+
+#   validate:
+#     deps: [clean, init]
+#     desc: Validates terraform code
+#     cmds:
+#       - echo "Running terraform validate"
+#       - |
+#         for module in {{.MODULES}}; do \
+#           terraform -chdir=./modules/$module validate; \
+#         done; \
+#       - echo "Done running terraform validate"
+
+#   validate-all:
+#     deps: [clean, init-all]
+#     desc: Validates all terraform modules
+#     cmds:
+#       - echo "Running terraform validate"
+#       - |
+#         for module in {{.ALL_MODULES}}; do \
+#           terraform -chdir=./modules/$module validate; \
+#         done; \
+#       - echo "Done running terraform validate"
+
+#   destroy:
+#     deps: [prompt]
+#     desc: terraform destroy
+#     prompt: "Are you sure you want to run this? It will destroy everything in {{.MODULES}}"
+#     cmds:
+#       - |
+#         echo "Starting terraform destroy": \
+#         for module in {{.MODULES}}: do \
+#           echo $module; \
+#           terraform -chdir=./modules/$module destroy; \
+#         done; \
+#         echo "Done running terraform destroy";
+
+#   prompt:
+#     desc: universal prompt
+#     prompt: Are you sure?
+
+#   documentation:
+#     deps: [prompt]
+#     desc: generate terraform documentation
+#     cmds:
+#       - |
+#         echo "# KC Terraform modules" > ./modules/README.md; \
+#         for module in {{.MODULES}}; do \
+#           echo "* [`basename $module`](`basename $module`/README.md)" >> ./modules/README.md; \
+#           echo "Generating docs for $module"; \
+#           terraform-docs  md table ./modules/$module > ./modules/$module/README.md; \
+#         done; \
+#         echo "## [Back](../README.md)" >> ./modules/README.md \
+
+
+version: '3'
 
 vars:
-  MODULES: 
-    sh: git show --name-only --oneline ${CIRCLE_SHA1} | awk -F"/" '/^modules\// {print $2}' | grep -v README | sort -u
+  # Determines which modules have changed compared to the main branch.
+  CHANGED_MODULES:
+    sh: git diff --name-only main... | awk -F'/' '/^modules\// {print $2}' | sort -u | tr '\n' ' '
+    
+  # Lists all available modules based on the modules/ directory.
   ALL_MODULES:
-    sh: for module in ./modules/**/main.tf; do echo $module | cut -d/ -f3 | tr "\n" " "; done
-
-env:
-  TF_DATA_DIR: ../.terraform
+    sh: find modules -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | tr '\n' ' '
 
 tasks:
-  show:
-    desc: show MODULES and ALL_MODULES
+  default:
+    desc: "Lists all available tasks."
     cmds:
-      - echo {{.MODULES}}
-      - echo {{.ALL_MODULES}}
+      - task --list-all
 
-  clean:
-    desc: Remove terraform build files
-    cmds:
-      - find . -name .terraform | xargs rm -rf;
+  # --- CI/CD TASKS (for changed modules) ---
 
-  init:
-    desc: terraform init on new module changes found in git
+  validate-changed:
+    desc: "Validates modules that have changed since the 'main' branch."
+    preconditions:
+      - sh: '[ -n "{{.CHANGED_MODULES}}" ]'
+        msg: "✅ No changed modules detected. Nothing to validate."
     cmds:
-      - |
-        echo "Starting terraform init"; \
-        for module in {{.MODULES}}; do \
-          echo $module; \
-          terraform -chdir=./modules/$module init; \
-        done; \
-        echo "Done running terraform init";
+      - for: { var: CHANGED_MODULES }
+        task: validate-module
+        vars:
+          module: '{{.ITEM}}'
 
-  init-all:
-    desc: terraform init on all modules
-    cmds:
-      - |
-        echo "Starting terraform init"; \
-        for module in {{.ALL_MODULES}}; do \
-          echo $module; \
-          terraform -chdir=./modules/$module init; \
-        done; \
-        echo "Done running terraform init"; 
-  
-  plan:
-    deps: [init]
-    desc: terraform plan on new module changes found in git
-    cmds:
-      - |
-        echo "Starting terraform plan"; \
-        for module in {{.MODULES}}; do \
-          echo $module; \
-          terraform -chdir=./modules/$module plan; \
-        done; \
-        echo "Done running terraform plan"; 
-
-  apply:
-    deps: [clean, init]
-    desc: terraform plan on new module changes found in git
-    cmds:
-      - |
-        echo "Starting terraform apply"; \
-        for module in {{.MODULES}}; do \
-          echo $module; \
-          terraform -chdir=./modules/$module apply; \
-        done; \
-        echo "Done running terraform plan";
-
-  fmt:
-    deps: [clean]
-    desc: terraform fmt check only
-    cmds:
-      - |
-        echo "Starting terraform fmt -check"; \
-        for module in {{.MODULES}}; do \
-          terraform -chdir=./modules/$module fmt -check=true -write=false -diff=true; \
-        done; \
-        echo "Done running terraform fmt"; 
-  
-  fmt-all:
-    deps: [clean]
-    desc: terraform fmt-all check only
-    cmds:
-      - echo "Starting terraform fmt -check";
-      - terraform fmt --recursive -check=true -write=false -diff=true;
-      - echo "Done running terraform fmt-all"; 
-  
-  fmt-all-write:
-    deps: [clean]
-    desc: terraform fmt-all write
-    cmds:
-      - echo "Starting terraform fmt";
-      - terraform fmt --recursive -write=true;
-      - echo "Done running terraform fmt-all-write"; 
-  
-  fmt-write:
-    deps: [clean]
-    desc: terraform fmt write
-    cmds:
-      - |
-        echo "Starting terraform fmt-write"; \
-        for module in {{.MODULES}}; do \
-          terraform -chdir=./modules/$module fmt -write=true; \
-        done; \
-        echo "Done running terraform fmt-write"; 
-
-  validate:
-    deps: [clean, init]
-    desc: Validates terraform code
-    cmds:
-      - echo "Running terraform validate"
-      - |
-        for module in {{.MODULES}}; do \
-          terraform -chdir=./modules/$module validate; \
-        done; \
-      - echo "Done running terraform validate"
+  # --- MANUAL TASKS ---
 
   validate-all:
-    deps: [clean, init-all]
-    desc: Validates all terraform modules
+    desc: "Validates all Terraform modules."
     cmds:
-      - echo "Running terraform validate"
-      - |
-        for module in {{.ALL_MODULES}}; do \
-          terraform -chdir=./modules/$module validate; \
-        done; \
-      - echo "Done running terraform validate"
+      - for: { var: ALL_MODULES }
+        task: validate-module
+        vars:
+          module: '{{.ITEM}}'
 
-  destroy:
-    deps: [prompt]
-    desc: terraform destroy
-    prompt: "Are you sure you want to run this? It will destroy everything in {{.MODULES}}"
+  # --- UTILITY & DOCUMENTATION TASKS ---
+
+  fmt:
+    desc: "Formats all Terraform files recursively."
     cmds:
-      - |
-        echo "Starting terraform destroy": \
-        for module in {{.MODULES}}: do \
-          echo $module; \
-          terraform -chdir=./modules/$module destroy; \
-        done; \
-        echo "Done running terraform destroy";
+      - terraform fmt -recursive
 
-  prompt:
-    desc: universal prompt
-    prompt: Are you sure?
+  clean:
+    desc: "Removes all Terraform cache (.terraform) files."
+    cmds:
+      - find . -type d -name ".terraform" -exec rm -rf {} +
 
   documentation:
-    deps: [prompt]
-    desc: generate terraform documentation
+    desc: "Generates READMEs for all modules and a master index."
+    prompt: "This will overwrite existing README files. Are you sure? [y/N]"
     cmds:
-      - |
-        echo "# KC Terraform modules" > ./modules/README.md; \
-        for module in {{.MODULES}}; do \
-          echo "* [`basename $module`](`basename $module`/README.md)" >> ./modules/README.md; \
-          echo "Generating docs for $module"; \
-          terraform-docs  md table ./modules/$module > ./modules/$module/README.md; \
-        done; \
-        echo "## [Back](../README.md)" >> ./modules/README.md \
+      - echo "# Terraform Modules" > ./modules/README.md
+      - for: { var: ALL_MODULES }
+        task: doc-module
+        vars:
+          MODULE: '{{.ITEM}}'
+      - echo "## [Back](../README.md)" >> ./modules/README.md
 
+  # --- INTERNAL HELPER TASKS ---
 
+  init-module:
+    internal: true
+    cmds:
+      - 'echo "--- Initializing: {{.module}} ---"'
+      - terraform -chdir=./modules/{{.module}}/ init
+    requires:
+      vars: [module]
 
-          
+  validate-module:
+    internal: true
+    deps:
+      - task: init-module
+        vars: { module: "{{.module}}" }
+    cmds:
+      - 'echo "--- Validating: {{.module}} ---"'
+      - terraform -chdir=./modules/{{.module}}/ validate
+    requires:
+      vars: [module]
+
+  doc-module:
+    internal: true
+    cmds:
+      - echo "* [{{.MODULE}}](./{{.MODULE}}/README.md)" >> ./modules/README.md
+      - terraform-docs md table ./modules/{{.MODULE}} > ./modules/{{.MODULE}}/README.md
+    requires:
+      vars: [MODULE]

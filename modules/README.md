@@ -1,11 +1,12 @@
-# KC Terraform modules
-* [ec2](ec2/README.md)
-* [ecr](ecr/README.md)
-* [internet-gateway](internet-gateway/README.md)
-* [public-subnet](public-subnet/README.md)
-* [remote-state](remote-state/README.md)
-* [route-table](route-table/README.md)
-* [vpc](vpc/README.md)
-
+# Terraform Modules
+* [route-table](./route-table/README.md)
+* [internet-gateway](./internet-gateway/README.md)
+* [remote-state](./remote-state/README.md)
+* [route53_zone](./route53_zone/README.md)
+* [vpc](./vpc/README.md)
+* [ec2](./ec2/README.md)
+* [s3-static-site](./s3-static-site/README.md)
+* [ecr](./ecr/README.md)
+* [cloudfront](./cloudfront/README.md)
+* [public-subnet](./public-subnet/README.md)
 ## [Back](../README.md)
-

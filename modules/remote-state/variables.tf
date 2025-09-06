@@ -117,7 +117,7 @@ variable "lifecycle_rules" {
     noncurrent_version_transitions = optional(list(object({
       noncurrent_days = number
       storage_class   = string
-      })), [])
+    })), [])
   }))
   default = [
     {
