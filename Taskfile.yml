@@ -226,7 +226,37 @@ tasks:
           MODULE: '{{.ITEM}}'
       - echo "## [Back](../README.md)" >> ./modules/README.md
 
+  doc-root:
+    desc: "Generates the root README.md file with a dynamic list of modules."
+    prompt: "This will overwrite the root README.md file. Are you sure? [y/N]"
+    cmds:
+      - task: doc-root-header
+      - for: { var: ALL_MODULES }
+        task: doc-root-module-link
+        vars:
+          MODULE: '{{.ITEM}}'
+      - task: doc-root-footer
+  
+
   # --- INTERNAL HELPER TASKS ---
+
+  doc-root-header:
+    internal: true
+    cmds:
+      - |
+        echo -e "# Terraform AWS Modules\n\nThis repository contains a collection of reusable, production-ready Terraform modules for provisioning infrastructure on Amazon Web Services (AWS). Each module is designed to be a focused, configurable, and self-contained unit of infrastructure.\n\nThe primary goal of this repository is to enforce consistency, follow best practices, and accelerate the process of building new services.\n\n## Available Modules\n\nBelow is a list of the modules available in this repository. For detailed information on the inputs, outputs, and usage of a specific module, please refer to the \`README.md\` file within its directory." > README.md
+
+  doc-root-module-link:
+    internal: true
+    cmd: 'echo -e "* [\`{{.MODULE}}\`](./modules/{{.MODULE}}/README.md)" >> README.md'
+    requires:
+      vars: [MODULE]
+  
+  doc-root-footer:
+    internal: true
+    cmds:
+      - |
+        echo -e "\n## Usage\n\nThese modules are intended to be consumed by other Terraform projects (like a services repository). You can use them by referencing their path directly in your service's Terraform code.\n\n### Example: Creating a Static Website\n\n\`\`\`hcl\n# In a service's main.tf file\n\n# 1. Look up the existing DNS zone\ndata \"aws_route53_zone\" \"this\" {\n  name = \"example.com\"\n}\n\n# 2. Provision the S3 bucket for the site content\nmodule \"s3_site\" {\n  source      = \"../../terraform-modules/modules/s3-static-site\"\n  bucket_name = \"www.example.com\"\n  tags        = { Environment = \"production\" }\n}\n\n# 3. Provision the CloudFront distribution\nmodule \"cloudfront\" {\n  source                  = \"../../terraform-modules/modules/cloudfront\"\n  s3_origin_domain_name   = module.s3_site.website_endpoint\n  s3_origin_id            = module.s3_site.bucket_id\n  domain_name             = \"example.com\"\n  acm_certificate_arn     = \"arn:aws:acm:us-east-1:123456789012:certificate/your-cert-id\"\n}\n\n# 4. Create the DNS records\nmodule \"dns_records\" {\n  source        = \"../../terraform-modules/modules/route53-record\"\n  zone_id       = data.aws_route53_zone.this.zone_id\n  domain_name   = \"example.com\"\n  record_names  = [\"@\", \"www\"]\n  \n  alias_name    = module.cloudfront.domain_name\n  alias_zone_id = module.cloudfront.hosted_zone_id\n}\n\`\`\`\n\n## Development and Maintenance\n\nThis repository uses [Task](https://taskfile.dev/) for automation and quality control. The following commands are available for module development:\n\n* \`task fmt\`: Formats all Terraform code in the repository.\n* \`task validate-all\`: Initializes and validates every module to ensure its syntax is correct.\n* \`task documentation\`: Automatically generates or updates the \`README.md\` for all modules using \`terraform-docs\`.\n\nTo see a full list of available commands, run \`task --list-all\`." >> README.md
 
   init-module:
     internal: true
