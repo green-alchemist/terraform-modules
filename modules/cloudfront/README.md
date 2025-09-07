@@ -17,16 +17,14 @@ No modules.
 | Name | Type |
 |------|------|
 | [aws_cloudfront_distribution.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudfront_distribution) | resource |
-| [aws_route53_record.apex](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route53_record) | resource |
-| [aws_route53_record.www](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route53_record) | resource |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_acm_certificate_arn"></a> [acm\_certificate\_arn](#input\_acm\_certificate\_arn) | The ARN of the ACM SSL certificate. | `string` | n/a | yes |
-| <a name="input_domain_name"></a> [domain\_name](#input\_domain\_name) | The custom domain name for the website (e.g., kconley.com). | `string` | n/a | yes |
-| <a name="input_route53_zone_id"></a> [route53\_zone\_id](#input\_route53\_zone\_id) | The ID of the Route 53 hosted zone for the domain. | `string` | n/a | yes |
+| <a name="input_domain_aliases"></a> [domain\_aliases](#input\_domain\_aliases) | A list of alternate domain names (CNAMEs) for the distribution. | `list(string)` | `[]` | no |
+| <a name="input_domain_name"></a> [domain\_name](#input\_domain\_name) | The primary custom domain name for the website (e.g., kconley.com). | `string` | n/a | yes |
 | <a name="input_s3_origin_domain_name"></a> [s3\_origin\_domain\_name](#input\_s3\_origin\_domain\_name) | The S3 bucket website endpoint. | `string` | n/a | yes |
 | <a name="input_s3_origin_id"></a> [s3\_origin\_id](#input\_s3\_origin\_id) | The S3 bucket ID, to be used as the CloudFront origin ID. | `string` | n/a | yes |
 | <a name="input_tags"></a> [tags](#input\_tags) | A map of tags to apply to resources. | `map(string)` | `{}` | no |
