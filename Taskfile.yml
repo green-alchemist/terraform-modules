@@ -163,8 +163,14 @@ version: '3'
 vars:
   # Determines which modules have changed compared to the main branch.
   CHANGED_MODULES:
-    sh: git diff --name-only master... | awk -F'/' '/^modules\// {print $2}' | sort -u | tr '\n' ' '
-    
+    sh: |
+      set -o pipefail
+      if [ -n "$CIRCLE_SHA1" ]; then
+        git diff-tree --no-commit-id --name-only -r "$CIRCLE_SHA1" | awk -F'/' '/^modules\// {print $2}' | sort -u | while read -r module; do if [ -d "modules/$module" ]; then echo "$module"; fi; done | tr '\n' ' '
+      else
+        git diff --name-only master... | awk -F'/' '/^modules\// {print $2}' | sort -u | while read -r module; do if [ -d "modules/$module" ]; then echo "$module"; fi; done | tr '\n' ' '
+      fi
+
   # Lists all available modules based on the modules/ directory.
   ALL_MODULES:
     sh: find modules -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | tr '\n' ' '
