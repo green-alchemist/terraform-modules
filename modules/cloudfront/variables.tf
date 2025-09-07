@@ -1,6 +1,12 @@
 variable "domain_name" {
-  description = "The custom domain name for the website (e.g., kconley.com)."
+  description = "The primary custom domain name for the website (e.g., kconley.com)."
   type        = string
+}
+
+variable "domain_aliases" {
+  description = "A list of alternate domain names (CNAMEs) for the distribution."
+  type        = list(string)
+  default     = []
 }
 
 variable "s3_origin_domain_name" {
@@ -10,11 +16,6 @@ variable "s3_origin_domain_name" {
 
 variable "s3_origin_id" {
   description = "The S3 bucket ID, to be used as the CloudFront origin ID."
-  type        = string
-}
-
-variable "route53_zone_id" {
-  description = "The ID of the Route 53 hosted zone for the domain."
   type        = string
 }
 
