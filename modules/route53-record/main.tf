@@ -5,8 +5,8 @@ resource "aws_route53_record" "this" {
 
   zone_id = var.zone_id
   # If the name is "@", use the apex domain name. Otherwise, create a subdomain.
-  name    = each.value == "@" ? var.domain_name : "${each.value}.${var.domain_name}"
-  type    = "A"
+  name = each.value == "@" ? var.domain_name : "${each.value}.${var.domain_name}"
+  type = "A"
 
   alias {
     name                   = var.alias_name
