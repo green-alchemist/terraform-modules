@@ -6,6 +6,7 @@
 * [vpc](./vpc/README.md)
 * [ec2](./ec2/README.md)
 * [s3-redirect](./s3-redirect/README.md)
+* [acm_certificate](./acm_certificate/README.md)
 * [s3-static-site](./s3-static-site/README.md)
 * [ecr](./ecr/README.md)
 * [cloudfront](./cloudfront/README.md)
