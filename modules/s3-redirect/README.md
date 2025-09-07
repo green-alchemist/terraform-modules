@@ -26,7 +26,7 @@ No modules.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_bucket_name"></a> [bucket\_name](#input\_bucket\_name) | The source domain name that will be redirected (e.g., kconley.com). | `string` | n/a | yes |
-| <a name="input_redirect_hostname"></a> [redirect\_hostname](#input\_redirect\_hostname) | The target hostname to which requests will be redirected (e.g., portfolio.kconley.com). | `string` | n/a | yes |
+| <a name="input_redirect_target_hostname"></a> [redirect\_target\_hostname](#input\_redirect\_target\_hostname) | The target hostname to which requests will be redirected (e.g., portfolio.kconley.com). | `string` | n/a | yes |
 | <a name="input_tags"></a> [tags](#input\_tags) | A map of tags to apply to the bucket. | `map(string)` | `{}` | no |
 
 ## Outputs

@@ -1,5 +1,3 @@
-# main.tf for CloudFront Module
-
 resource "aws_cloudfront_distribution" "this" {
   origin {
     domain_name = var.s3_origin_domain_name
@@ -10,7 +8,8 @@ resource "aws_cloudfront_distribution" "this" {
   is_ipv6_enabled     = true
   default_root_object = "index.html"
 
-  aliases = [var.domain_name, "www.${var.domain_name}"]
+  # Use the new variable for aliases instead of a hardcoded list.
+  aliases = var.domain_aliases
 
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD"]
@@ -42,28 +41,4 @@ resource "aws_cloudfront_distribution" "this" {
   }
 
   tags = var.tags
-}
-
-resource "aws_route53_record" "www" {
-  zone_id = var.route53_zone_id
-  name    = "www.${var.domain_name}"
-  type    = "A"
-
-  alias {
-    name                   = aws_cloudfront_distribution.this.domain_name
-    zone_id                = aws_cloudfront_distribution.this.hosted_zone_id
-    evaluate_target_health = false
-  }
-}
-
-resource "aws_route53_record" "apex" {
-  zone_id = var.route53_zone_id
-  name    = var.domain_name
-  type    = "A"
-
-  alias {
-    name                   = aws_cloudfront_distribution.this.domain_name
-    zone_id                = aws_cloudfront_distribution.this.hosted_zone_id
-    evaluate_target_health = false
-  }
 }
