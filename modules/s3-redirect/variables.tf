@@ -3,7 +3,7 @@ variable "bucket_name" {
   type        = string
 }
 
-variable "redirect_hostname" {
+variable "redirect_target_hostname" {
   description = "The target hostname to which requests will be redirected (e.g., portfolio.kconley.com)."
   type        = string
 }
