@@ -163,13 +163,18 @@ version: '3'
 vars:
   # Determines which modules have changed compared to the main branch.
   CHANGED_MODULES:
-    sh: git diff --name-only main... | awk -F'/' '/^modules\// {print $2}' | sort -u | tr '\n' ' '
+    sh: git diff --name-only master... | awk -F'/' '/^modules\// {print $2}' | sort -u | tr '\n' ' '
     
   # Lists all available modules based on the modules/ directory.
   ALL_MODULES:
     sh: find modules -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | tr '\n' ' '
 
 tasks:
+  print:
+    desc: Print changed
+    cmds:
+      - 'echo "Changed modules: {{.CHANGED_MODULES}}"'
+
   default:
     desc: "Lists all available tasks."
     cmds:
