@@ -36,6 +36,11 @@ variable "container_port" {
   default     = 1337
 }
 
+variable "container_name" {
+  description = "The name of the container."
+  type        = string
+}
+
 variable "desired_count" {
   description = "The number of instances of the task to run."
   type        = number
