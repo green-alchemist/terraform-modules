@@ -45,7 +45,6 @@ jobs:
           command: |
             # Run both tasks to stage changes
             task fmt
-            task init-all
             task docs
       - run:
           name: "Commit and Push to a new branch"
