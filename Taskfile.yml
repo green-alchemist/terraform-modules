@@ -176,6 +176,10 @@ vars:
     sh: find modules -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | tr '\n' ' '
 
 tasks:
+  fetch-merge:
+    desc: git fetch and merge
+    cmds:
+      - 'git fetch && git merge origin/master'
   print:
     desc: Print changed
     cmds:
