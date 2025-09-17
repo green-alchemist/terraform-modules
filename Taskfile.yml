@@ -234,6 +234,17 @@ tasks:
         task: validate-module
         vars:
           module: '{{.ITEM}}'
+  
+  check-docs:
+    desc: "Checks if the committed documentation is up-to-date."
+    cmds:
+      - task: documentation
+      - |
+        if ! git diff --quiet --exit-code; then
+          echo "Documentation is out of date. Please run 'task documentation' and commit the changes."
+          git diff
+          exit 1
+        fi
 
   # --- MANUAL TASKS ---
 
