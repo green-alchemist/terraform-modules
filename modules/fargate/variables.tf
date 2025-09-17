@@ -67,3 +67,13 @@ variable "environment_variables" {
   type        = map(string)
   default     = {}
 }
+
+variable "load_balancers" {
+  description = "A list of load balancer configurations to attach to the service."
+  type = list(object({
+    target_group_arn = string
+    container_name   = string
+    container_port   = number
+  }))
+  default = []
+}

@@ -39,6 +39,17 @@ resource "aws_ecs_service" "this" {
     subnets         = var.subnet_ids
     security_groups = var.security_group_ids
   }
+
+  # This dynamic block will create the necessary configuration
+  # based on the variable we just defined.
+  dynamic "load_balancer" {
+    for_each = var.load_balancers
+    content {
+      target_group_arn = load_balancer.value.target_group_arn
+      container_name   = load_balancer.value.container_name
+      container_port   = load_balancer.value.container_port
+    }
+  }
 }
 
 resource "aws_cloudwatch_log_group" "this" {
