@@ -61,7 +61,7 @@ jobs:
             sudo sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
       - run:
           name: "Generate documentation"
-          command: task documentation
+          command: task docs
       - run:
           name: "Commit and push documentation changes"
           command: |
