@@ -123,7 +123,7 @@ variable "lifecycle_rules" {
     {
       id                                 = "main"
       enabled                            = true
-      prefix                             = "" 
+      prefix                             = ""
       noncurrent_version_expiration_days = 90
       noncurrent_version_transitions = [
         {

@@ -145,8 +145,16 @@ tasks:
 
   doc-root:
     desc: "Generates the root README.md file with a dynamic list of modules."
-    prompt: "This will overwrite the root README.md file. Are you sure? [y/N]"
     cmds:
+      - |
+        if test {{.IS_CI}} = false; then
+          printf "This will overwrite existing README files. Are you sure? [y/N] "
+          read -r answer
+          if [ "$answer" != "y" ] && [ "$answer" != "Y" ]; then
+            echo "Aborted."
+            exit 1
+          fi
+        fi
       - task: doc-root-header
       - for: { var: ALL_MODULES }
         task: doc-root-module-link
