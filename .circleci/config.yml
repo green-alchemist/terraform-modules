@@ -42,14 +42,13 @@ jobs:
           name: "Check Terraform formatting"
           command: terraform fmt -check -recursive
           
-  check_documentation:
+  update_documentation:
     docker:
       - image: cimg/base:stable
     steps:
       - checkout
-      # This step installs the terraform CLI itself
+      - add_ssh_keys # This step is crucial for allowing git push
       - terraform/install
-      # This step downloads and installs the terraform-docs binary
       - run:
           name: "Install terraform-docs"
           command: |
@@ -61,12 +60,32 @@ jobs:
           command: |
             sudo sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
       - run:
-          name: "Check if documentation is up-to-date"
-          command: task check-docs
+          name: "Generate documentation"
+          command: task documentation
+      - run:
+          name: "Commit and push documentation changes"
+          command: |
+            # Check if there are any changes to commit
+            if ! git diff --quiet --exit-code; then
+              echo "Documentation changes detected. Committing and pushing..."
+              # Configure git
+              git config user.email "ci-bot@circleci.com"
+              git config user.name "CI Bot"
+              
+              # Add, commit, and push the changes
+              git add .
+              git commit -m "docs: auto-generate and commit documentation"
+              git push origin HEAD
+            else
+              echo "Documentation is already up-to-date."
+            fi
 
 workflows:
   quality_gate:
     jobs:
       - validate_modules
       - check_formatting
-      - check_documentation
+      - update_documentation:
+          requires:
+            - validate_modules
+            - check_formatting
