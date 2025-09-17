@@ -44,7 +44,8 @@ jobs:
           name: "Apply Formatting and Generate Documentation"
           command: |
             # Run both tasks to stage changes
-            terraform fmt -recursive
+            task fmt
+            task init-all
             task docs
       - run:
           name: "Commit and Push to a new branch"
