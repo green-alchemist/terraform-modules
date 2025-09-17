@@ -47,7 +47,10 @@ jobs:
       - image: cimg/base:stable
     steps:
       - checkout
-      - add_ssh_keys # This step is crucial for allowing git push
+      # Use the 'fingerprints' key to specify which SSH key to add.
+      - add_ssh_keys:
+          fingerprints:
+            - "SHA256:bkQH09jqZGp8553/sWkJr/UNdkVviaWsXiI4jKwliCU"
       - terraform/install
       - run:
           name: "Install terraform-docs"
@@ -68,9 +71,9 @@ jobs:
             # Check if there are any changes to commit
             if ! git diff --quiet --exit-code; then
               echo "Documentation changes detected. Committing and pushing..."
-              # Configure git
-              git config user.email "ci-bot@circleci.com"
-              git config user.name "CI Bot"
+              # Configure git with your bot's identity for clear attribution
+              git config user.email "green-alchemist-bot@users.noreply.github.com"
+              git config user.name "green-alchemist-bot"
               
               # Add, commit, and push the changes
               git add .
