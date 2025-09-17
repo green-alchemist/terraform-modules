@@ -10,6 +10,7 @@ Below is a list of the modules available in this repository. For detailed inform
 * [`route-table`](./modules/route-table/README.md)
 * [`internet-gateway`](./modules/internet-gateway/README.md)
 * [`route53-zone`](./modules/route53-zone/README.md)
+* [`alb`](./modules/alb/README.md)
 * [`remote-state`](./modules/remote-state/README.md)
 * [`fargate`](./modules/fargate/README.md)
 * [`vpc`](./modules/vpc/README.md)

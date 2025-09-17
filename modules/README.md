@@ -2,6 +2,7 @@
 * [route-table](./route-table/README.md)
 * [internet-gateway](./internet-gateway/README.md)
 * [route53-zone](./route53-zone/README.md)
+* [alb](./alb/README.md)
 * [remote-state](./remote-state/README.md)
 * [fargate](./fargate/README.md)
 * [vpc](./vpc/README.md)
