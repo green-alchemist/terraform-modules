@@ -34,4 +34,5 @@ No modules.
 | Name | Description |
 |------|-------------|
 | <a name="output_domain_name"></a> [domain\_name](#output\_domain\_name) | The domain name of the CloudFront distribution. |
+| <a name="output_hosted_zone_id"></a> [hosted\_zone\_id](#output\_hosted\_zone\_id) | The hosted zone ID of the CloudFront distribution. |
 | <a name="output_id"></a> [id](#output\_id) | The ID of the CloudFront distribution. |
