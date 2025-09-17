@@ -161,6 +161,13 @@
 version: '3'
 
 vars:
+  LOCAL_CHANGES:
+    sh: git diff --name-only HEAD | awk -F'/' '/^modules\// {print $2}' | sort -u | tr '\n' ' '
+  UNPUSHED_COMMITS:
+    sh: git diff --name-only origin/{{.CURRENT_BRANCH}}...HEAD | awk -F'/' '/^modules\// {print $2}' | sort -u | tr '\n' ' '
+
+  CURRENT_BRANCH:
+    sh: git rev-parse --abbrev-ref HEAD
   # Determines which modules have changed compared to the main branch.
   CHANGED_MODULES:
     sh: |
@@ -184,6 +191,9 @@ tasks:
     desc: Print changed
     cmds:
       - 'echo "Changed modules: {{.CHANGED_MODULES}}"'
+      - 'echo "Current branch: "{{.CURRENT_BRANCH}}""'
+      - 'echo "Local Chanegs: {{.LOCAL_CHANGES}}"'
+      - 'echo "Unpushued Changes: {{.UNPUSHED_COMMITS}}"'
 
   default:
     desc: "Lists all available tasks."
@@ -191,6 +201,28 @@ tasks:
       - task --list-all
 
   # --- CI/CD TASKS (for changed modules) ---
+
+  validate-local:
+    desc: "Validates modules with uncommitted local changes."
+    preconditions:
+      - sh: '[ -n "{{.LOCAL_CHANGES}}" ]'
+        msg: "✅ No uncommitted local changes detected in any modules."
+    cmds:
+      - for: { var: LOCAL_CHANGES }
+        task: validate-module
+        vars:
+          module: '{{.ITEM}}'
+
+  validate-unpushed:
+    desc: "Validates modules with committed but unpushed changes."
+    preconditions:
+      - sh: '[ -n "{{.UNPUSHED_COMMITS}}" ]'
+        msg: "✅ No unpushed commits detected in any modules."
+    cmds:
+      - for: { var: UNPUSHED_COMMITS }
+        task: validate-module
+        vars:
+          module: '{{.ITEM}}'
 
   validate-changed:
     desc: "Validates modules that have changed since the 'main' branch."
