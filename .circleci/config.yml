@@ -1,0 +1,53 @@
+version: 2.1
+
+orbs:
+  terraform: circleci/terraform@3.2.0
+
+jobs:
+  validate_modules:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - terraform/install
+      - run:
+          name: "Install Task"
+          command: |
+            sudo sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+      - run:
+          name: "Validate changed modules"
+          command: task validate-changed
+  
+  check_formatting:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - terraform/install
+      - run:
+          name: "Check Terraform formatting"
+          command: terraform fmt -check -recursive
+          
+  check_documentation:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - terraform/install
+      - run:
+          name: "Install terraform-docs"
+          # Add installation steps for terraform-docs here
+      - run:
+          name: "Install Task"
+          command: |
+            sudo sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+      - run:
+          name: "Check if documentation is up-to-date"
+          command: task check-docs
+
+workflows:
+  quality_gate:
+    jobs:
+      - validate_modules
+      - check_formatting
+      - check_documentation
