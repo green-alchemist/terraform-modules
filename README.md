@@ -11,13 +11,18 @@ Below is a list of the modules available in this repository. For detailed inform
 * [`internet-gateway`](./modules/internet-gateway/README.md)
 * [`route53-zone`](./modules/route53-zone/README.md)
 * [`remote-state`](./modules/remote-state/README.md)
+* [`fargate`](./modules/fargate/README.md)
 * [`vpc`](./modules/vpc/README.md)
 * [`ec2`](./modules/ec2/README.md)
+* [`ecs-task-execution-role`](./modules/ecs-task-execution-role/README.md)
 * [`s3-redirect`](./modules/s3-redirect/README.md)
+* [`acm_certificate`](./modules/acm_certificate/README.md)
 * [`s3-static-site`](./modules/s3-static-site/README.md)
 * [`ecr`](./modules/ecr/README.md)
 * [`cloudfront`](./modules/cloudfront/README.md)
+* [`security-group`](./modules/security-group/README.md)
 * [`public-subnet`](./modules/public-subnet/README.md)
+* [`aurora-serverless`](./modules/aurora-serverless/README.md)
 * [`route53-record`](./modules/route53-record/README.md)
 
 ## Usage
