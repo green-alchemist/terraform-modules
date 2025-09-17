@@ -275,7 +275,7 @@ tasks:
     cmds:
       # This single command handles the interactive prompt.
       - |
-        if test -t !{{.IS_CI}}; then
+        if test {{.IS_CI}} = false; then
           printf "This will overwrite existing README files. Are you sure? [y/N] "
           read -r answer
           if [ "$answer" != "y" ] && [ "$answer" != "Y" ]; then
