@@ -16,8 +16,7 @@ jobs:
       - add_ssh_keys:
           fingerprints:
             - "SHA256:bkQH09jqZGp8553/sWkJr/UNdkVviaWsXiI4jKwliCU"
-      - terraform/install:
-          version: "1.13.3"
+      - terraform/install
       - run:
           name: "Install terraform-docs"
           command: |
