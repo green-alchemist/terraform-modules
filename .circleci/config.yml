@@ -3,6 +3,10 @@ version: 2.1
 orbs:
   terraform: circleci/terraform@3.2.0
 
+vars:
+  IS_CI:
+    sh: 'test -n "$CI" && echo "true" || echo "false"'
+
 jobs:
   validate_modules:
     docker:
@@ -16,7 +20,17 @@ jobs:
             sudo sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
       - run:
           name: "Validate changed modules"
-          command: task validate-changed
+          # This command will first determine if there are changes.
+          # If the CHANGED_MODULES variable is empty, the `if` condition will be false
+          # and the job will succeed without running the validation task.
+          command: |
+            CHANGED_MODULES=$(git diff-tree --no-commit-id --name-only -r "$CIRCLE_SHA1" | awk -F'/' '/^modules\// {print $2}' | sort -u | tr '\n' ' ')
+            if [ -n "$CHANGED_MODULES" ]; then
+              echo "Changes detected in modules: $CHANGED_MODULES"
+              task validate-changed
+            else
+              echo "No changes detected in any modules. Skipping validation."
+            fi
   
   check_formatting:
     docker:

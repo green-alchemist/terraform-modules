@@ -161,13 +161,15 @@
 version: '3'
 
 vars:
+  CURRENT_BRANCH:
+    sh: git rev-parse --abbrev-ref HEAD
   LOCAL_CHANGES:
     sh: git diff --name-only HEAD | awk -F'/' '/^modules\// {print $2}' | sort -u | tr '\n' ' '
   UNPUSHED_COMMITS:
     sh: git diff --name-only origin/{{.CURRENT_BRANCH}}...HEAD | awk -F'/' '/^modules\// {print $2}' | sort -u | tr '\n' ' '
+  IS_CI:
+    sh: 'test -n "$CIRCLECI" && echo "true" || echo "false"'
 
-  CURRENT_BRANCH:
-    sh: git rev-parse --abbrev-ref HEAD
   # Determines which modules have changed compared to the main branch.
   CHANGED_MODULES:
     sh: |
@@ -270,14 +272,28 @@ tasks:
 
   docs:
     desc: "Generates READMEs for all modules and a master index."
-    prompt: "This will overwrite existing README files. Are you sure? [y/N]"
     cmds:
+      # This single command handles the interactive prompt.
+      - |
+        if test -t 1; then
+          printf "This will overwrite existing README files. Are you sure? [y/N] "
+          read -r answer
+          if [ "$answer" != "y" ] && [ "$answer" != "Y" ]; then
+            echo "Aborted."
+            exit 1
+          fi
+        fi
       - echo "# Terraform Modules" > ./modules/README.md
       - for: { var: ALL_MODULES }
         task: doc-module
         vars:
           MODULE: '{{.ITEM}}'
       - echo "## [Back](../README.md)" >> ./modules/README.md
+
+  # --- Add this new internal helper task ---
+  _prompt-confirm:
+    internal: true
+    prompt: "This will overwrite existing README files. Are you sure? [y/N]"
 
   doc-root:
     desc: "Generates the root README.md file with a dynamic list of modules."
