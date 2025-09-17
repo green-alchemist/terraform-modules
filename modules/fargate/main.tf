@@ -55,3 +55,54 @@ resource "aws_ecs_service" "this" {
 resource "aws_cloudwatch_log_group" "this" {
   name = "/ecs/${var.task_family}"
 }
+
+resource "aws_appautoscaling_target" "this" {
+  count              = var.enable_autoscaling ? 1 : 0
+  min_capacity       = var.min_tasks
+  max_capacity       = var.max_tasks
+  resource_id        = "service/${var.cluster_name}/${var.service_name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+# This policy tells the service how to scale UP
+resource "aws_appautoscaling_policy" "scale_up" {
+  count              = var.enable_autoscaling ? 1 : 0
+  name               = "${var.service_name}-scale-up"
+  policy_type        = "StepScaling"
+  resource_id        = aws_appautoscaling_target.this[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.this[0].service_namespace
+
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 60
+    metric_aggregation_type = "Average"
+
+    step_adjustment {
+      metric_interval_lower_bound = 0
+      scaling_adjustment          = 1
+    }
+  }
+}
+
+# This policy tells the service how to scale DOWN
+resource "aws_appautoscaling_policy" "scale_down" {
+  count              = var.enable_autoscaling ? 1 : 0
+  name               = "${var.service_name}-scale-down"
+  policy_type        = "StepScaling"
+  resource_id        = aws_appautoscaling_target.this[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.this[0].service_namespace
+
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 60
+    metric_aggregation_type = "Average"
+
+    step_adjustment {
+      metric_interval_upper_bound = 0
+      scaling_adjustment          = -1
+    }
+  }
+}

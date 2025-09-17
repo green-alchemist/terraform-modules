@@ -77,3 +77,21 @@ variable "load_balancers" {
   }))
   default = []
 }
+
+variable "enable_autoscaling" {
+  description = "If true, enables auto-scaling for the Fargate service."
+  type        = bool
+  default     = true
+}
+
+variable "min_tasks" {
+  description = "The minimum number of tasks for auto-scaling."
+  type        = number
+  default     = 0
+}
+
+variable "max_tasks" {
+  description = "The maximum number of tasks for auto-scaling."
+  type        = number
+  default     = 1
+}
