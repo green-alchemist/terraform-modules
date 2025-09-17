@@ -1,5 +1,5 @@
 # Creates the private link between API Gateway and your VPC
-resource "aws_vpc_link" "this" {
+resource "aws_apigatewayv2_vpc_link" "this" {
   name               = "${var.name}-vpc-link"
   security_group_ids = var.security_group_ids
   subnet_ids         = var.subnet_ids
@@ -36,3 +36,4 @@ resource "aws_apigatewayv2_stage" "this" {
   name        = var.stage_name
   auto_deploy = true
 }
+
