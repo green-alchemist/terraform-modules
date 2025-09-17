@@ -33,10 +33,15 @@ jobs:
       - image: cimg/base:stable
     steps:
       - checkout
+      # This step installs the terraform CLI itself
       - terraform/install
+      # This step downloads and installs the terraform-docs binary
       - run:
           name: "Install terraform-docs"
-          # Add installation steps for terraform-docs here
+          command: |
+            curl -Lo ./terraform-docs.tar.gz https://github.com/terraform-docs/terraform-docs/releases/download/v0.16.0/terraform-docs-v0.16.0-linux-amd64.tar.gz
+            tar -xzf terraform-docs.tar.gz
+            sudo mv terraform-docs /usr/local/bin/
       - run:
           name: "Install Task"
           command: |
