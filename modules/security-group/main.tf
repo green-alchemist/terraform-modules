@@ -6,11 +6,11 @@ resource "aws_security_group" "this" {
   dynamic "ingress" {
     for_each = var.ingress_rules
     content {
-      from_port       = ingress.value.from_port
-      to_port         = ingress.value.to_port
-      protocol        = ingress.value.protocol
+      from_port = ingress.value.from_port
+      to_port   = ingress.value.to_port
+      protocol  = ingress.value.protocol
       # Use try() to gracefully handle rules that don't define cidr_blocks
-      cidr_blocks     = try(ingress.value.cidr_blocks, null)
+      cidr_blocks = try(ingress.value.cidr_blocks, null)
       # Use try() to gracefully handle rules that don't define security_groups
       security_groups = try(ingress.value.security_groups, null)
     }

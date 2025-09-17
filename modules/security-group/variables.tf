@@ -17,9 +17,9 @@ variable "vpc_id" {
 variable "ingress_rules" {
   description = "A list of ingress rules to apply to the security group."
   type = list(object({
-    from_port       = number
-    to_port         = number
-    protocol        = string
+    from_port = number
+    to_port   = number
+    protocol  = string
     # One of the following two is required
     cidr_blocks     = optional(list(string))
     security_groups = optional(list(string))
@@ -30,9 +30,9 @@ variable "ingress_rules" {
 variable "egress_rules" {
   description = "A list of egress rules to apply to the security group."
   type = list(object({
-    from_port       = number
-    to_port         = number
-    protocol        = string
+    from_port = number
+    to_port   = number
+    protocol  = string
     # One of the following two is required
     cidr_blocks     = optional(list(string))
     security_groups = optional(list(string))
