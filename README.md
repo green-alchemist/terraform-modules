@@ -7,6 +7,7 @@ The primary goal of this repository is to enforce consistency, follow best pract
 ## Available Modules
 
 Below is a list of the modules available in this repository. For detailed information on the inputs, outputs, and usage of a specific module, please refer to the `README.md` file within its directory.
+* [`api-gateway`](./modules/api-gateway/README.md)
 * [`route-table`](./modules/route-table/README.md)
 * [`internet-gateway`](./modules/internet-gateway/README.md)
 * [`route53-zone`](./modules/route53-zone/README.md)

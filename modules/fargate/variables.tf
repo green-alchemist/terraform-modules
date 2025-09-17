@@ -81,7 +81,7 @@ variable "load_balancers" {
 variable "enable_autoscaling" {
   description = "If true, enables auto-scaling for the Fargate service."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "min_tasks" {
@@ -94,4 +94,21 @@ variable "max_tasks" {
   description = "The maximum number of tasks for auto-scaling."
   type        = number
   default     = 1
+}
+
+variable "enable_service_discovery" {
+  description = "If true, registers the service with AWS Cloud Map."
+  type        = bool
+  default     = false
+}
+
+variable "private_dns_namespace" {
+  description = "The name of the private DNS namespace (e.g., 'internal')."
+  type        = string
+  default     = "internal"
+}
+
+variable "vpc_id" {
+  description = "The ID of the VPC to deploy the service into."
+  type        = string
 }

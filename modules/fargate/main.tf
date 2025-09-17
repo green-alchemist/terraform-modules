@@ -50,6 +50,9 @@ resource "aws_ecs_service" "this" {
       container_port   = load_balancer.value.container_port
     }
   }
+  service_registries {
+    registry_arn = var.enable_service_discovery ? aws_service_discovery_service.this[0].arn : null
+  }
 }
 
 resource "aws_cloudwatch_log_group" "this" {
@@ -103,6 +106,27 @@ resource "aws_appautoscaling_policy" "scale_down" {
     step_adjustment {
       metric_interval_upper_bound = 0
       scaling_adjustment          = -1
+    }
+  }
+}
+
+# Create a private DNS namespace for service discovery (e.g., ".internal")
+resource "aws_service_discovery_private_dns_namespace" "this" {
+  count = var.enable_service_discovery ? 1 : 0
+  name  = var.private_dns_namespace
+  vpc   = var.vpc_id
+}
+
+# Register the ECS service with the DNS namespace
+resource "aws_service_discovery_service" "this" {
+  count = var.enable_service_discovery ? 1 : 0
+  name  = var.service_name
+
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.this[0].id
+    dns_records {
+      ttl  = 10
+      type = "A"
     }
   }
 }
