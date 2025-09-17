@@ -54,7 +54,7 @@ jobs:
             task fmt
             task init-all
             task docs
-            task doc-root
+            # task doc-root
             rm -rf LICENSE
       - save_cache:
           key: terraform-providers-{{ checksum ".terraform.lock.hcl" }}
