@@ -23,3 +23,21 @@ variable "security_group_ids" {
   description = "A list of security group IDs to associate with the database."
   type        = list(string)
 }
+
+variable "min_capacity" {
+  description = "The minimum capacity for the Aurora Serverless v1 cluster."
+  type        = number
+  default     = 0.0
+}
+
+variable "max_capacity" {
+  description = "The maximum capacity for the Aurora Serverless v1 cluster."
+  type        = number
+  default     = 1.0
+}
+
+variable "seconds_until_auto_pause" {
+  description = "The time, in seconds, before an idle cluster is paused."
+  type        = number
+  default     = 600
+}

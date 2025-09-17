@@ -225,7 +225,7 @@ tasks:
     cmds:
       - find . -type d -name ".terraform" -exec rm -rf {} +
 
-  documentation:
+  docs:
     desc: "Generates READMEs for all modules and a master index."
     prompt: "This will overwrite existing README files. Are you sure? [y/N]"
     cmds:
