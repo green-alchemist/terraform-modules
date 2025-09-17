@@ -15,11 +15,10 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            # The key uses a checksum of your lock files.
-            # If the lock files haven't changed, the cache will be a perfect match.
-            - terraform-providers-{{ checksum ".terraform.lock.hcl" }}
-            # A fallback key in case the lock file has changed
-            - terraform-providers-
+            # This new key finds all lock files, concatenates them, and creates a single checksum.
+            - terraform-providers-v1-{{ checksum "modules/**/.terraform.lock.hcl" }}
+            # Fallback to the last successful cache if no exact match is found.
+            - terraform-providers-v1-
       - add_ssh_keys:
           fingerprints:
             - "SHA256:bkQH09jqZGp8553/sWkJr/UNdkVviaWsXiI4jKwliCU"
@@ -57,7 +56,7 @@ jobs:
             task doc-root
             rm -rf LICENSE
       - save_cache:
-          key: terraform-providers-{{ checksum ".terraform.lock.hcl" }}
+          key: terraform-providers-v1-{{ checksum "modules/**/.terraform.lock.hcl" }}
           paths:
             # This is Terraform's default plugin cache directory
             - "~/.terraform.d/plugin-cache"
