@@ -123,7 +123,7 @@ variable "lifecycle_rules" {
     {
       id                                 = "main"
       enabled                            = true
-      prefix                             = "" # An empty prefix applies the rule to all objects
+      prefix                             = "" 
       noncurrent_version_expiration_days = 90
       noncurrent_version_transitions = [
         {
