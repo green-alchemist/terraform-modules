@@ -1,4 +1,5 @@
 # Terraform Modules
+* [api-gateway](./api-gateway/README.md)
 * [route-table](./route-table/README.md)
 * [internet-gateway](./internet-gateway/README.md)
 * [route53-zone](./route53-zone/README.md)
