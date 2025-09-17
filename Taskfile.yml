@@ -161,6 +161,8 @@
 version: '3'
 
 vars:
+  CURRENT_BRANCH:
+    sh: git rev-parse --abbrev-ref HEAD
   # Determines which modules have changed compared to the main branch.
   CHANGED_MODULES:
     sh: |
@@ -168,7 +170,7 @@ vars:
       if [ -n "$CIRCLE_SHA1" ]; then
         git diff-tree --no-commit-id --name-only -r "$CIRCLE_SHA1" | awk -F'/' '/^modules\// {print $2}' | sort -u | while read -r module; do if [ -d "modules/$module" ]; then echo "$module"; fi; done | tr '\n' ' '
       else
-        git diff --name-only master... | awk -F'/' '/^modules\// {print $2}' | sort -u | while read -r module; do if [ -d "modules/$module" ]; then echo "$module"; fi; done | tr '\n' ' '
+        git diff --name-only "{{.CURRENT_BRANCH}}..." | awk -F'/' '/^modules\// {print $2}' | sort -u | while read -r module; do if [ -d "modules/$module" ]; then echo "$module"; fi; done | tr '\n' ' '
       fi
 
   # Lists all available modules based on the modules/ directory.
@@ -184,6 +186,7 @@ tasks:
     desc: Print changed
     cmds:
       - 'echo "Changed modules: {{.CHANGED_MODULES}}"'
+      - 'echo "Current branch: "{{.CURRENT_BRANCH}}""'
 
   default:
     desc: "Lists all available tasks."
