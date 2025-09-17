@@ -20,7 +20,7 @@ resource "aws_apigatewayv2_integration" "this" {
   integration_uri = "http://${var.private_dns_name}:${var.container_port}"
 
   connection_type = "VPC_LINK"
-  connection_id   = aws_vpc_link.this.id
+  connection_id   = aws_apigatewayv2_vpc_link.this.id
 }
 
 # Creates a default route that sends all traffic to our integration
