@@ -15,9 +15,9 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            # This new key finds all lock files, concatenates them, and creates a single checksum.
+            # The key is based on a checksum of all lock files.
             - terraform-providers-v1-{{ checksum "modules/**/.terraform.lock.hcl" }}
-            # Fallback to the last successful cache if no exact match is found.
+            # A fallback key if no exact match is found.
             - terraform-providers-v1-
       - add_ssh_keys:
           fingerprints:
@@ -59,7 +59,7 @@ jobs:
       - save_cache:
           key: terraform-providers-v1-{{ checksum "modules/**/.terraform.lock.hcl" }}
           paths:
-            # This is Terraform's default plugin cache directory
+            # This is the directory Terraform uses for its central plugin cache.
             - "~/.terraform.d/plugin-cache"
       - run:
           name: "Commit and Push to a new branch"
