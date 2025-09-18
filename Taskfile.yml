@@ -83,7 +83,7 @@ tasks:
       - task: docs
       - |
         if ! git diff --quiet --exit-code; then
-          echo "Documentation is out of date. Please run 'task documentation' and commit the changes."
+          echo "Documentation is out of date. Please run 'task docs' and commit the changes."
           git diff
           exit 1
         fi
@@ -122,15 +122,7 @@ tasks:
     desc: "Generates READMEs for all modules and a master index."
     cmds:
       # This single command handles the interactive prompt.
-      - |
-        if test {{.IS_CI}} = false; then
-          printf "This will overwrite existing README files. Are you sure? [y/N] "
-          read -r answer
-          if [ "$answer" != "y" ] && [ "$answer" != "Y" ]; then
-            echo "Aborted."
-            exit 1
-          fi
-        fi
+      - task: _prompt-confirm
       - echo "# Terraform Modules" > ./modules/README.md
       - for: { var: ALL_MODULES }
         task: doc-module
@@ -138,13 +130,21 @@ tasks:
           MODULE: '{{.ITEM}}'
       - echo "## [Back](../README.md)" >> ./modules/README.md
 
-  # --- Add this new internal helper task ---
-  _prompt-confirm:
-    internal: true
-    prompt: "This will overwrite existing README files. Are you sure? [y/N]"
-
   doc-root:
     desc: "Generates the root README.md file with a dynamic list of modules."
+    cmds:
+      - task: _prompt-confirm
+      - task: doc-root-header
+      - for: { var: ALL_MODULES }
+        task: doc-root-module-link
+        vars:
+          MODULE: '{{.ITEM}}'
+      - task: doc-root-footer
+  
+
+  # --- INTERNAL HELPER TASKS ---
+  _prompt-confirm:
+    internal: true
     cmds:
       - |
         if test {{.IS_CI}} = false; then
@@ -155,15 +155,6 @@ tasks:
             exit 1
           fi
         fi
-      - task: doc-root-header
-      - for: { var: ALL_MODULES }
-        task: doc-root-module-link
-        vars:
-          MODULE: '{{.ITEM}}'
-      - task: doc-root-footer
-  
-
-  # --- INTERNAL HELPER TASKS ---
 
   doc-root-header:
     internal: true
@@ -181,7 +172,7 @@ tasks:
     internal: true
     cmds:
       - |
-        echo -e "\n## Usage\n\nThese modules are intended to be consumed by other Terraform projects (like a services repository). You can use them by referencing their path directly in your service's Terraform code.\n\n### Example: Creating a Static Website\n\n\`\`\`hcl\n# In a service's main.tf file\n\n# 1. Look up the existing DNS zone\ndata \"aws_route53_zone\" \"this\" {\n  name = \"example.com\"\n}\n\n# 2. Provision the S3 bucket for the site content\nmodule \"s3_site\" {\n  source      = \"../../terraform-modules/modules/s3-static-site\"\n  bucket_name = \"www.example.com\"\n  tags        = { Environment = \"production\" }\n}\n\n# 3. Provision the CloudFront distribution\nmodule \"cloudfront\" {\n  source                  = \"../../terraform-modules/modules/cloudfront\"\n  s3_origin_domain_name   = module.s3_site.website_endpoint\n  s3_origin_id            = module.s3_site.bucket_id\n  domain_name             = \"example.com\"\n  acm_certificate_arn     = \"arn:aws:acm:us-east-1:123456789012:certificate/your-cert-id\"\n}\n\n# 4. Create the DNS records\nmodule \"dns_records\" {\n  source        = \"../../terraform-modules/modules/route53-record\"\n  zone_id       = data.aws_route53_zone.this.zone_id\n  domain_name   = \"example.com\"\n  record_names  = [\"@\", \"www\"]\n  \n  alias_name    = module.cloudfront.domain_name\n  alias_zone_id = module.cloudfront.hosted_zone_id\n}\n\`\`\`\n\n## Development and Maintenance\n\nThis repository uses [Task](https://taskfile.dev/) for automation and quality control. The following commands are available for module development:\n\n* \`task fmt\`: Formats all Terraform code in the repository.\n* \`task validate-all\`: Initializes and validates every module to ensure its syntax is correct.\n* \`task documentation\`: Automatically generates or updates the \`README.md\` for all modules using \`terraform-docs\`.\n\nTo see a full list of available commands, run \`task --list-all\`." >> README.md
+        echo -e "\n## Usage\n\nThese modules are intended to be consumed by other Terraform projects (like a services repository). You can use them by referencing their path directly in your service's Terraform code.\n\n### Example: Creating a Static Website\n\n\`\`\`hcl\n# In a service's main.tf file\n\n# 1. Look up the existing DNS zone\ndata \"aws_route53_zone\" \"this\" {\n  name = \"example.com\"\n}\n\n# 2. Provision the S3 bucket for the site content\nmodule \"s3_site\" {\n  source      = \"../../terraform-modules/modules/s3-static-site\"\n  bucket_name = \"www.example.com\"\n  tags        = { Environment = \"production\" }\n}\n\n# 3. Provision the CloudFront distribution\nmodule \"cloudfront\" {\n  source                  = \"../../terraform-modules/modules/cloudfront\"\n  s3_origin_domain_name   = module.s3_site.website_endpoint\n  s3_origin_id            = module.s3_site.bucket_id\n  domain_name             = \"example.com\"\n  acm_certificate_arn     = \"arn:aws:acm:us-east-1:123456789012:certificate/your-cert-id\"\n}\n\n# 4. Create the DNS records\nmodule \"dns_records\" {\n  source        = \"../../terraform-modules/modules/route53-record\"\n  zone_id       = data.aws_route53_zone.this.zone_id\n  domain_name   = \"example.com\"\n  record_names  = [\"@\", \"www\"]\n  \n  alias_name    = module.cloudfront.domain_name\n  alias_zone_id = module.cloudfront.hosted_zone_id\n}\n\`\`\`\n\n## Development and Maintenance\n\nThis repository uses [Task](https://taskfile.dev/) for automation and quality control. The following commands are available for module development:\n\n* \`task fmt\`: Formats all Terraform code in the repository.\n* \`task validate-all\`: Initializes and validates every module to ensure its syntax is correct.\n* \`task docs\`: Automatically generates or updates the \`README.md\` for all modules using \`terraform-docs\`.\n\nTo see a full list of available commands, run \`task --list-all\`." >> README.md
 
   init-module:
     internal: true
