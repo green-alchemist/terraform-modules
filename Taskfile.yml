@@ -122,15 +122,7 @@ tasks:
     desc: "Generates READMEs for all modules and a master index."
     cmds:
       # This single command handles the interactive prompt.
-      - |
-        if test {{.IS_CI}} = false; then
-          printf "This will overwrite existing README files. Are you sure? [y/N] "
-          read -r answer
-          if [ "$answer" != "y" ] && [ "$answer" != "Y" ]; then
-            echo "Aborted."
-            exit 1
-          fi
-        fi
+      - task: _prompt-confirm
       - echo "# Terraform Modules" > ./modules/README.md
       - for: { var: ALL_MODULES }
         task: doc-module
@@ -138,13 +130,21 @@ tasks:
           MODULE: '{{.ITEM}}'
       - echo "## [Back](../README.md)" >> ./modules/README.md
 
-  # --- Add this new internal helper task ---
-  _prompt-confirm:
-    internal: true
-    prompt: "This will overwrite existing README files. Are you sure? [y/N]"
-
   doc-root:
     desc: "Generates the root README.md file with a dynamic list of modules."
+    cmds:
+      - task: _prompt-confirm
+      - task: doc-root-header
+      - for: { var: ALL_MODULES }
+        task: doc-root-module-link
+        vars:
+          MODULE: '{{.ITEM}}'
+      - task: doc-root-footer
+  
+
+  # --- INTERNAL HELPER TASKS ---
+  _prompt-confirm:
+    internal: true
     cmds:
       - |
         if test {{.IS_CI}} = false; then
@@ -155,15 +155,6 @@ tasks:
             exit 1
           fi
         fi
-      - task: doc-root-header
-      - for: { var: ALL_MODULES }
-        task: doc-root-module-link
-        vars:
-          MODULE: '{{.ITEM}}'
-      - task: doc-root-footer
-  
-
-  # --- INTERNAL HELPER TASKS ---
 
   doc-root-header:
     internal: true
