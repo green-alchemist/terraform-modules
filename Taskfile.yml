@@ -22,7 +22,7 @@ vars:
 
   # Lists all available modules based on the modules/ directory.
   ALL_MODULES:
-    sh: find modules -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort | tr '\n' ' '
+    sh: find modules -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | LC_ALL=C sort | tr '\n' ' '
 
 tasks:
   fetch-merge:

@@ -3,3 +3,4 @@
 plan*
 *.tfstate*
 example
+cache_checksum.txt
