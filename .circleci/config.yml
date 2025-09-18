@@ -15,15 +15,18 @@ jobs:
       TF_PLUGIN_CACHE_DIR: "/home/circleci/.terraform.d/plugin-cache"
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            # The key is based on a checksum of all lock files.
-            - terraform-providers-v1-{{ checksum "/home/circleci/.terraform.d/plugin-cache" }}
-            # A fallback key if no exact match is found.
-            - terraform-providers-v1-
+      - run:
+          name: "Generate Cache Key"
+          command: find modules -name ".terraform.lock.hcl" -print0 | sort -z | xargs -0 sha256sum > cache_checksum.txt
       - run:
           name: "Create plugin cache directory"
           command: mkdir -p /home/circleci/.terraform.d/plugin-cache
+      - restore_cache:
+          keys:
+            # Use the checksum generated from the file
+            - terraform-providers-v3-{{ checksum "cache_checksum.txt" }}
+            # Fallback key
+            - terraform-providers-v3-
       - add_ssh_keys:
           fingerprints:
             - "SHA256:bkQH09jqZGp8553/sWkJr/UNdkVviaWsXiI4jKwliCU"
@@ -62,10 +65,9 @@ jobs:
             task doc-root
             rm -rf LICENSE
       - save_cache:
-          key: terraform-providers-v1-{{ checksum "/home/circleci/.terraform.d/plugin-cache" }}
+          key: terraform-providers-v3-{{ checksum "cache_checksum.txt" }}
           paths:
-            # This is the directory Terraform uses for its central plugin cache.
-            - "~/.terraform.d/plugin-cache"
+            - "/home/circleci/.terraform.d/plugin-cache"
       - run:
           name: "Commit and Push to a new branch"
           command: |
