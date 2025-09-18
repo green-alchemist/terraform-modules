@@ -18,7 +18,7 @@ jobs:
       - restore_cache:
           keys:
             # The key is based on a checksum of all lock files.
-            - terraform-providers-v1-{{ checksum "modules/**/.terraform.lock.hcl" }}
+            - terraform-providers-v1-{{ checksum "/home/circleci/.terraform.d/plugin-cache" }}
             # A fallback key if no exact match is found.
             - terraform-providers-v1-
       - add_ssh_keys:
@@ -59,7 +59,7 @@ jobs:
             task doc-root
             rm -rf LICENSE
       - save_cache:
-          key: terraform-providers-v1-{{ checksum "modules/**/.terraform.lock.hcl" }}
+          key: terraform-providers-v1-{{ checksum "/home/circleci/.terraform.d/plugin-cache" }}
           paths:
             # This is the directory Terraform uses for its central plugin cache.
             - "~/.terraform.d/plugin-cache"
