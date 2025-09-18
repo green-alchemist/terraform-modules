@@ -7,6 +7,16 @@ vars:
   IS_CI:
     sh: 'test -n "$CI" && echo "true" || echo "false"'
 
+anchors:
+  - &branch_filter
+      filters:
+        branches:
+          ignore:
+            - chore/auto-updates
+          only:
+            - kyle
+            - master
+
 jobs:
   lint_and_document: # Renamed for clarity
     docker:
@@ -93,9 +103,4 @@ workflows:
   quality_gate:
     jobs:
       - lint_and_document:
-          # This filter is the key change.
-          # It tells CircleCI to run this job on EVERY branch EXCEPT 'chore/auto-updates'.
-          filters:
-            branches:
-              ignore:
-                - chore/auto-updates
+          <<: *branch_filter
