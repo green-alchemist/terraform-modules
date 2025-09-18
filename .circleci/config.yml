@@ -1,53 +1,101 @@
 version: 2.1
 
 orbs:
-  terraform: circleci/terraform@3.2.0
+  terraform: circleci/terraform@3.7.0
+
+vars:
+  IS_CI:
+    sh: 'test -n "$CI" && echo "true" || echo "false"'
 
 jobs:
-  validate_modules:
+  lint_and_document: # Renamed for clarity
     docker:
       - image: cimg/base:stable
+    environment:
+      TF_PLUGIN_CACHE_DIR: "/home/circleci/.terraform.d/plugin-cache"
     steps:
       - checkout
-      - terraform/install
       - run:
-          name: "Install Task"
-          command: |
-            sudo sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+          name: "Generate Cache Key"
+          command: find modules -name ".terraform.lock.hcl" -print0 | sort -z | xargs -0 sha256sum > cache_checksum.txt
       - run:
-          name: "Validate changed modules"
-          command: task validate-changed
-  
-  check_formatting:
-    docker:
-      - image: cimg/base:stable
-    steps:
-      - checkout
-      - terraform/install
-      - run:
-          name: "Check Terraform formatting"
-          command: terraform fmt -check -recursive
-          
-  check_documentation:
-    docker:
-      - image: cimg/base:stable
-    steps:
-      - checkout
+          name: "Create plugin cache directory"
+          command: mkdir -p /home/circleci/.terraform.d/plugin-cache
+      - restore_cache:
+          keys:
+            # Use the checksum generated from the file
+            - terraform-providers-v3-{{ checksum "cache_checksum.txt" }}
+            # Fallback key
+            - terraform-providers-v3-
+      - add_ssh_keys:
+          fingerprints:
+            - "SHA256:bkQH09jqZGp8553/sWkJr/UNdkVviaWsXiI4jKwliCU"
       - terraform/install
       - run:
           name: "Install terraform-docs"
-          # Add installation steps for terraform-docs here
+          command: |
+            curl -Lo ./terraform-docs.tar.gz https://github.com/terraform-docs/terraform-docs/releases/download/v0.20.0/terraform-docs-v0.20.0-linux-amd64.tar.gz
+            tar -xzf terraform-docs.tar.gz
+            sudo mv terraform-docs /usr/local/bin/
+            rm -rf terraform-docs.tar.gz
       - run:
           name: "Install Task"
           command: |
-            sudo sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+            sudo sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin/
       - run:
-          name: "Check if documentation is up-to-date"
-          command: task check-docs
+          name: "Validate changed modules"
+          # This command will first determine if there are changes.
+          # If the CHANGED_MODULES variable is empty, the `if` condition will be false
+          # and the job will succeed without running the validation task.
+          command: |
+            CHANGED_MODULES=$(git diff-tree --no-commit-id --name-only -r "$CIRCLE_SHA1" | awk -F'/' '/^modules\// {print $2}' | sort -u | tr '\n' ' ')
+            if [ -n "$CHANGED_MODULES" ]; then
+              echo "Changes detected in modules: $CHANGED_MODULES"
+              task validate-changed
+            else
+              echo "No changes detected in any modules. Skipping validation."
+            fi
+      - run:
+          name: "Apply Formatting and Generate Documentation"
+          command: |
+            # Run both tasks to stage changes
+            task fmt
+            task docs
+            task doc-root
+            rm -rf LICENSE
+      - save_cache:
+          key: terraform-providers-v3-{{ checksum "cache_checksum.txt" }}
+          paths:
+            - "/home/circleci/.terraform.d/plugin-cache"
+      - run:
+          name: "Commit and Push to a new branch"
+          command: |
+            # Check if there are any changes to commit
+            if ! git diff --quiet --exit-code; then
+              echo "Changes detected. Pushing to chore/auto-updates branch..."
+              # Configure git with your bot's identity
+              git config user.email "green-alchemist-bot@users.noreply.github.com"
+              git config user.name "green-alchemist-bot"
+
+              # Create a new branch
+              git checkout -b chore/auto-updates
+
+              # Add, commit, and force-push to the new branch
+              git add .
+              git commit -m "chore: apply automated formatting and documentation"
+              # Use --force to ensure we can update the branch if it already exists
+              git push --force origin chore/auto-updates
+            else
+              echo "No changes needed. Code is clean."
+            fi
 
 workflows:
   quality_gate:
     jobs:
-      - validate_modules
-      - check_formatting
-      - check_documentation
+      - lint_and_document:
+          # This filter is the key change.
+          # It tells CircleCI to run this job on EVERY branch EXCEPT 'chore/auto-updates'.
+          filters:
+            branches:
+              ignore:
+                - chore/auto-updates
