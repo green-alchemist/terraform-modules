@@ -75,6 +75,6 @@ This repository uses [Task](https://taskfile.dev/) for automation and quality co
 
 * `task fmt`: Formats all Terraform code in the repository.
 * `task validate-all`: Initializes and validates every module to ensure its syntax is correct.
-* `task documentation`: Automatically generates or updates the `README.md` for all modules using `terraform-docs`.
+* `task docs`: Automatically generates or updates the `README.md` for all modules using `terraform-docs`.
 
 To see a full list of available commands, run `task --list-all`.
