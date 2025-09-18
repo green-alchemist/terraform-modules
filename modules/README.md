@@ -17,5 +17,6 @@
 * [s3-redirect](./s3-redirect/README.md)
 * [s3-static-site](./s3-static-site/README.md)
 * [security-group](./security-group/README.md)
+* [ssm-parameter](./ssm-parameter/README.md)
 * [vpc](./vpc/README.md)
 ## [Back](../README.md)
