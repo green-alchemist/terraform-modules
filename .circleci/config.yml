@@ -21,6 +21,9 @@ jobs:
             - terraform-providers-v1-{{ checksum "/home/circleci/.terraform.d/plugin-cache" }}
             # A fallback key if no exact match is found.
             - terraform-providers-v1-
+      - run:
+          name: "Create plugin cache directory"
+          command: mkdir -p /home/circleci/.terraform.d/plugin-cache
       - add_ssh_keys:
           fingerprints:
             - "SHA256:bkQH09jqZGp8553/sWkJr/UNdkVviaWsXiI4jKwliCU"
