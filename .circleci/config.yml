@@ -11,6 +11,8 @@ jobs:
   lint_and_document: # Renamed for clarity
     docker:
       - image: cimg/base:stable
+    environment:
+      TF_PLUGIN_CACHE_DIR: "/home/circleci/.terraform.d/plugin-cache"
     steps:
       - checkout
       - restore_cache:
