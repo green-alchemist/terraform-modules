@@ -15,7 +15,7 @@ resource "aws_rds_cluster" "this" {
   vpc_security_group_ids = var.security_group_ids
   skip_final_snapshot    = true
 
-  scaling_configuration {
+  serverlessv2_scaling_configuration  {
     auto_pause               = true
     min_capacity             = var.min_capacity
     max_capacity             = var.max_capacity
