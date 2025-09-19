@@ -20,7 +20,14 @@ variable "internet_gateway_id" {
   type        = string
 }
 
-variable "public_subnet_id" {
-  description = "The ID of the Public Subnet"
-  type        = string
+variable "subnet_ids" {
+  description = "A list of subnet IDs to associate with the route table."
+  type        = list(string)
+  default     = []
+}
+
+variable "tags" {
+  description = "A map of tags to assign to the resources."
+  type        = map(string)
+  default     = {}
 }
