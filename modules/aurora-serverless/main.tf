@@ -21,3 +21,13 @@ resource "aws_rds_cluster" "this" {
     seconds_until_auto_pause = var.seconds_until_auto_pause
   }
 }
+
+
+resource "aws_rds_cluster_instance" "this" {
+  count = 1
+
+  cluster_identifier = aws_rds_cluster.this.id
+  instance_class     = "db.serverless" # This is the required instance class for Serverless v2
+  engine             = aws_rds_cluster.this.engine
+  engine_version     = aws_rds_cluster.this.engine_version
+}
