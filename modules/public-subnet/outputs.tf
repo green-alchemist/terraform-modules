@@ -5,10 +5,10 @@ output "subnet_ids_map" {
 
 output "subnet_ids" {
   description = "A list of the public subnet IDs."
-  value       = values(aws_subnet.public_subnet)[*].id
+  value       = [for s in aws_subnet.public_subnet : s.id]
 }
 
-output "public_subnet_arn" {
-  description = "The ARN of the Public Subnet"
-  value       = concat(aws_subnet.public_subnet.*.arn, [""])[0]
+output "public_subnets_map" {
+  description = "A map of the created public subnet objects."
+  value       = aws_subnet.public_subnet
 }

@@ -25,7 +25,7 @@ No modules.
 |------|-------------|------|---------|:--------:|
 | <a name="input_internet_gateway_id"></a> [internet\_gateway\_id](#input\_internet\_gateway\_id) | The ID of the Internet Gateway | `string` | n/a | yes |
 | <a name="input_route_table_name"></a> [route\_table\_name](#input\_route\_table\_name) | The Name of the Route Table | `string` | `"Free Tier Route Table"` | no |
-| <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | A list of subnet IDs to associate with the route table. | `list(string)` | `[]` | no |
+| <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | A map of subnet objects to associate with the route table. | `map(object({ id = string }))` | `{}` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | A map of tags to assign to the resources. | `map(string)` | `{}` | no |
 | <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | The ID of the VPC | `string` | n/a | yes |
 

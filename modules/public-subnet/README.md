@@ -33,6 +33,6 @@ No modules.
 
 | Name | Description |
 |------|-------------|
-| <a name="output_public_subnet_arn"></a> [public\_subnet\_arn](#output\_public\_subnet\_arn) | The ARN of the Public Subnet |
+| <a name="output_public_subnets_map"></a> [public\_subnets\_map](#output\_public\_subnets\_map) | A map of the created public subnet objects. |
 | <a name="output_subnet_ids"></a> [subnet\_ids](#output\_subnet\_ids) | A list of the public subnet IDs. |
 | <a name="output_subnet_ids_map"></a> [subnet\_ids\_map](#output\_subnet\_ids\_map) | A map of the public subnet IDs, keyed by Availability Zone. |

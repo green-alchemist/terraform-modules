@@ -15,9 +15,9 @@ variable "internet_gateway_id" {
 }
 
 variable "subnet_ids" {
-  description = "A list of subnet IDs to associate with the route table."
-  type        = list(string)
-  default     = []
+  description = "A map of subnet objects to associate with the route table."
+  type        = map(object({ id = string }))
+  default     = {}
 }
 
 variable "tags" {
