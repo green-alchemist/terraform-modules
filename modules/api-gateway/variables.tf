@@ -34,3 +34,13 @@ variable "fargate_service_arn" {
   type        = string
   default     = ""
 }
+
+variable "domain_name" {
+  description = "The custom domain name for the API Gateway."
+  type        = string
+}
+
+variable "acm_certificate_arn" {
+  description = "The ARN of the ACM certificate for the custom domain."
+  type        = string
+}
