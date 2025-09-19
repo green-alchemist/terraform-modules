@@ -26,3 +26,9 @@ variable "vpc_id" {
   description = "The ID of the VPC"
   type        = string
 }
+
+variable "public_subnets" {
+  description = "A map of Availability Zones to CIDR blocks for the public subnets."
+  type        = map(string)
+  # Example: { "us-east-1a" = "10.0.1.0/24", "us-east-1b" = "10.0.2.0/24" }
+}
