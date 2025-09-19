@@ -15,5 +15,5 @@ output "service_discovery_dns_name" {
 
 output "service_arn" {
   description = "The ARN of the ECS service."
-  value       = aws_ecs_service.this.arn
+  value       = aws_ecs_service.this.id
 }
