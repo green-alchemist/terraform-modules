@@ -16,9 +16,9 @@ resource "aws_rds_cluster" "this" {
   skip_final_snapshot    = true
 
   serverlessv2_scaling_configuration {
-    max_capacity = var.max_capacity
-    min_capacity = var.min_capacity
-    # seconds_until_auto_pause = var.seconds_until_auto_pause
+    max_capacity             = var.max_capacity
+    min_capacity             = var.min_capacity
+    seconds_until_auto_pause = var.seconds_until_auto_pause
   }
 }
 
