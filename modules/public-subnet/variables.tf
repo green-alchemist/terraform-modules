@@ -1,8 +1,8 @@
-variable "subnet_should_be_created" {
-  description = "Should the Public Subnet be created?"
-  type        = bool
-  default     = true
-}
+# variable "subnet_should_be_created" {
+#   description = "Should the Public Subnet be created?"
+#   type        = bool
+#   default     = true
+# }
 
 variable "subnet_name" {
   description = "The Name of the Public Subnet"
