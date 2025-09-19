@@ -1,9 +1,3 @@
-variable "route_table_should_be_created" {
-  description = "Should the Route Table be created?"
-  type        = bool
-  default     = true
-}
-
 variable "route_table_name" {
   description = "The Name of the Route Table"
   type        = string
