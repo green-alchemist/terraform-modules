@@ -39,3 +39,4 @@ No modules.
 | <a name="output_cluster_endpoint"></a> [cluster\_endpoint](#output\_cluster\_endpoint) | The endpoint of the RDS cluster. |
 | <a name="output_cluster_port"></a> [cluster\_port](#output\_cluster\_port) | The port of the RDS cluster. |
 | <a name="output_database_name"></a> [database\_name](#output\_database\_name) | The name of the database. |
+| <a name="output_master_username"></a> [master\_username](#output\_master\_username) | The master\_username of the database. |
