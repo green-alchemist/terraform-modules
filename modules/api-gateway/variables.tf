@@ -28,3 +28,9 @@ variable "container_port" {
   description = "The port of the target container."
   type        = number
 }
+
+variable "fargate_service_arn" {
+  description = "The ARN of the Fargate service this API Gateway integrates with. Used to enforce dependency order."
+  type        = string
+  default     = ""
+}
