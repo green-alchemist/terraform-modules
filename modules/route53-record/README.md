@@ -23,6 +23,7 @@ No modules.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_alias_name"></a> [alias\_name](#input\_alias\_name) | The DNS name of the target resource (e.g., the CloudFront distribution's domain name). | `string` | n/a | yes |
+| <a name="input_alias_target_domain_name"></a> [alias\_target\_domain\_name](#input\_alias\_target\_domain\_name) | The target domain name for the alias record. | `string` | `""` | no |
 | <a name="input_alias_zone_id"></a> [alias\_zone\_id](#input\_alias\_zone\_id) | The hosted zone ID of the target resource (e.g., the CloudFront distribution's hosted zone ID). | `string` | n/a | yes |
 | <a name="input_domain_name"></a> [domain\_name](#input\_domain\_name) | The apex domain name (e.g., kconley.com). | `string` | n/a | yes |
 | <a name="input_record_names"></a> [record\_names](#input\_record\_names) | A list of record names to create. Use '@' for the apex domain. | `list(string)` | <pre>[<br/>  "@",<br/>  "www"<br/>]</pre> | no |

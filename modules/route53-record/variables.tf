@@ -24,3 +24,9 @@ variable "alias_zone_id" {
   type        = string
 }
 
+
+variable "alias_target_domain_name" {
+  description = "The target domain name for the alias record."
+  type        = string
+  default     = ""
+}

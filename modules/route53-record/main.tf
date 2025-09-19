@@ -9,7 +9,7 @@ resource "aws_route53_record" "this" {
   type = "A"
 
   alias {
-    name                   = var.alias_name
+    name                   = var.alias_target_domain_name
     zone_id                = var.alias_zone_id
     evaluate_target_health = false
   }
