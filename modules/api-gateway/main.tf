@@ -21,6 +21,7 @@ resource "aws_apigatewayv2_integration" "this" {
 
   connection_type = "VPC_LINK"
   connection_id   = aws_apigatewayv2_vpc_link.this.id
+  depends_on      = [var.fargate_service_arn]
 }
 
 # Creates a default route that sends all traffic to our integration

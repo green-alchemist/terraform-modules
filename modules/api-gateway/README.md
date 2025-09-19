@@ -27,6 +27,7 @@ No modules.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_container_port"></a> [container\_port](#input\_container\_port) | The port of the target container. | `number` | n/a | yes |
+| <a name="input_fargate_service_arn"></a> [fargate\_service\_arn](#input\_fargate\_service\_arn) | The ARN of the Fargate service this API Gateway integrates with. Used to enforce dependency order. | `string` | `""` | no |
 | <a name="input_name"></a> [name](#input\_name) | The name for the API Gateway and related resources. | `string` | n/a | yes |
 | <a name="input_private_dns_name"></a> [private\_dns\_name](#input\_private\_dns\_name) | The private DNS name of the target service. | `string` | n/a | yes |
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | A list of security group IDs for the VPC Link. | `list(string)` | n/a | yes |
@@ -38,4 +39,5 @@ No modules.
 | Name | Description |
 |------|-------------|
 | <a name="output_api_endpoint"></a> [api\_endpoint](#output\_api\_endpoint) | The invocation URL of the API Gateway. |
+| <a name="output_api_gateway_hosted_zone_id"></a> [api\_gateway\_hosted\_zone\_id](#output\_api\_gateway\_hosted\_zone\_id) | The hosted zone ID of the API Gateway custom domain name. |
 | <a name="output_api_id"></a> [api\_id](#output\_api\_id) | The ID of the API Gateway. |
