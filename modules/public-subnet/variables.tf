@@ -1,9 +1,3 @@
-# variable "subnet_should_be_created" {
-#   description = "Should the Public Subnet be created?"
-#   type        = bool
-#   default     = true
-# }
-
 variable "subnet_name" {
   description = "The Name of the Public Subnet"
   type        = string
@@ -31,4 +25,10 @@ variable "public_subnets" {
   description = "A map of Availability Zones to CIDR blocks for the public subnets."
   type        = map(string)
   # Example: { "us-east-1a" = "10.0.1.0/24", "us-east-1b" = "10.0.2.0/24" }
+}
+
+variable "tags" {
+  description = "A map of tags to assign to the resources."
+  type        = map(string)
+  default     = {}
 }
