@@ -17,11 +17,13 @@ resource "aws_apigatewayv2_integration" "this" {
   integration_type = "HTTP_PROXY"
 
   # This is the crucial change: point to the Fargate service's private DNS
-  integration_uri = "http://${var.private_dns_name}:${var.container_port}"
+  integration_uri = var.target_uri
 
   connection_type = "VPC_LINK"
   connection_id   = aws_apigatewayv2_vpc_link.this.id
-  depends_on      = [var.fargate_service_arn]
+  depends_on = [
+    var.fargate_service_arn
+  ]
 }
 
 # Creates a default route that sends all traffic to our integration

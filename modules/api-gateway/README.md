@@ -37,6 +37,7 @@ No modules.
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | A list of security group IDs for the VPC Link. | `list(string)` | n/a | yes |
 | <a name="input_stage_name"></a> [stage\_name](#input\_stage\_name) | The name of the deployment stage (e.g., 'staging'). | `string` | `"$default"` | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | A list of subnet IDs for the VPC Link. | `list(string)` | n/a | yes |
+| <a name="input_target_uri"></a> [target\_uri](#input\_target\_uri) | The integration URI, typically the Cloud Map service ARN for a Fargate integration. | `string` | n/a | yes |
 
 ## Outputs
 

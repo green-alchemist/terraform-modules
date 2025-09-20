@@ -44,3 +44,8 @@ variable "acm_certificate_arn" {
   description = "The ARN of the ACM certificate for the custom domain."
   type        = string
 }
+
+variable "target_uri" {
+  description = "The integration URI, typically the Cloud Map service ARN for a Fargate integration."
+  type        = string
+}
