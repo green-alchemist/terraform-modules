@@ -14,11 +14,6 @@ variable "record_names" {
   default     = ["@", "www"]
 }
 
-variable "alias_name" {
-  description = "The DNS name of the target resource (e.g., the CloudFront distribution's domain name)."
-  type        = string
-}
-
 variable "alias_zone_id" {
   description = "The hosted zone ID of the target resource (e.g., the CloudFront distribution's hosted zone ID)."
   type        = string
