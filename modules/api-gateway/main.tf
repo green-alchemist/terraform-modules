@@ -29,8 +29,10 @@ resource "aws_apigatewayv2_integration" "this" {
 
 # Creates a default route that sends all traffic to our integration
 resource "aws_apigatewayv2_route" "this" {
+  for_each = toset(var.route_keys) # Create a route for each key in the list
+
   api_id    = aws_apigatewayv2_api.this.id
-  route_key = "$default"
+  route_key = each.value # Use the value from the list (e.g., "GET /admin/{proxy+}")
   target    = "integrations/${aws_apigatewayv2_integration.this.id}"
 }
 

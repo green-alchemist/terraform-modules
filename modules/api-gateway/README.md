@@ -34,6 +34,7 @@ No modules.
 | <a name="input_fargate_service_arn"></a> [fargate\_service\_arn](#input\_fargate\_service\_arn) | The ARN of the Fargate service this API Gateway integrates with. Used to enforce dependency order. | `string` | `""` | no |
 | <a name="input_name"></a> [name](#input\_name) | The name for the API Gateway and related resources. | `string` | n/a | yes |
 | <a name="input_private_dns_name"></a> [private\_dns\_name](#input\_private\_dns\_name) | The private DNS name of the target service. | `string` | n/a | yes |
+| <a name="input_route_keys"></a> [route\_keys](#input\_route\_keys) | A list of route keys to create for the integration. | `list(string)` | <pre>[<br/>  "$default"<br/>]</pre> | no |
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | A list of security group IDs for the VPC Link. | `list(string)` | n/a | yes |
 | <a name="input_stage_name"></a> [stage\_name](#input\_stage\_name) | The name of the deployment stage (e.g., 'staging'). | `string` | `"$default"` | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | A list of subnet IDs for the VPC Link. | `list(string)` | n/a | yes |

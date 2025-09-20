@@ -49,3 +49,9 @@ variable "target_uri" {
   description = "The integration URI, typically the Cloud Map service ARN for a Fargate integration."
   type        = string
 }
+
+variable "route_keys" {
+  description = "A list of route keys to create for the integration."
+  type        = list(string)
+  default     = ["$default"]
+}
