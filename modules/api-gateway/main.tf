@@ -13,8 +13,9 @@ resource "aws_apigatewayv2_api" "this" {
 
 # Creates the integration that connects the API to the VPC Link
 resource "aws_apigatewayv2_integration" "this" {
-  api_id           = aws_apigatewayv2_api.this.id
-  integration_type = "HTTP_PROXY"
+  api_id             = aws_apigatewayv2_api.this.id
+  integration_type   = "HTTP_PROXY"
+  integration_method = "ANY"
 
   # This is the crucial change: point to the Fargate service's private DNS
   integration_uri = var.target_uri
