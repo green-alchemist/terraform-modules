@@ -13,15 +13,14 @@ resource "aws_apigatewayv2_api" "this" {
 
 # Creates the integration that connects the API to the VPC Link
 resource "aws_apigatewayv2_integration" "this" {
+  for_each = toset(var.route_keys)
+
   api_id             = aws_apigatewayv2_api.this.id
   integration_type   = "HTTP_PROXY"
   integration_method = "ANY"
-
-  # This is the crucial change: point to the Fargate service's private DNS
-  integration_uri = var.target_uri
-
-  connection_type = "VPC_LINK"
-  connection_id   = aws_apigatewayv2_vpc_link.this.id
+  integration_uri    = var.target_uri
+  connection_type    = "VPC_LINK"
+  connection_id      = aws_apigatewayv2_vpc_link.this.id
   depends_on = [
     var.fargate_service_arn
   ]
@@ -33,7 +32,7 @@ resource "aws_apigatewayv2_route" "this" {
 
   api_id    = aws_apigatewayv2_api.this.id
   route_key = each.value # Use the value from the list (e.g., "GET /admin/{proxy+}")
-  target    = "integrations/${aws_apigatewayv2_integration.this.id}"
+  target    = "integrations/${aws_apigatewayv2_integration.this[each.key].id}"
 }
 
 # Deploys the API to a stage
