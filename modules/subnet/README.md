@@ -32,5 +32,6 @@ No modules.
 
 | Name | Description |
 |------|-------------|
-| <a name="output_private_subnets_map"></a> [private\_subnets\_map](#output\_private\_subnets\_map) | A map of the created private subnet objects. |
-| <a name="output_subnet_ids"></a> [subnet\_ids](#output\_subnet\_ids) | A list of the private subnet IDs. |
+| <a name="output_subnet_ids"></a> [subnet\_ids](#output\_subnet\_ids) | A list of the created subnet IDs. |
+| <a name="output_subnet_ids_map"></a> [subnet\_ids\_map](#output\_subnet\_ids\_map) | A map of the created subnet IDs, keyed by Availability Zone. |
+| <a name="output_subnet_objects"></a> [subnet\_objects](#output\_subnet\_objects) | A map of the created subnet objects, keyed by Availability Zone. |
