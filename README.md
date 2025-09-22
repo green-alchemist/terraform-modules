@@ -17,6 +17,8 @@ Below is a list of the modules available in this repository. For detailed inform
 * [`ecs-task-execution-role`](./modules/ecs-task-execution-role/README.md)
 * [`fargate`](./modules/fargate/README.md)
 * [`internet-gateway`](./modules/internet-gateway/README.md)
+* [`nat-gateway`](./modules/nat-gateway/README.md)
+* [`private-subnet`](./modules/private-subnet/README.md)
 * [`public-subnet`](./modules/public-subnet/README.md)
 * [`remote-state`](./modules/remote-state/README.md)
 * [`route-table`](./modules/route-table/README.md)

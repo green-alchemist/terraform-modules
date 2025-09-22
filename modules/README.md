@@ -9,6 +9,8 @@
 * [ecs-task-execution-role](./ecs-task-execution-role/README.md)
 * [fargate](./fargate/README.md)
 * [internet-gateway](./internet-gateway/README.md)
+* [nat-gateway](./nat-gateway/README.md)
+* [private-subnet](./private-subnet/README.md)
 * [public-subnet](./public-subnet/README.md)
 * [remote-state](./remote-state/README.md)
 * [route-table](./route-table/README.md)

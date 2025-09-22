@@ -4,9 +4,19 @@ vars:
   CURRENT_BRANCH:
     sh: git rev-parse --abbrev-ref HEAD
   LOCAL_CHANGES:
-    sh: git diff --name-only HEAD | awk -F'/' '/^modules\// {print $2}' | sort -u | tr '\n' ' '
+    sh: |
+      # Combines modified/deleted files (diff) with new untracked files (ls-files)
+      (git diff --name-only HEAD; git ls-files --others --exclude-standard) | \
+      awk -F'/' '/^modules\// {print $2}' | \
+      LC_ALL=C sort -u | \
+      while read -r module; do \
+        if [ -d "modules/$module" ]; then \
+          echo "$module"; \
+        fi; \
+      done | \
+      tr '\n' ' '
   UNPUSHED_COMMITS:
-    sh: git diff --name-only origin/{{.CURRENT_BRANCH}}...HEAD | awk -F'/' '/^modules\// {print $2}' | sort -u | tr '\n' ' '
+    sh: git diff --name-only origin/{{.CURRENT_BRANCH}}...HEAD | awk -F'/' '/^modules\// {print $2}' | LC_ALL=C sort -u | tr '\n' ' '
   IS_CI:
     sh: 'test -n "$CIRCLECI" && echo "true" || echo "false"'
 
@@ -15,9 +25,9 @@ vars:
     sh: |
       set -o pipefail
       if [ -n "$CIRCLE_SHA1" ]; then
-        git diff-tree --no-commit-id --name-only -r "$CIRCLE_SHA1" | awk -F'/' '/^modules\// {print $2}' | sort -u | while read -r module; do if [ -d "modules/$module" ]; then echo "$module"; fi; done | tr '\n' ' '
+        git diff-tree --no-commit-id --name-only -r "$CIRCLE_SHA1" | awk -F'/' '/^modules\// {print $2}' | LC_ALL=C sort -u | while read -r module; do if [ -d "modules/$module" ]; then echo "$module"; fi; done | tr '\n' ' '
       else
-        git diff --name-only master... | awk -F'/' '/^modules\// {print $2}' | sort -u | while read -r module; do if [ -d "modules/$module" ]; then echo "$module"; fi; done | tr '\n' ' '
+        git diff --name-only master... | awk -F'/' '/^modules\// {print $2}' | LC_ALL=C sort -u | while read -r module; do if [ -d "modules/$module" ]; then echo "$module"; fi; done | tr '\n' ' '
       fi
 
   # Lists all available modules based on the modules/ directory.
@@ -140,6 +150,23 @@ tasks:
         vars:
           MODULE: '{{.ITEM}}'
       - task: doc-root-footer
+
+  new-module:
+    desc: "Scaffolds a new module directory with standard files. Usage: task new-module -- <name1>,<name2>"
+    cmds:
+      # This command splits the input by comma and iterates through each name.
+      - |
+        for module in $(echo {{.CLI_ARGS}} | tr ',' ' '); do
+          if [ -d "modules/$module" ]; then
+            echo "Module '$module' already exists. Skipping."
+          else
+            echo "Creating module: $module"
+            mkdir -p "modules/$module"
+            touch "modules/$module/main.tf"
+            touch "modules/$module/variables.tf"
+            touch "modules/$module/outputs.tf"
+          fi
+        done
   
 
   # --- INTERNAL HELPER TASKS ---
