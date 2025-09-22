@@ -34,17 +34,17 @@ resource "aws_ecs_task_definition" "this" {
 }
 
 resource "aws_ecs_service" "this" {
-  name             = var.service_name
-  cluster          = aws_ecs_cluster.this.id
-  task_definition  = aws_ecs_task_definition.this.arn
-  desired_count    = var.desired_count
-  launch_type      = "FARGATE"
-  assign_public_ip = var.assign_public_ip
+  name            = var.service_name
+  cluster         = aws_ecs_cluster.this.id
+  task_definition = aws_ecs_task_definition.this.arn
+  desired_count   = var.desired_count
+  launch_type     = "FARGATE"
 
 
   network_configuration {
-    subnets         = var.subnet_ids
-    security_groups = var.security_group_ids
+    assign_public_ip = var.assign_public_ip
+    subnets          = var.subnet_ids
+    security_groups  = var.security_group_ids
   }
 
   # This dynamic block will create the necessary configuration
