@@ -16,15 +16,17 @@ No modules.
 
 | Name | Type |
 |------|------|
-| [aws_subnet.private_subnet](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/subnet) | resource |
+| [aws_subnet.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/subnet) | resource |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_private_subnets"></a> [private\_subnets](#input\_private\_subnets) | A map of Availability Zones to CIDR blocks for the private subnets. | `map(string)` | n/a | yes |
+| <a name="input_assign_public_ip_on_launch"></a> [assign\_public\_ip\_on\_launch](#input\_assign\_public\_ip\_on\_launch) | If true, instances launched into this subnet will be assigned a public IP address. | `bool` | `false` | no |
+| <a name="input_name_prefix"></a> [name\_prefix](#input\_name\_prefix) | A prefix to use for the subnet names (e.g., 'public' or 'private'). | `string` | n/a | yes |
+| <a name="input_subnets"></a> [subnets](#input\_subnets) | A map of Availability Zones to CIDR blocks for the subnets. | `map(string)` | n/a | yes |
 | <a name="input_tags"></a> [tags](#input\_tags) | A map of tags to assign to the resources. | `map(string)` | `{}` | no |
-| <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | The ID of the VPC | `string` | n/a | yes |
+| <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | The ID of the VPC. | `string` | n/a | yes |
 
 ## Outputs
 

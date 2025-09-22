@@ -18,8 +18,6 @@ Below is a list of the modules available in this repository. For detailed inform
 * [`fargate`](./modules/fargate/README.md)
 * [`internet-gateway`](./modules/internet-gateway/README.md)
 * [`nat-gateway`](./modules/nat-gateway/README.md)
-* [`private-subnet`](./modules/private-subnet/README.md)
-* [`public-subnet`](./modules/public-subnet/README.md)
 * [`remote-state`](./modules/remote-state/README.md)
 * [`route-table`](./modules/route-table/README.md)
 * [`route53-record`](./modules/route53-record/README.md)
@@ -28,6 +26,7 @@ Below is a list of the modules available in this repository. For detailed inform
 * [`s3-static-site`](./modules/s3-static-site/README.md)
 * [`security-group`](./modules/security-group/README.md)
 * [`ssm-parameter`](./modules/ssm-parameter/README.md)
+* [`subnet`](./modules/subnet/README.md)
 * [`vpc`](./modules/vpc/README.md)
 
 ## Usage
