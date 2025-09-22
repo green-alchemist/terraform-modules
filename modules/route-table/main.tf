@@ -1,4 +1,5 @@
-resource "aws_route_table" "route_table" {
+resource "aws_route_table" "public" {
+  count  = var.create_public_route_table ? 1 : 0
   vpc_id = var.vpc_id
 
   route {
@@ -6,14 +7,31 @@ resource "aws_route_table" "route_table" {
     gateway_id = var.internet_gateway_id
   }
 
-  tags = {
-    Name = var.route_table_name
-  }
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-public-rt"
+  })
 }
 
-resource "aws_route_table_association" "route_table_association" {
-  for_each       = var.subnet_ids
-  subnet_id      = each.value.id
-  route_table_id = aws_route_table.route_table.id
+resource "aws_route_table" "private" {
+  count  = var.create_private_route_table ? 1 : 0
+  vpc_id = var.vpc_id
+
+  # No route to 0.0.0.0/0, making it private.
+  # Routes for endpoints will be added by the endpoint resources themselves.
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-private-rt"
+  })
 }
 
+resource "aws_route_table_association" "public" {
+  for_each       = toset(var.public_subnet_ids)
+  route_table_id = aws_route_table.public[0].id
+  subnet_id      = each.value
+}
+
+resource "aws_route_table_association" "private" {
+  for_each       = toset(var.private_subnet_ids)
+  route_table_id = aws_route_table.private[0].id
+  subnet_id      = each.value
+}
