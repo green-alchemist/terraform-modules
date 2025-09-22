@@ -14,18 +14,6 @@ variable "internet_gateway_id" {
   default     = null
 }
 
-variable "public_subnet_ids" {
-  description = "A list of public subnet IDs to associate with the public route table."
-  type        = list(string)
-  default     = []
-}
-
-variable "private_subnet_ids" {
-  description = "A list of private subnet IDs to associate with the private route table."
-  type        = list(string)
-  default     = []
-}
-
 variable "create_public_route_table" {
   description = "Flag to control the creation of a public route table."
   type        = bool
@@ -41,5 +29,17 @@ variable "create_private_route_table" {
 variable "tags" {
   description = "A map of tags to assign to the resources."
   type        = map(string)
+  default     = {}
+}
+
+variable "public_subnets_map" {
+  description = "A map of public subnet objects to associate with the public route table."
+  type        = map(object({ id = string }))
+  default     = {}
+}
+
+variable "private_subnets_map" {
+  description = "A map of private subnet objects to associate with the private route table."
+  type        = map(object({ id = string }))
   default     = {}
 }

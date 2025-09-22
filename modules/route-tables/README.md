@@ -29,8 +29,8 @@ No modules.
 | <a name="input_create_public_route_table"></a> [create\_public\_route\_table](#input\_create\_public\_route\_table) | Flag to control the creation of a public route table. | `bool` | `false` | no |
 | <a name="input_internet_gateway_id"></a> [internet\_gateway\_id](#input\_internet\_gateway\_id) | The ID of the Internet Gateway for the public route table. | `string` | `null` | no |
 | <a name="input_name_prefix"></a> [name\_prefix](#input\_name\_prefix) | A prefix for the names of the route tables. | `string` | n/a | yes |
-| <a name="input_private_subnet_ids"></a> [private\_subnet\_ids](#input\_private\_subnet\_ids) | A list of private subnet IDs to associate with the private route table. | `list(string)` | `[]` | no |
-| <a name="input_public_subnet_ids"></a> [public\_subnet\_ids](#input\_public\_subnet\_ids) | A list of public subnet IDs to associate with the public route table. | `list(string)` | `[]` | no |
+| <a name="input_private_subnets_map"></a> [private\_subnets\_map](#input\_private\_subnets\_map) | A map of private subnet objects to associate with the private route table. | `map(object({ id = string }))` | `{}` | no |
+| <a name="input_public_subnets_map"></a> [public\_subnets\_map](#input\_public\_subnets\_map) | A map of public subnet objects to associate with the public route table. | `map(object({ id = string }))` | `{}` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | A map of tags to assign to the resources. | `map(string)` | `{}` | no |
 | <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | The ID of the VPC. | `string` | n/a | yes |
 

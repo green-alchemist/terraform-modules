@@ -11,7 +11,7 @@
 * [internet-gateway](./internet-gateway/README.md)
 * [nat-gateway](./nat-gateway/README.md)
 * [remote-state](./remote-state/README.md)
-* [route-table](./route-table/README.md)
+* [route-tables](./route-tables/README.md)
 * [route53-record](./route53-record/README.md)
 * [route53-zone](./route53-zone/README.md)
 * [s3-redirect](./s3-redirect/README.md)

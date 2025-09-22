@@ -19,7 +19,7 @@ Below is a list of the modules available in this repository. For detailed inform
 * [`internet-gateway`](./modules/internet-gateway/README.md)
 * [`nat-gateway`](./modules/nat-gateway/README.md)
 * [`remote-state`](./modules/remote-state/README.md)
-* [`route-table`](./modules/route-table/README.md)
+* [`route-tables`](./modules/route-tables/README.md)
 * [`route53-record`](./modules/route53-record/README.md)
 * [`route53-zone`](./modules/route53-zone/README.md)
 * [`s3-redirect`](./modules/s3-redirect/README.md)
