@@ -18,6 +18,6 @@
 * [s3-static-site](./s3-static-site/README.md)
 * [security-group](./security-group/README.md)
 * [ssm-parameter](./ssm-parameter/README.md)
-* [subnet](./subnet/README.md)
+* [subnets](./subnets/README.md)
 * [vpc](./vpc/README.md)
 ## [Back](../README.md)
