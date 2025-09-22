@@ -23,6 +23,14 @@ resource "aws_ecs_task_definition" "this" {
           hostPort      = var.container_port
         }
       ]
+      logConfiguration = {
+        logDriver = "awslogs",
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.this.name,
+          "awslogs-region"        = var.aws_region,
+          "awslogs-stream-prefix" = var.service_name
+        }
+      }
       environment = [
         for name, value in var.environment_variables : {
           name  = name

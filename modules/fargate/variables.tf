@@ -118,3 +118,9 @@ variable "assign_public_ip" {
   type        = bool
   default     = false
 }
+
+variable "aws_region" {
+  description = "The AWS region where the resources are located."
+  type        = string
+  default     = "us-east-1"
+}
