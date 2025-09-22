@@ -21,13 +21,13 @@ variable "ecr_repository_url" {
 variable "task_cpu" {
   description = "The number of CPU units used by the task."
   type        = number
-  default     = 256
+  default     = 512
 }
 
 variable "task_memory" {
   description = "The amount of memory (in MiB) used by the task."
   type        = number
-  default     = 512
+  default     = 1024
 }
 
 variable "container_port" {
