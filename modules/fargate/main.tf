@@ -34,11 +34,13 @@ resource "aws_ecs_task_definition" "this" {
 }
 
 resource "aws_ecs_service" "this" {
-  name            = var.service_name
-  cluster         = aws_ecs_cluster.this.id
-  task_definition = aws_ecs_task_definition.this.arn
-  desired_count   = var.desired_count
-  launch_type     = "FARGATE"
+  name             = var.service_name
+  cluster          = aws_ecs_cluster.this.id
+  task_definition  = aws_ecs_task_definition.this.arn
+  desired_count    = var.desired_count
+  launch_type      = "FARGATE"
+  assign_public_ip = var.assign_public_ip
+
 
   network_configuration {
     subnets         = var.subnet_ids
