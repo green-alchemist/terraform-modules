@@ -124,3 +124,27 @@ variable "aws_region" {
   type        = string
   default     = "us-east-1"
 }
+
+variable "scale_down_period_seconds" {
+  description = "The period in seconds over which to evaluate the scale-down metric."
+  type        = number
+  default     = 300 # 5 minutes
+}
+
+variable "scale_down_evaluation_periods" {
+  description = "The number of consecutive periods the scale-down metric must be low to trigger an alarm."
+  type        = number
+  default     = 3 # 3 periods x 5 minutes = 15 minutes total
+}
+
+variable "cpu_utilization_high_threshold" {
+  description = "The CPU utilization percentage to trigger a scale-up event."
+  type        = number
+  default     = 75
+}
+
+variable "cpu_utilization_low_threshold" {
+  description = "The CPU utilization percentage to trigger a scale-down event. This should be low for scale-to-zero."
+  type        = number
+  default     = 10 # A low threshold to indicate idleness
+}
