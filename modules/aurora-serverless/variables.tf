@@ -41,3 +41,9 @@ variable "seconds_until_auto_pause" {
   type        = number
   default     = 600
 }
+
+variable "enabled_cloudwatch_logs_exports" {
+  description = "A list of log types to export to CloudWatch Logs. For PostgreSQL, common values are 'postgresql' and 'upgrade'."
+  type        = list(string)
+  default     = ["postgresql"]
+}

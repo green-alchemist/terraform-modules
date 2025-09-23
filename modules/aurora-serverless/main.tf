@@ -4,17 +4,17 @@ resource "aws_db_subnet_group" "this" {
 }
 
 resource "aws_rds_cluster" "this" {
-  cluster_identifier     = var.database_name
-  engine                 = "aurora-postgresql"
-  engine_mode            = "provisioned"
-  engine_version         = "16.6"
-  database_name          = var.database_name
-  master_username        = var.master_username
-  master_password        = var.master_password
-  db_subnet_group_name   = aws_db_subnet_group.this.name
-  vpc_security_group_ids = var.security_group_ids
-  skip_final_snapshot    = true
-
+  cluster_identifier              = var.database_name
+  engine                          = "aurora-postgresql"
+  engine_mode                     = "provisioned"
+  engine_version                  = "16.6"
+  database_name                   = var.database_name
+  master_username                 = var.master_username
+  master_password                 = var.master_password
+  db_subnet_group_name            = aws_db_subnet_group.this.name
+  vpc_security_group_ids          = var.security_group_ids
+  skip_final_snapshot             = true
+  enabled_cloudwatch_logs_exports = var.enabled_cloudwatch_logs_exports
   serverlessv2_scaling_configuration {
     max_capacity             = var.max_capacity
     min_capacity             = var.min_capacity

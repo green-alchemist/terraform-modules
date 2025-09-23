@@ -25,6 +25,7 @@ No modules.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_database_name"></a> [database\_name](#input\_database\_name) | The name of the database to create. | `string` | n/a | yes |
+| <a name="input_enabled_cloudwatch_logs_exports"></a> [enabled\_cloudwatch\_logs\_exports](#input\_enabled\_cloudwatch\_logs\_exports) | A list of log types to export to CloudWatch Logs. For PostgreSQL, common values are 'postgresql' and 'upgrade'. | `list(string)` | <pre>[<br/>  "postgresql"<br/>]</pre> | no |
 | <a name="input_master_password"></a> [master\_password](#input\_master\_password) | The password for the master database user. | `string` | n/a | yes |
 | <a name="input_master_username"></a> [master\_username](#input\_master\_username) | The username for the master database user. | `string` | n/a | yes |
 | <a name="input_max_capacity"></a> [max\_capacity](#input\_max\_capacity) | The maximum capacity for the Aurora Serverless v1 cluster. | `number` | `1` | no |
