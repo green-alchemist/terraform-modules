@@ -55,3 +55,15 @@ variable "route_keys" {
   type        = list(string)
   default     = ["$default"]
 }
+
+variable "enable_access_logging" {
+  description = "Set to true to enable access logging for the API Gateway stage."
+  type        = bool
+  default     = false
+}
+
+variable "log_retention_in_days" {
+  description = "The number of days to retain the access logs."
+  type        = number
+  default     = 7
+}

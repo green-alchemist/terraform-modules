@@ -35,11 +35,34 @@ resource "aws_apigatewayv2_route" "this" {
   target    = "integrations/${aws_apigatewayv2_integration.this[each.key].id}"
 }
 
+resource "aws_cloudwatch_log_group" "this" {
+  count = var.enable_access_logging ? 1 : 0
+
+  name              = "/aws/api-gateway/${var.name}"
+  retention_in_days = var.log_retention_in_days
+}
+
 # Deploys the API to a stage
 resource "aws_apigatewayv2_stage" "this" {
   api_id      = aws_apigatewayv2_api.this.id
   name        = var.stage_name
   auto_deploy = true
+  access_log_settings {
+    destination_arn = one(aws_cloudwatch_log_group.this[*].arn)
+    format = jsonencode({
+      requestId               = "$context.requestId"
+      sourceIp                = "$context.identity.sourceIp"
+      requestTime             = "$context.requestTime"
+      protocol                = "$context.protocol"
+      httpMethod              = "$context.httpMethod"
+      resourcePath            = "$context.resourcePath"
+      status                  = "$context.status"
+      responseLength          = "$context.responseLength"
+      integrationErrorMessage = "$context.integrationErrorMessage"
+    })
+  }
+
+  depends_on = [aws_cloudwatch_log_group.this]
 }
 
 resource "aws_apigatewayv2_domain_name" "this" {
