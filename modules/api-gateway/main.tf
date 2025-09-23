@@ -31,6 +31,9 @@ resource "aws_apigatewayv2_route" "this" {
   api_id    = aws_apigatewayv2_api.this.id
   route_key = each.value # Use the value from the list (e.g., "GET /admin/{proxy+}")
   target    = "integrations/${aws_apigatewayv2_integration.this.id}"
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_cloudwatch_log_group" "this" {
