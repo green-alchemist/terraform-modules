@@ -19,16 +19,6 @@ variable "security_group_ids" {
   type        = list(string)
 }
 
-variable "private_dns_name" {
-  description = "The private DNS name of the target service."
-  type        = string
-}
-
-variable "container_port" {
-  description = "The port of the target container."
-  type        = number
-}
-
 variable "fargate_service_arn" {
   description = "The ARN of the Fargate service this API Gateway integrates with. Used to enforce dependency order."
   type        = string

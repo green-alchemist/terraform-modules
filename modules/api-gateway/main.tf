@@ -13,8 +13,6 @@ resource "aws_apigatewayv2_api" "this" {
 
 # Creates the integration that connects the API to the VPC Link
 resource "aws_apigatewayv2_integration" "this" {
-  for_each = toset(var.route_keys)
-
   api_id             = aws_apigatewayv2_api.this.id
   integration_type   = "HTTP_PROXY"
   integration_method = "ANY"
@@ -32,7 +30,7 @@ resource "aws_apigatewayv2_route" "this" {
 
   api_id    = aws_apigatewayv2_api.this.id
   route_key = each.value # Use the value from the list (e.g., "GET /admin/{proxy+}")
-  target    = "integrations/${aws_apigatewayv2_integration.this[each.key].id}"
+  target    = "integrations/${aws_apigatewayv2_integration.this.id}"
 }
 
 resource "aws_cloudwatch_log_group" "this" {
