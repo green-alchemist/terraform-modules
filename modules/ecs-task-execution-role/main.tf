@@ -23,7 +23,15 @@ data "aws_iam_policy_document" "ecs_task_policy" {
       "logs:CreateLogStream",
       "logs:PutLogEvents",
       "servicediscovery:RegisterInstance",
-      "servicediscovery:DeregisterInstance"
+      "servicediscovery:DeregisterInstance",
+      "servicediscovery:DiscoverInstances",
+      "servicediscovery:GetInstance",
+      "servicediscovery:GetInstancesHealthStatus",
+      "servicediscovery:ListInstances",
+      "route53:GetHealthCheck",
+      "route53:CreateHealthCheck",
+      "route53:DeleteHealthCheck",
+      "route53:UpdateHealthCheck"
     ]
     resources = ["*"]
   }
