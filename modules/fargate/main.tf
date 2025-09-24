@@ -40,7 +40,7 @@ resource "aws_ecs_task_definition" "this" {
       healthCheck : {
         command : [
           "CMD-SHELL",
-          "curl -f http://localhost:1337/admin || exit 1"
+          "curl -v --fail http://localhost:1337/admin || exit 1"
         ],
         interval : 30,
         timeout : 30,
