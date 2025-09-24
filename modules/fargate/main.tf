@@ -55,8 +55,6 @@ resource "aws_ecs_service" "this" {
     security_groups  = var.security_group_ids
   }
 
-  # This dynamic block will create the necessary configuration
-  # based on the variable we just defined.
   dynamic "load_balancer" {
     for_each = var.load_balancers
     content {
