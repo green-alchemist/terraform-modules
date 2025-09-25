@@ -158,5 +158,11 @@ variable "enable_execute_command" {
 variable "service_discovery_health_check_enabled" {
   description = "If true, enables custom health checking for the AWS Cloud Map service. If false, Cloud Map will not perform health checks."
   type        = bool
-  default     = true
+  default     = false
+}
+
+variable "container_secrets" {
+  description = "A map of secret environment variables to set. The key is the variable name, the value is the full ARN of the SSM Parameter Store parameter."
+  type        = map(string)
+  default     = {}
 }

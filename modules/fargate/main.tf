@@ -18,7 +18,7 @@ resource "aws_ecs_task_definition" "this" {
       cpu       = var.task_cpu
       memory    = var.task_memory
       essential = true
-      "linuxParameters" : {
+      linuxParameters : {
         "initProcessEnabled" : true # Required for ECS Exec
       },
       portMappings = [
@@ -35,6 +35,12 @@ resource "aws_ecs_task_definition" "this" {
           "awslogs-stream-prefix" = var.service_name
         }
       }
+      secrets : [
+        for key, value_from in var.container_secrets : {
+          "name" : key,
+          "valueFrom" : value_from
+        }
+      ],
       environment = [
         for name, value in var.environment_variables : {
           name  = name
@@ -44,12 +50,12 @@ resource "aws_ecs_task_definition" "this" {
       healthCheck : {
         command : [
           "CMD-SHELL",
-          "curl -v --fail http://localhost:1337/admin || exit 1"
+          "curl -f http://localhost:1337/admin || exit 1"
         ],
         interval : 30,
-        timeout : 30,
+        timeout : 20,
         retries : 3,
-        startPeriod : 120
+        startPeriod : 90
       },
     }
   ])
