@@ -41,7 +41,6 @@ data "aws_iam_policy_document" "ecs_execution_ssm_policy" {
       "secretsmanager:GetSecretValue",
       "kms:Decrypt"
     ]
-    # CORRECTED: Using data.aws_region.current.name instead of an invalid attribute
     resources = [
       "arn:aws:ssm:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:parameter${var.secrets_ssm_path}",
       "arn:aws:secretsmanager:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:secret:*" # Adjust if needed
@@ -59,6 +58,19 @@ resource "aws_iam_role_policy_attachment" "execution_ssm_attachment" {
   count      = var.attach_ssm_secrets_policy ? 1 : 0
   role       = aws_iam_role.execution_role.name
   policy_arn = aws_iam_policy.ecs_execution_ssm_policy[0].arn
+}
+
+resource "aws_iam_policy" "execution_role_custom_policies" {
+  for_each = var.execution_role_policy_jsons
+  name     = "${var.execution_role_name}-${each.key}"
+  policy   = each.value
+}
+
+# Attachment 3: The additional custom policies.
+resource "aws_iam_role_policy_attachment" "execution_role_custom_attachments" {
+  for_each   = aws_iam_policy.execution_role_custom_policies
+  role       = aws_iam_role.execution_role.name
+  policy_arn = each.value.arn
 }
 
 

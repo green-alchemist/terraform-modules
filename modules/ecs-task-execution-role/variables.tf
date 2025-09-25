@@ -3,6 +3,12 @@ variable "execution_role_name" {
   type        = string
 }
 
+variable "execution_role_policy_jsons" {
+  description = "A map of IAM policy documents in JSON format to be attached to the Execution Role. The map key is used to name the policy."
+  type        = map(string)
+  default     = {}
+}
+
 variable "task_role_name" {
   description = "The name for the ECS Task Role."
   type        = string
