@@ -18,7 +18,7 @@ resource "aws_rds_cluster" "this" {
   serverlessv2_scaling_configuration {
     max_capacity             = var.max_capacity
     min_capacity             = var.min_capacity
-    seconds_until_auto_pause = var.min_capacity > 0 ? 0 : var.seconds_until_auto_pause
+    seconds_until_auto_pause = var.min_capacity > 0 ? null : var.seconds_until_auto_pause
   }
 
   lifecycle {
