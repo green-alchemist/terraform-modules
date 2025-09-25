@@ -160,9 +160,3 @@ variable "service_discovery_health_check_enabled" {
   type        = bool
   default     = false
 }
-
-variable "container_secrets" {
-  description = "A map of secret environment variables to set. The key is the variable name, the value is the full ARN of the SSM Parameter Store parameter."
-  type        = map(string)
-  default     = {}
-}

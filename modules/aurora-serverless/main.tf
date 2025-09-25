@@ -20,6 +20,10 @@ resource "aws_rds_cluster" "this" {
     min_capacity             = var.min_capacity
     seconds_until_auto_pause = var.seconds_until_auto_pause
   }
+
+  lifecycle {
+    ignore_changes = [master_password]
+  }
 }
 
 

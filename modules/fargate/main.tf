@@ -35,12 +35,6 @@ resource "aws_ecs_task_definition" "this" {
           "awslogs-stream-prefix" = var.service_name
         }
       }
-      secrets : [
-        for key, value_from in var.container_secrets : {
-          name : key,
-          valueFrom : value_from
-        }
-      ],
       environment = [
         for name, value in var.environment_variables : {
           name  = name
