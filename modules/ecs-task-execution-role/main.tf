@@ -29,6 +29,7 @@ data "aws_iam_policy_document" "ecs_task_policy" {
       "servicediscovery:GetInstancesHealthStatus",
       "servicediscovery:ListInstances",
       "servicediscovery:UpdateInstanceCustomHealthStatus",
+      "servicediscovery:GetOperation",
       "route53:GetHealthCheck",
       "route53:CreateHealthCheck",
       "route53:DeleteHealthCheck",
