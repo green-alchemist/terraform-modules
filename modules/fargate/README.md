@@ -47,6 +47,12 @@ No modules.
 | <a name="input_enable_execute_command"></a> [enable\_execute\_command](#input\_enable\_execute\_command) | Specifies whether to enable Amazon ECS Exec for the tasks within the service. | `bool` | `false` | no |
 | <a name="input_enable_service_discovery"></a> [enable\_service\_discovery](#input\_enable\_service\_discovery) | If true, registers the service with AWS Cloud Map. | `bool` | `false` | no |
 | <a name="input_environment_variables"></a> [environment\_variables](#input\_environment\_variables) | A map of environment variables to pass to the container. | `map(string)` | `{}` | no |
+| <a name="input_health_check_command"></a> [health\_check\_command](#input\_health\_check\_command) | The command to run for the health check. | `list(string)` | <pre>[<br/>  "CMD-SHELL",<br/>  "curl -f http://localhost:1337/admin || exit 1"<br/>]</pre> | no |
+| <a name="input_health_check_enabled"></a> [health\_check\_enabled](#input\_health\_check\_enabled) | Enable container health checks. | `bool` | `true` | no |
+| <a name="input_health_check_interval"></a> [health\_check\_interval](#input\_health\_check\_interval) | The time period in seconds between each health check. | `number` | `30` | no |
+| <a name="input_health_check_retries"></a> [health\_check\_retries](#input\_health\_check\_retries) | The number of consecutive failed health checks that must occur before a container is considered unhealthy. | `number` | `3` | no |
+| <a name="input_health_check_start_period"></a> [health\_check\_start\_period](#input\_health\_check\_start\_period) | The grace period in seconds during which failed health checks are ignored when a task has just started. | `number` | `0` | no |
+| <a name="input_health_check_timeout"></a> [health\_check\_timeout](#input\_health\_check\_timeout) | The time period in seconds to wait for a health check to succeed before it is considered a failure. | `number` | `5` | no |
 | <a name="input_load_balancers"></a> [load\_balancers](#input\_load\_balancers) | A list of load balancer configurations to attach to the service. | <pre>list(object({<br/>    target_group_arn = string<br/>    container_name   = string<br/>    container_port   = number<br/>  }))</pre> | `[]` | no |
 | <a name="input_max_tasks"></a> [max\_tasks](#input\_max\_tasks) | The maximum number of tasks for auto-scaling. | `number` | `1` | no |
 | <a name="input_min_tasks"></a> [min\_tasks](#input\_min\_tasks) | The minimum number of tasks for auto-scaling. | `number` | `0` | no |

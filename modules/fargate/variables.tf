@@ -171,3 +171,39 @@ variable "container_secrets" {
   type        = map(string)
   default     = {}
 }
+
+variable "health_check_enabled" {
+  description = "Enable container health checks."
+  type        = bool
+  default     = true
+}
+
+variable "health_check_command" {
+  description = "The command to run for the health check."
+  type        = list(string)
+  default     = ["CMD-SHELL", "curl -f http://localhost:1337/admin || exit 1"]
+}
+
+variable "health_check_interval" {
+  description = "The time period in seconds between each health check."
+  type        = number
+  default     = 30
+}
+
+variable "health_check_timeout" {
+  description = "The time period in seconds to wait for a health check to succeed before it is considered a failure."
+  type        = number
+  default     = 5
+}
+
+variable "health_check_retries" {
+  description = "The number of consecutive failed health checks that must occur before a container is considered unhealthy."
+  type        = number
+  default     = 3
+}
+
+variable "health_check_start_period" {
+  description = "The grace period in seconds during which failed health checks are ignored when a task has just started."
+  type        = number
+  default     = 0
+}

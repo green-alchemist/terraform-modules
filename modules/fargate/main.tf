@@ -18,9 +18,6 @@ resource "aws_ecs_task_definition" "this" {
       cpu       = var.task_cpu
       memory    = var.task_memory
       essential = true
-      linuxParameters : {
-        "initProcessEnabled" : true # Required for ECS Exec
-      },
       portMappings = [
         {
           containerPort = var.container_port
@@ -47,16 +44,16 @@ resource "aws_ecs_task_definition" "this" {
           value = value
         }
       ]
-      healthCheck : {
-        command : [
-          "CMD-SHELL",
-          "curl -f http://localhost:1337/admin || exit 1"
-        ],
-        interval : 30,
-        timeout : 20,
-        retries : 3,
-        startPeriod : 90
-      },
+      healthCheck = var.health_check_enabled ? {
+        command     = var.health_check_command
+        interval    = var.health_check_interval
+        timeout     = var.health_check_timeout
+        retries     = var.health_check_retries
+        startPeriod = var.health_check_start_period
+      } : null
+      linuxParameters = {
+        initProcessEnabled = var.enable_execute_command
+      }
     }
   ])
 }
@@ -85,6 +82,10 @@ resource "aws_ecs_service" "this" {
   }
   service_registries {
     registry_arn = var.enable_service_discovery ? aws_service_discovery_service.this[0].arn : null
+  }
+  service_connect_configuration {
+    enabled   = var.enable_service_discovery
+    namespace = aws_service_discovery_private_dns_namespace.this[0].arn
   }
 }
 
