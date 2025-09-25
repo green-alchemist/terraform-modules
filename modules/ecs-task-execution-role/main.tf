@@ -37,7 +37,8 @@ data "aws_iam_policy_document" "ecs_task_policy" {
       "ssmmessages:CreateControlChannel",
       "ssmmessages:CreateDataChannel",
       "ssmmessages:OpenControlChannel",
-      "ssmmessages:OpenDataChannel"
+      "ssmmessages:OpenDataChannel",
+      "ssm:GetParameter"
     ]
     resources = ["*"]
   }
