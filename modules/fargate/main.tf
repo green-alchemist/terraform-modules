@@ -17,6 +17,9 @@ resource "aws_ecs_task_definition" "this" {
       cpu       = var.task_cpu
       memory    = var.task_memory
       essential = true
+      "linuxParameters" : {
+        "initProcessEnabled" : true # Required for ECS Exec
+      },
       portMappings = [
         {
           containerPort = var.container_port
