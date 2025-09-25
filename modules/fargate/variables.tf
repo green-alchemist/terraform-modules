@@ -148,3 +148,9 @@ variable "cpu_utilization_low_threshold" {
   type        = number
   default     = 10 # A low threshold to indicate idleness
 }
+
+variable "enable_execute_command" {
+  description = "Specifies whether to enable Amazon ECS Exec for the tasks within the service."
+  type        = bool
+  default     = false
+}
