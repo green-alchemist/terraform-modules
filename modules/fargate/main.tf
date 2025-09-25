@@ -9,7 +9,7 @@ resource "aws_ecs_task_definition" "this" {
   cpu                      = var.task_cpu
   memory                   = var.task_memory
   execution_role_arn       = var.ecs_task_execution_role_arn
-  task_role_arn            = var.ecs_task_execution_role_arn
+  task_role_arn            = var.task_role_arn
 
   container_definitions = jsonencode([
     {
@@ -35,6 +35,12 @@ resource "aws_ecs_task_definition" "this" {
           "awslogs-stream-prefix" = var.service_name
         }
       }
+      secrets : [
+        for key, value_from in var.container_secrets : {
+          name : key,
+          valueFrom : value_from
+        }
+      ],
       environment = [
         for name, value in var.environment_variables : {
           name  = name
