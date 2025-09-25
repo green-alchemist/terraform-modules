@@ -37,8 +37,8 @@ resource "aws_ecs_task_definition" "this" {
       }
       secrets : [
         for key, value_from in var.container_secrets : {
-          "name" : key,
-          "valueFrom" : value_from
+          name : key,
+          valueFrom : value_from
         }
       ],
       environment = [
