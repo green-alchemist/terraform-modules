@@ -43,7 +43,7 @@ data "aws_iam_policy_document" "ecs_execution_ssm_policy" {
     ]
     # CORRECTED: Using data.aws_region.current.name instead of an invalid attribute
     resources = [
-      "arn:aws:ssm:${data.aws_region.current.idd}:${data.aws_caller_identity.current.account_id}:parameter${var.secrets_ssm_path}",
+      "arn:aws:ssm:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:parameter${var.secrets_ssm_path}",
       "arn:aws:secretsmanager:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:secret:*" # Adjust if needed
     ]
   }
