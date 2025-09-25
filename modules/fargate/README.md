@@ -53,6 +53,7 @@ No modules.
 | <a name="input_scale_down_evaluation_periods"></a> [scale\_down\_evaluation\_periods](#input\_scale\_down\_evaluation\_periods) | The number of consecutive periods the scale-down metric must be low to trigger an alarm. | `number` | `3` | no |
 | <a name="input_scale_down_period_seconds"></a> [scale\_down\_period\_seconds](#input\_scale\_down\_period\_seconds) | The period in seconds over which to evaluate the scale-down metric. | `number` | `300` | no |
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | A list of security group IDs to associate with the service. | `list(string)` | n/a | yes |
+| <a name="input_service_discovery_health_check_enabled"></a> [service\_discovery\_health\_check\_enabled](#input\_service\_discovery\_health\_check\_enabled) | If true, enables custom health checking for the AWS Cloud Map service. If false, Cloud Map will not perform health checks. | `bool` | `true` | no |
 | <a name="input_service_name"></a> [service\_name](#input\_service\_name) | The name of the ECS service. | `string` | n/a | yes |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | A list of subnet IDs to associate with the service. | `list(string)` | n/a | yes |
 | <a name="input_task_cpu"></a> [task\_cpu](#input\_task\_cpu) | The number of CPU units used by the task. | `number` | `1024` | no |

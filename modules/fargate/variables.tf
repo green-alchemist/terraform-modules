@@ -154,3 +154,9 @@ variable "enable_execute_command" {
   type        = bool
   default     = false
 }
+
+variable "service_discovery_health_check_enabled" {
+  description = "If true, enables custom health checking for the AWS Cloud Map service. If false, Cloud Map will not perform health checks."
+  type        = bool
+  default     = true
+}

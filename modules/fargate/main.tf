@@ -158,6 +158,13 @@ resource "aws_service_discovery_service" "this" {
       type = "A"
     }
   }
+
+  dynamic "health_check_custom_config" {
+    for_each = var.service_discovery_health_check_enabled ? [1] : []
+    content {
+      failure_threshold = 1
+    }
+  }
 }
 
 # --- CloudWatch Alarms for Auto Scaling ---
