@@ -80,9 +80,9 @@ resource "aws_ecs_service" "this" {
     service {
       port_name = "${var.service_name}-port"
       # You can optionally define client aliases for different connection protocols
-      # client_alias = [{
-      #   port = var.container_port
-      # }]
+      client_alias = [{
+        port = var.container_port
+      }]
     }
   }
 }
