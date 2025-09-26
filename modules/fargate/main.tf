@@ -84,7 +84,8 @@ resource "aws_ecs_service" "this" {
     for_each = var.enable_service_discovery ? [1] : []
     content {
       registry_arn = aws_service_discovery_service.this[0].arn
-      container_port = 1337
+      container_name = var.container_name
+      container_port = var.container_port
     }
   }
 
