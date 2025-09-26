@@ -85,8 +85,6 @@ resource "aws_ecs_service" "this" {
       # }]
     }
   }
-
-  depends_on = [aws_service_discovery_private_dns_namespace.this]
 }
 
 resource "aws_cloudwatch_log_group" "this" {
