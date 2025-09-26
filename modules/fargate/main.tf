@@ -80,13 +80,14 @@ resource "aws_ecs_service" "this" {
       container_port   = load_balancer.value.container_port
     }
   }
-  service_registries {
-    registry_arn = var.enable_service_discovery ? aws_service_discovery_service.this[0].arn : null
+  dynamic "service_registries" {
+    for_each = var.enable_service_discovery ? [1] : []
+    content {
+      registry_arn = aws_service_discovery_service.this[0].arn
+    }
   }
-  service_connect_configuration {
-    enabled   = var.enable_service_discovery
-    namespace = aws_service_discovery_private_dns_namespace.this[0].arn
-  }
+
+  depends_on = [aws_service_discovery_private_dns_namespace.this]
 }
 
 resource "aws_cloudwatch_log_group" "this" {
