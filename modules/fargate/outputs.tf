@@ -10,7 +10,7 @@ output "cluster_name" {
 
 output "service_discovery_dns_name" {
   description = "The private DNS name of the service."
-  value       = var.enable_service_discovery ? "${var.service_name}.${var.private_dns_namespace}" : ""
+  value       = var.service_connect_enabled ? "${var.service_name}.${var.private_dns_namespace}" : ""
 }
 
 output "service_arn" {

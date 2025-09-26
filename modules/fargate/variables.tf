@@ -101,10 +101,16 @@ variable "max_tasks" {
   default     = 1
 }
 
-variable "enable_service_discovery" {
+variable "service_connect_enabled" {
   description = "If true, registers the service with AWS Cloud Map."
   type        = bool
   default     = false
+}
+
+variable "service_connect_namespace_arn" {
+  description = "The ARN of the Service Connect namespace."
+  type        = string
+  default     = null
 }
 
 variable "private_dns_namespace" {

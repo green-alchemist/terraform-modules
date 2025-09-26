@@ -20,6 +20,7 @@ resource "aws_ecs_task_definition" "this" {
       essential = true
       portMappings = [
         {
+          name          = "${var.service_name}-port"
           containerPort = var.container_port
           hostPort      = var.container_port
         }
@@ -72,19 +73,16 @@ resource "aws_ecs_service" "this" {
     security_groups  = var.security_group_ids
   }
 
-  dynamic "load_balancer" {
-    for_each = var.load_balancers
-    content {
-      target_group_arn = load_balancer.value.target_group_arn
-      container_name   = load_balancer.value.container_name
-      container_port   = load_balancer.value.container_port
-    }
-  }
-  dynamic "service_registries" {
-    for_each = var.enable_service_discovery ? [1] : []
-    content {
-      registry_arn = aws_service_discovery_service.this[0].arn
-      container_name = var.container_name
+  service_connect_configuration {
+    enabled   = var.service_connect_enabled
+    namespace = var.service_connect_namespace_arn
+
+    service {
+      port_name = "${var.service_name}-port"
+      # You can optionally define client aliases for different connection protocols
+      # client_alias = [{
+      #   port = var.container_port
+      # }]
     }
   }
 
@@ -148,33 +146,33 @@ resource "aws_appautoscaling_policy" "scale_down" {
 }
 
 # Create a private DNS namespace for service discovery (e.g., ".internal")
-resource "aws_service_discovery_private_dns_namespace" "this" {
-  count = var.enable_service_discovery ? 1 : 0
-  name  = var.private_dns_namespace
-  vpc   = var.vpc_id
-}
+# resource "aws_service_discovery_private_dns_namespace" "this" {
+#   count = var.service_connect_enabled ? 1 : 0
+#   name  = var.private_dns_namespace
+#   vpc   = var.vpc_id
+# }
 
-# Register the ECS service with the DNS namespace
-resource "aws_service_discovery_service" "this" {
-  count = var.enable_service_discovery ? 1 : 0
-  name  = var.service_name
+# # Register the ECS service with the DNS namespace
+# resource "aws_service_discovery_service" "this" {
+#   count = var.service_connect_enabled ? 1 : 0
+#   name  = var.service_name
 
-  dns_config {
-    namespace_id   = aws_service_discovery_private_dns_namespace.this[0].id
-    routing_policy = "MULTIVALUE"
-    dns_records {
-      ttl  = 10
-      type = "A"
-    }
-  }
+#   dns_config {
+#     namespace_id   = aws_service_discovery_private_dns_namespace.this[0].id
+#     routing_policy = "MULTIVALUE"
+#     dns_records {
+#       ttl  = 10
+#       type = "A"
+#     }
+#   }
 
-  dynamic "health_check_custom_config" {
-    for_each = var.service_discovery_health_check_enabled ? [1] : []
-    content {
-      failure_threshold = 1
-    }
-  }
-}
+#   dynamic "health_check_custom_config" {
+#     for_each = var.service_discovery_health_check_enabled ? [1] : []
+#     content {
+#       failure_threshold = 1
+#     }
+#   }
+# }
 
 # --- CloudWatch Alarms for Auto Scaling ---
 

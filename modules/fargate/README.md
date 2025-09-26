@@ -25,8 +25,6 @@ No modules.
 | [aws_ecs_cluster.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_cluster) | resource |
 | [aws_ecs_service.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service) | resource |
 | [aws_ecs_task_definition.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_task_definition) | resource |
-| [aws_service_discovery_private_dns_namespace.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/service_discovery_private_dns_namespace) | resource |
-| [aws_service_discovery_service.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/service_discovery_service) | resource |
 
 ## Inputs
 
@@ -45,7 +43,6 @@ No modules.
 | <a name="input_ecs_task_execution_role_arn"></a> [ecs\_task\_execution\_role\_arn](#input\_ecs\_task\_execution\_role\_arn) | The ARN of the IAM role that allows ECS tasks to make API calls. | `string` | n/a | yes |
 | <a name="input_enable_autoscaling"></a> [enable\_autoscaling](#input\_enable\_autoscaling) | If true, enables auto-scaling for the Fargate service. | `bool` | `false` | no |
 | <a name="input_enable_execute_command"></a> [enable\_execute\_command](#input\_enable\_execute\_command) | Specifies whether to enable Amazon ECS Exec for the tasks within the service. | `bool` | `false` | no |
-| <a name="input_enable_service_discovery"></a> [enable\_service\_discovery](#input\_enable\_service\_discovery) | If true, registers the service with AWS Cloud Map. | `bool` | `false` | no |
 | <a name="input_environment_variables"></a> [environment\_variables](#input\_environment\_variables) | A map of environment variables to pass to the container. | `map(string)` | `{}` | no |
 | <a name="input_health_check_command"></a> [health\_check\_command](#input\_health\_check\_command) | The command to run for the health check. | `list(string)` | <pre>[<br/>  "CMD-SHELL",<br/>  "curl -f http://localhost:1337/admin || exit 1"<br/>]</pre> | no |
 | <a name="input_health_check_enabled"></a> [health\_check\_enabled](#input\_health\_check\_enabled) | Enable container health checks. | `bool` | `true` | no |
@@ -60,6 +57,8 @@ No modules.
 | <a name="input_scale_down_evaluation_periods"></a> [scale\_down\_evaluation\_periods](#input\_scale\_down\_evaluation\_periods) | The number of consecutive periods the scale-down metric must be low to trigger an alarm. | `number` | `3` | no |
 | <a name="input_scale_down_period_seconds"></a> [scale\_down\_period\_seconds](#input\_scale\_down\_period\_seconds) | The period in seconds over which to evaluate the scale-down metric. | `number` | `300` | no |
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | A list of security group IDs to associate with the service. | `list(string)` | n/a | yes |
+| <a name="input_service_connect_enabled"></a> [service\_connect\_enabled](#input\_service\_connect\_enabled) | If true, registers the service with AWS Cloud Map. | `bool` | `false` | no |
+| <a name="input_service_connect_namespace_arn"></a> [service\_connect\_namespace\_arn](#input\_service\_connect\_namespace\_arn) | The ARN of the Service Connect namespace. | `string` | `null` | no |
 | <a name="input_service_discovery_health_check_enabled"></a> [service\_discovery\_health\_check\_enabled](#input\_service\_discovery\_health\_check\_enabled) | If true, enables custom health checking for the AWS Cloud Map service. If false, Cloud Map will not perform health checks. | `bool` | `false` | no |
 | <a name="input_service_name"></a> [service\_name](#input\_service\_name) | The name of the ECS service. | `string` | n/a | yes |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | A list of subnet IDs to associate with the service. | `list(string)` | n/a | yes |
