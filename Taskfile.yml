@@ -154,7 +154,7 @@ tasks:
   new-module:
     desc: "Scaffolds a new module directory with standard files. Usage: task new-module -- <name1>,<name2>"
     cmds:
-      # This command splits the input by comma and iterates through each name.
+      # This command splits the input by comma and iterates through each name. `task new-module -- module1,module2`
       - |
         for module in $(echo {{.CLI_ARGS}} | tr ',' ' '); do
           if [ -d "modules/$module" ]; then
