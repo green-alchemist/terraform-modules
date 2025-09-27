@@ -1,6 +1,3 @@
-# modules/lambda-proxy/main.tf
-
-# Lambda function for proxying requests
 resource "aws_lambda_function" "proxy" {
   function_name = "${var.project_prefix}-${var.service_name}-proxy"
   role          = aws_iam_role.lambda.arn
@@ -400,17 +397,6 @@ resource "aws_cloudwatch_log_group" "lambda" {
   tags = var.tags
 }
 
-# Lambda permission for API Gateway (if API Gateway is being used)
-resource "aws_lambda_permission" "api_gateway" {
-  count = var.api_gateway_execution_arn != null ? 1 : 0
-
-  statement_id  = "AllowExecutionFromAPIGateway"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.proxy.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${var.api_gateway_execution_arn}/*/*"
-}
-
 # Lambda permission for custom invokers
 resource "aws_lambda_permission" "custom" {
   for_each = var.lambda_permissions
@@ -467,3 +453,4 @@ resource "aws_cloudwatch_metric_alarm" "lambda_throttles" {
   alarm_actions = var.alarm_actions
   tags          = var.tags
 }
+
