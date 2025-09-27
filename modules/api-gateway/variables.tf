@@ -9,22 +9,6 @@ variable "stage_name" {
   default     = "$default"
 }
 
-variable "subnet_ids" {
-  description = "A list of subnet IDs for the VPC Link."
-  type        = list(string)
-}
-
-variable "security_group_ids" {
-  description = "A list of security group IDs for the VPC Link."
-  type        = list(string)
-}
-
-variable "fargate_service_arn" {
-  description = "The ARN of the Fargate service this API Gateway integrates with. Used to enforce dependency order."
-  type        = string
-  default     = ""
-}
-
 variable "domain_name" {
   description = "The custom domain name for the API Gateway."
   type        = string
@@ -35,8 +19,19 @@ variable "acm_certificate_arn" {
   type        = string
 }
 
-variable "target_uri" {
-  description = "The integration URI, typically the Cloud Map service ARN for a Fargate integration."
+# --- Integration Variables ---
+
+variable "integration_type" {
+  description = "The integration type. Supported values: 'HTTP_PROXY' (for VPC Link), 'AWS_PROXY' (for Lambda)."
+  type        = string
+  validation {
+    condition     = contains(["HTTP_PROXY", "AWS_PROXY"], var.integration_type)
+    error_message = "The integration_type must be either 'HTTP_PROXY' or 'AWS_PROXY'."
+  }
+}
+
+variable "integration_uri" {
+  description = "The integration URI. For Lambda, this is the function's invoke ARN. For HTTP_PROXY, this is the target URI (e.g., Cloud Map service)."
   type        = string
 }
 
@@ -45,6 +40,23 @@ variable "route_keys" {
   type        = list(string)
   default     = ["$default"]
 }
+
+# --- VPC Link Specific Variables (only used if integration_type is 'HTTP_PROXY') ---
+
+variable "subnet_ids" {
+  description = "A list of subnet IDs for the VPC Link. Required for 'HTTP_PROXY' integration."
+  type        = list(string)
+  default     = []
+}
+
+variable "vpc_link_security_group_ids" {
+  description = "A list of security group IDs for the VPC Link. Required for 'HTTP_PROXY' integration."
+  type        = list(string)
+  default     = []
+}
+
+
+# --- Logging Variables ---
 
 variable "enable_access_logging" {
   description = "Set to true to enable access logging for the API Gateway stage."

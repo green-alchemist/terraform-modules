@@ -1,7 +1,9 @@
-# Creates the private link between API Gateway and your VPC
+# Creates the private link between API Gateway and your VPC (only if needed)
 resource "aws_apigatewayv2_vpc_link" "this" {
+  count = var.integration_type == "HTTP_PROXY" ? 1 : 0
+
   name               = "${var.name}-vpc-link"
-  security_group_ids = var.security_group_ids
+  security_group_ids = var.vpc_link_security_group_ids
   subnet_ids         = var.subnet_ids
 }
 
@@ -11,17 +13,17 @@ resource "aws_apigatewayv2_api" "this" {
   protocol_type = "HTTP"
 }
 
-# Creates the integration that connects the API to the VPC Link
+# Creates the integration that connects the API to the backend
 resource "aws_apigatewayv2_integration" "this" {
   api_id             = aws_apigatewayv2_api.this.id
-  integration_type   = "HTTP_PROXY"
+  integration_type   = var.integration_type
   integration_method = "ANY"
-  integration_uri    = var.target_uri
-  connection_type    = "VPC_LINK"
-  connection_id      = aws_apigatewayv2_vpc_link.this.id
-  depends_on = [
-    var.fargate_service_arn
-  ]
+  integration_uri    = var.integration_uri
+
+  # Conditional configuration based on integration type
+  connection_type        = var.integration_type == "HTTP_PROXY" ? "VPC_LINK" : null
+  connection_id          = var.integration_type == "HTTP_PROXY" ? one(aws_apigatewayv2_vpc_link.this[*].id) : null
+  payload_format_version = var.integration_type == "AWS_PROXY" ? "2.0" : null
 }
 
 # Creates a default route that sends all traffic to our integration
@@ -29,7 +31,7 @@ resource "aws_apigatewayv2_route" "this" {
   for_each = toset(var.route_keys) # Create a route for each key in the list
 
   api_id    = aws_apigatewayv2_api.this.id
-  route_key = each.value # Use the value from the list (e.g., "GET /admin/{proxy+}")
+  route_key = each.value
   target    = "integrations/${aws_apigatewayv2_integration.this.id}"
 }
 
@@ -45,19 +47,23 @@ resource "aws_apigatewayv2_stage" "this" {
   api_id      = aws_apigatewayv2_api.this.id
   name        = var.stage_name
   auto_deploy = true
-  access_log_settings {
-    destination_arn = one(aws_cloudwatch_log_group.this[*].arn)
-    format = jsonencode({
-      requestId               = "$context.requestId"
-      sourceIp                = "$context.identity.sourceIp"
-      requestTime             = "$context.requestTime"
-      protocol                = "$context.protocol"
-      httpMethod              = "$context.httpMethod"
-      resourcePath            = "$context.resourcePath"
-      status                  = "$context.status"
-      responseLength          = "$context.responseLength"
-      integrationErrorMessage = "$context.integrationErrorMessage"
-    })
+
+  dynamic "access_log_settings" {
+    for_each = var.enable_access_logging ? [1] : []
+    content {
+      destination_arn = one(aws_cloudwatch_log_group.this[*].arn)
+      format = jsonencode({
+        requestId               = "$context.requestId"
+        sourceIp                = "$context.identity.sourceIp"
+        requestTime             = "$context.requestTime"
+        protocol                = "$context.protocol"
+        httpMethod              = "$context.httpMethod"
+        resourcePath            = "$context.resourcePath"
+        status                  = "$context.status"
+        responseLength          = "$context.responseLength"
+        integrationErrorMessage = "$context.integrationErrorMessage"
+      })
+    }
   }
 
   depends_on = [aws_cloudwatch_log_group.this]
@@ -73,10 +79,9 @@ resource "aws_apigatewayv2_domain_name" "this" {
   }
 }
 
-# ADD THIS RESOURCE TO MAP THE API TO THE CUSTOM DOMAIN
+# Maps the API to the custom domain
 resource "aws_apigatewayv2_api_mapping" "this" {
   api_id      = aws_apigatewayv2_api.this.id
   domain_name = aws_apigatewayv2_domain_name.this.id
   stage       = aws_apigatewayv2_stage.this.id
 }
-

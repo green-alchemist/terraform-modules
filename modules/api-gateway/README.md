@@ -32,14 +32,14 @@ No modules.
 | <a name="input_acm_certificate_arn"></a> [acm\_certificate\_arn](#input\_acm\_certificate\_arn) | The ARN of the ACM certificate for the custom domain. | `string` | n/a | yes |
 | <a name="input_domain_name"></a> [domain\_name](#input\_domain\_name) | The custom domain name for the API Gateway. | `string` | n/a | yes |
 | <a name="input_enable_access_logging"></a> [enable\_access\_logging](#input\_enable\_access\_logging) | Set to true to enable access logging for the API Gateway stage. | `bool` | `false` | no |
-| <a name="input_fargate_service_arn"></a> [fargate\_service\_arn](#input\_fargate\_service\_arn) | The ARN of the Fargate service this API Gateway integrates with. Used to enforce dependency order. | `string` | `""` | no |
+| <a name="input_integration_type"></a> [integration\_type](#input\_integration\_type) | The integration type. Supported values: 'HTTP\_PROXY' (for VPC Link), 'AWS\_PROXY' (for Lambda). | `string` | n/a | yes |
+| <a name="input_integration_uri"></a> [integration\_uri](#input\_integration\_uri) | The integration URI. For Lambda, this is the function's invoke ARN. For HTTP\_PROXY, this is the target URI (e.g., Cloud Map service). | `string` | n/a | yes |
 | <a name="input_log_retention_in_days"></a> [log\_retention\_in\_days](#input\_log\_retention\_in\_days) | The number of days to retain the access logs. | `number` | `7` | no |
 | <a name="input_name"></a> [name](#input\_name) | The name for the API Gateway and related resources. | `string` | n/a | yes |
 | <a name="input_route_keys"></a> [route\_keys](#input\_route\_keys) | A list of route keys to create for the integration. | `list(string)` | <pre>[<br/>  "$default"<br/>]</pre> | no |
-| <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | A list of security group IDs for the VPC Link. | `list(string)` | n/a | yes |
 | <a name="input_stage_name"></a> [stage\_name](#input\_stage\_name) | The name of the deployment stage (e.g., 'staging'). | `string` | `"$default"` | no |
-| <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | A list of subnet IDs for the VPC Link. | `list(string)` | n/a | yes |
-| <a name="input_target_uri"></a> [target\_uri](#input\_target\_uri) | The integration URI, typically the Cloud Map service ARN for a Fargate integration. | `string` | n/a | yes |
+| <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | A list of subnet IDs for the VPC Link. Required for 'HTTP\_PROXY' integration. | `list(string)` | `[]` | no |
+| <a name="input_vpc_link_security_group_ids"></a> [vpc\_link\_security\_group\_ids](#input\_vpc\_link\_security\_group\_ids) | A list of security group IDs for the VPC Link. Required for 'HTTP\_PROXY' integration. | `list(string)` | `[]` | no |
 
 ## Outputs
 
