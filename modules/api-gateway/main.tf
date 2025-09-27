@@ -17,7 +17,7 @@ resource "aws_apigatewayv2_api" "this" {
 resource "aws_apigatewayv2_integration" "this" {
   api_id             = aws_apigatewayv2_api.this.id
   integration_type   = var.integration_type
-  integration_method = "ANY"
+  integration_method = var.integration_type == "AWS_PROXY" ? "POST" : "ANY"
   integration_uri    = var.integration_uri
 
   # Conditional configuration based on integration type
