@@ -17,3 +17,8 @@ output "api_gateway_target_domain_name" {
   description = "The target domain name of the API Gateway custom domain."
   value       = aws_apigatewayv2_domain_name.this.domain_name_configuration[0].target_domain_name
 }
+
+output "execution_arn" {
+  description = "The execution ARN of the API Gateway."
+  value       = aws_apigatewayv2_api.this.execution_arn
+}

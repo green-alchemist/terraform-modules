@@ -49,3 +49,4 @@ No modules.
 | <a name="output_api_gateway_hosted_zone_id"></a> [api\_gateway\_hosted\_zone\_id](#output\_api\_gateway\_hosted\_zone\_id) | The hosted zone ID of the API Gateway custom domain name. |
 | <a name="output_api_gateway_target_domain_name"></a> [api\_gateway\_target\_domain\_name](#output\_api\_gateway\_target\_domain\_name) | The target domain name of the API Gateway custom domain. |
 | <a name="output_api_id"></a> [api\_id](#output\_api\_id) | The ID of the API Gateway. |
+| <a name="output_execution_arn"></a> [execution\_arn](#output\_execution\_arn) | The execution ARN of the API Gateway. |
