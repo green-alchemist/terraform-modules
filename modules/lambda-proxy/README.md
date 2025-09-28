@@ -29,10 +29,6 @@ No modules.
 | [aws_lambda_function.proxy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_function) | resource |
 | [aws_lambda_permission.custom](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_permission) | resource |
 | [aws_security_group.lambda](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
-| [aws_security_group_rule.lambda_egress_additional](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
-| [aws_security_group_rule.lambda_egress_dns](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
-| [aws_security_group_rule.lambda_egress_https](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
-| [aws_security_group_rule.lambda_egress_target](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
 | [archive_file.lambda_zip](https://registry.terraform.io/providers/hashicorp/archive/latest/docs/data-sources/file) | data source |
 
 ## Inputs
@@ -44,6 +40,7 @@ No modules.
 | <a name="input_additional_iam_policies"></a> [additional\_iam\_policies](#input\_additional\_iam\_policies) | Additional IAM policies to attach to Lambda role | `map(string)` | `{}` | no |
 | <a name="input_alarm_actions"></a> [alarm\_actions](#input\_alarm\_actions) | SNS topic ARNs for CloudWatch alarms | `list(string)` | `[]` | no |
 | <a name="input_api_gateway_execution_arn"></a> [api\_gateway\_execution\_arn](#input\_api\_gateway\_execution\_arn) | API Gateway execution ARN for Lambda permissions | `string` | `null` | no |
+| <a name="input_aws_region"></a> [aws\_region](#input\_aws\_region) | AWS Region | `string` | `"us-east-1"` | no |
 | <a name="input_custom_lambda_code"></a> [custom\_lambda\_code](#input\_custom\_lambda\_code) | Custom Lambda function code (overrides default proxy code) | `string` | `null` | no |
 | <a name="input_enable_monitoring"></a> [enable\_monitoring](#input\_enable\_monitoring) | Enable CloudWatch alarms for Lambda | `bool` | `true` | no |
 | <a name="input_enable_service_discovery_permissions"></a> [enable\_service\_discovery\_permissions](#input\_enable\_service\_discovery\_permissions) | Enable IAM permissions for ECS Service Discovery | `bool` | `false` | no |
