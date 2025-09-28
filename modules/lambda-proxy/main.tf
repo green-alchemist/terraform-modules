@@ -298,7 +298,9 @@ resource "aws_iam_role_policy" "service_discovery" {
         Action = [
           "servicediscovery:DiscoverInstances",
           "servicediscovery:GetInstance",
-          "servicediscovery:ListInstances"
+          "servicediscovery:ListInstances",
+          "servicediscovery:GetOperation",
+          "servicediscovery:GetInstancesHealthStatus",
         ]
         Resource = "*"
       },
