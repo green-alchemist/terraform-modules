@@ -60,8 +60,8 @@ const { ServiceDiscoveryClient, DiscoverInstancesCommand } = require("@aws-sdk/c
 const LOG_LEVEL = process.env.LOG_LEVEL || 'INFO';
 const LOG_LEVELS = { ERROR: 0, WARN: 1, INFO: 2, DEBUG: 3 };
 
-// Initialize the Service Discovery client
-const sdClient = new ServiceDiscoveryClient({});
+// Initialize the Service Discovery client, explicitly setting the region.
+const sdClient = new ServiceDiscoveryClient({ region: process.env.AWS_REGION });
 
 function log(level, message, data = {}) {
     if (LOG_LEVELS[level] <= LOG_LEVELS[LOG_LEVEL]) {
@@ -99,7 +99,14 @@ async function getHealthyInstance(namespace, service) {
             port: parseInt(instance.Attributes.AWS_INSTANCE_PORT)
         };
     } catch (error) {
-        log('ERROR', 'Failed to discover instances', { error: error.message, service, namespace });
+        // Enhanced error logging to capture the full error object
+        log('ERROR', 'Failed to discover instances', { 
+            errorName: error.name, 
+            errorMessage: error.message, 
+            errorStack: error.stack,
+            service, 
+            namespace 
+        });
         throw error;
     }
 }
@@ -239,7 +246,6 @@ function makeHttpRequest(options) {
 }
 EOF
 }
-
 
 # IAM role for Lambda
 resource "aws_iam_role" "lambda" {
