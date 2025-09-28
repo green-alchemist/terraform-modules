@@ -1,5 +1,5 @@
 resource "aws_lambda_function" "proxy" {
-  function_name = "${var.project_prefix}-${var.service_name}-proxy"
+  function_name = "${var.service_name}-proxy"
   role          = aws_iam_role.lambda.arn
   handler       = "index.handler"
   runtime       = var.runtime
@@ -252,7 +252,7 @@ EOF
 
 # IAM role for Lambda
 resource "aws_iam_role" "lambda" {
-  name = "${var.project_prefix}-${var.service_name}-lambda-proxy"
+  name = "${var.service_name}-lambda-proxy"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -290,7 +290,7 @@ resource "aws_iam_role_policy_attachment" "lambda_xray" {
 # Service discovery policy for ECS Service Connect
 resource "aws_iam_role_policy" "service_discovery" {
   count = var.enable_service_discovery_permissions ? 1 : 0
-  name  = "${var.project_prefix}-${var.service_name}-service-discovery"
+  name  = "${var.service_name}-service-discovery"
   role  = aws_iam_role.lambda.id
 
   policy = jsonencode({
@@ -330,14 +330,14 @@ resource "aws_iam_role_policy" "additional" {
 
 # Security group for Lambda
 resource "aws_security_group" "lambda" {
-  name        = "${var.project_prefix}-${var.service_name}-lambda-proxy"
+  name        = "${var.service_name}-lambda-proxy"
   description = "Security group for ${var.service_name} Lambda proxy"
   vpc_id      = var.vpc_id
 
   tags = merge(
     var.tags,
     {
-      Name = "${var.project_prefix}-${var.service_name}-lambda-proxy"
+      Name = "${var.service_name}-lambda-proxy"
     }
   )
 }
@@ -390,7 +390,7 @@ resource "aws_security_group_rule" "lambda_egress_additional" {
 
 # CloudWatch log group
 resource "aws_cloudwatch_log_group" "lambda" {
-  name              = "/aws/lambda/${var.project_prefix}-${var.service_name}-proxy"
+  name              = "/aws/lambda/${var.service_name}-proxy"
   retention_in_days = var.log_retention_days
   kms_key_id        = var.kms_key_arn
 
@@ -412,7 +412,7 @@ resource "aws_lambda_permission" "custom" {
 resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
   count = var.enable_monitoring ? 1 : 0
 
-  alarm_name          = "${var.project_prefix}-${var.service_name}-lambda-errors"
+  alarm_name          = "${var.service_name}-lambda-errors"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "2"
   metric_name         = "Errors"
@@ -435,7 +435,7 @@ resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
 resource "aws_cloudwatch_metric_alarm" "lambda_throttles" {
   count = var.enable_monitoring ? 1 : 0
 
-  alarm_name          = "${var.project_prefix}-${var.service_name}-lambda-throttles"
+  alarm_name          = "${var.service_name}-lambda-throttles"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "1"
   metric_name         = "Throttles"

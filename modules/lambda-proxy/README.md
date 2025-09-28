@@ -53,7 +53,6 @@ No modules.
 | <a name="input_log_level"></a> [log\_level](#input\_log\_level) | Logging level (ERROR, WARN, INFO, DEBUG) | `string` | `"INFO"` | no |
 | <a name="input_log_retention_days"></a> [log\_retention\_days](#input\_log\_retention\_days) | CloudWatch log retention in days | `number` | `14` | no |
 | <a name="input_memory_size"></a> [memory\_size](#input\_memory\_size) | Lambda memory size in MB | `number` | `256` | no |
-| <a name="input_project_prefix"></a> [project\_prefix](#input\_project\_prefix) | Project prefix for resource naming | `string` | n/a | yes |
 | <a name="input_reserved_concurrent_executions"></a> [reserved\_concurrent\_executions](#input\_reserved\_concurrent\_executions) | Reserved concurrent executions for Lambda | `number` | `-1` | no |
 | <a name="input_runtime"></a> [runtime](#input\_runtime) | Lambda runtime | `string` | `"nodejs20.x"` | no |
 | <a name="input_service_connect_namespace"></a> [service\_connect\_namespace](#input\_service\_connect\_namespace) | Service Connect namespace | `string` | `"local"` | no |

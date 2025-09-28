@@ -1,11 +1,3 @@
-# modules/lambda-proxy/variables.tf
-
-# Required variables
-variable "project_prefix" {
-  description = "Project prefix for resource naming"
-  type        = string
-}
-
 variable "service_name" {
   description = "Name of the service"
   type        = string
