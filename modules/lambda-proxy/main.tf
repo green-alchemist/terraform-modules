@@ -44,7 +44,7 @@ resource "aws_lambda_function" "proxy" {
 # Package Lambda function code
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  output_path = "${path.module}/.terraform/lambda-${var.name}.zip"
+  output_path = "${path.module}/.terraform/lambda-${var.service_name}.zip"
 
   source {
     content  = local.lambda_code
