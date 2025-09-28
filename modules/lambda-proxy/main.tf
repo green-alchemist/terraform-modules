@@ -55,10 +55,13 @@ data "archive_file" "lambda_zip" {
 locals {
   lambda_code = var.custom_lambda_code != null ? var.custom_lambda_code : <<-EOF
 const http = require('http');
-const https = require('https');
+const { ServiceDiscoveryClient, DiscoverInstancesCommand } = require("@aws-sdk/client-servicediscovery");
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'INFO';
 const LOG_LEVELS = { ERROR: 0, WARN: 1, INFO: 2, DEBUG: 3 };
+
+// Initialize the Service Discovery client
+const sdClient = new ServiceDiscoveryClient({});
 
 function log(level, message, data = {}) {
     if (LOG_LEVELS[level] <= LOG_LEVELS[LOG_LEVEL]) {
@@ -71,13 +74,54 @@ function log(level, message, data = {}) {
     }
 }
 
+// Function to get a healthy instance from AWS Cloud Map
+async function getHealthyInstance(namespace, service) {
+    const command = new DiscoverInstancesCommand({
+        NamespaceName: namespace,
+        ServiceName: service,
+        HealthStatus: "HEALTHY"
+    });
+
+    try {
+        const response = await sdClient.send(command);
+        if (!response.Instances || response.Instances.length === 0) {
+            log('ERROR', 'No healthy instances found for service', { service, namespace });
+            return null;
+        }
+        // Return a random healthy instance
+        const instance = response.Instances[Math.floor(Math.random() * response.Instances.length)];
+        return {
+            hostname: instance.Attributes.AWS_INSTANCE_IPV4,
+            port: parseInt(instance.Attributes.AWS_INSTANCE_PORT)
+        };
+    } catch (error) {
+        log('ERROR', 'Failed to discover instances', { error: error.message, service, namespace });
+        throw error;
+    }
+}
+
 exports.handler = async (event, context) => {
     const requestId = context.requestId;
-    
     log('DEBUG', 'Incoming request', { requestId, event });
-    
+
     try {
-        // Parse request details
+        // Discover a healthy instance of the target service
+        const targetInstance = await getHealthyInstance(
+            process.env.SERVICE_CONNECT_NAMESPACE,
+            process.env.TARGET_SERVICE_NAME
+        );
+
+        if (!targetInstance) {
+            return {
+                statusCode: 503, // Service Unavailable
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ error: "Service Unavailable", message: "No healthy instances found for the target service." })
+            };
+        }
+
+        const { hostname, port } = targetInstance;
+
+        // Parse request details from the original event
         const requestPath = event.path || event.rawPath || '/';
         const queryStringParameters = event.queryStringParameters || {};
         const httpMethod = event.httpMethod || event.requestContext?.http?.method || 'GET';
@@ -85,20 +129,15 @@ exports.handler = async (event, context) => {
         const body = event.body;
         const isBase64 = event.isBase64Encoded || false;
         
-        // Build query string
         const queryString = Object.entries(queryStringParameters)
             .map(([key, value]) => `$${key}=$${encodeURIComponent(value)}`)
             .join('&');
         
         const fullPath = queryString ? `$${requestPath}?$${queryString}` : requestPath;
         
-        // Service Connect endpoint
-        const serviceEndpoint = `$${process.env.TARGET_SERVICE_NAME}.$${process.env.SERVICE_CONNECT_NAMESPACE}`;
-        const port = parseInt(process.env.TARGET_PORT || '80');
-        
-        log('INFO', 'Proxying request', {
+        log('INFO', 'Proxying request to discovered instance', {
             requestId,
-            target: `http://$${serviceEndpoint}:$${port}$${fullPath}`,
+            target: `http://$${hostname}:$${port}$${fullPath}`,
             method: httpMethod
         });
         
@@ -111,60 +150,34 @@ exports.handler = async (event, context) => {
         // Clean and forward headers
         const cleanHeaders = Object.entries(headers).reduce((acc, [key, value]) => {
             const lowerKey = key.toLowerCase();
-            // Skip API Gateway specific headers
-            if (!['x-forwarded-for', 'x-forwarded-port', 'x-forwarded-proto', 
-                  'x-amzn-trace-id', 'x-amz-cf-id'].includes(lowerKey)) {
+            if (!['host', 'x-forwarded-for', 'x-forwarded-port', 'x-forwarded-proto', 'x-amzn-trace-id', 'x-amz-cf-id'].includes(lowerKey)) {
                 acc[key] = value;
             }
             return acc;
         }, {});
         
-        // Set proper host header
-        cleanHeaders['Host'] = `$${serviceEndpoint}:$${port}`;
+        cleanHeaders['Host'] = hostname;
         
-        // Add content-length if body exists
         if (requestBody) {
             cleanHeaders['Content-Length'] = Buffer.byteLength(requestBody);
         }
         
         // Forward the request
         const response = await makeHttpRequest({
-            hostname: serviceEndpoint,
+            hostname: hostname,
             port: port,
             path: fullPath,
             method: httpMethod,
             headers: cleanHeaders,
             body: requestBody,
-            timeout: (context.getRemainingTimeInMillis() - 1000) // Leave 1s buffer
+            timeout: (context.getRemainingTimeInMillis() - 1000)
         });
         
-        log('INFO', 'Request completed', {
-            requestId,
-            statusCode: response.statusCode,
-            responseSize: response.body ? response.body.length : 0
-        });
-        
-        // Prepare response headers
-        const responseHeaders = {
-            ...response.headers,
-            'X-Request-Id': requestId
-        };
-        
-        // Add CORS headers if configured
-        if (process.env.CORS_ENABLED === 'true') {
-            responseHeaders['Access-Control-Allow-Origin'] = process.env.CORS_ORIGIN || '*';
-            responseHeaders['Access-Control-Allow-Methods'] = process.env.CORS_METHODS || 'GET,POST,PUT,DELETE,OPTIONS,PATCH';
-            responseHeaders['Access-Control-Allow-Headers'] = process.env.CORS_HEADERS || 'Content-Type,Authorization,X-Requested-With';
-            responseHeaders['Access-Control-Max-Age'] = process.env.CORS_MAX_AGE || '86400';
-            
-            if (process.env.CORS_CREDENTIALS === 'true') {
-                responseHeaders['Access-Control-Allow-Credentials'] = 'true';
-            }
-        }
+        log('INFO', 'Request completed', { requestId, statusCode: response.statusCode });
         
         return {
             statusCode: response.statusCode,
-            headers: responseHeaders,
+            headers: response.headers,
             body: response.body,
             isBase64Encoded: false
         };
@@ -176,7 +189,6 @@ exports.handler = async (event, context) => {
             stack: error.stack
         });
         
-        // Determine error response
         let statusCode = 500;
         let errorMessage = 'Internal Server Error';
         
@@ -190,60 +202,24 @@ exports.handler = async (event, context) => {
         
         return {
             statusCode: statusCode,
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Request-Id': requestId,
-                ...(process.env.CORS_ENABLED === 'true' && {
-                    'Access-Control-Allow-Origin': process.env.CORS_ORIGIN || '*'
-                })
-            },
-            body: JSON.stringify({
-                error: errorMessage,
-                message: error.message,
-                requestId: requestId
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: errorMessage, message: error.message, requestId: requestId })
         };
     }
 };
 
 function makeHttpRequest(options) {
     return new Promise((resolve, reject) => {
-        const timeout = options.timeout || 30000;
-        const protocol = options.port === 443 ? https : http;
-        
-        const req = protocol.request({
-            hostname: options.hostname,
-            port: options.port,
-            path: options.path,
-            method: options.method,
-            headers: options.headers,
-            timeout: timeout
-        }, (res) => {
+        const req = http.request(options, (res) => {
             let body = '';
-            
-            res.on('data', (chunk) => {
-                body += chunk;
-            });
-            
-            res.on('end', () => {
-                resolve({
-                    statusCode: res.statusCode,
-                    headers: res.headers,
-                    body: body
-                });
-            });
+            res.on('data', (chunk) => { body += chunk; });
+            res.on('end', () => resolve({ statusCode: res.statusCode, headers: res.headers, body: body }));
         });
-        
         req.on('error', reject);
-        req.on('timeout', () => {
-            req.destroy();
-            reject(new Error('Request timeout'));
-        });
-        
+        req.on('timeout', () => { req.destroy(); reject(new Error('Request timeout')); });
         if (options.body) {
             req.write(options.body);
         }
-        
         req.end();
     });
 }
