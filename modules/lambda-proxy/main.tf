@@ -21,6 +21,7 @@ resource "aws_lambda_function" "proxy" {
         SERVICE_CONNECT_NAMESPACE = var.service_connect_namespace
         TARGET_PORT               = var.target_port
         LOG_LEVEL                 = var.log_level
+        AWS_REGION                = var.aws_region
       },
       var.additional_environment_variables
     )
@@ -43,7 +44,7 @@ resource "aws_lambda_function" "proxy" {
 # Package Lambda function code
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  output_path = "${path.module}/.terraform/lambda-${var.service_name}.zip"
+  output_path = "${path.module}/.terraform/lambda-${var.name}.zip"
 
   source {
     content  = local.lambda_code
@@ -289,17 +290,19 @@ resource "aws_security_group" "lambda" {
       Name = "${var.service_name}-lambda-proxy"
     }
   )
+
+  depends_on = [aws_lambda_function.proxy]
 }
 
 # Egress rule for target service
 resource "aws_security_group_rule" "lambda_egress_target" {
-  type              = "egress"
-  from_port         = var.target_port
-  to_port           = var.target_port
-  protocol          = "tcp"
-  cidr_blocks       = var.target_service_cidr_blocks
-  security_group_id = aws_security_group.lambda.id
-  description       = "Allow outbound to target service"
+  type                     = "egress"
+  from_port                = var.target_port
+  to_port                  = var.target_port
+  protocol                 = "tcp"
+  source_security_group_id = module.strapi_security_group.security_group_id
+  security_group_id        = aws_security_group.lambda.id
+  description              = "Allow outbound to target service"
 }
 
 # Egress rule for HTTPS (AWS services)
