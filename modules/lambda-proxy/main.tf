@@ -76,6 +76,10 @@ function log(level, message, data = {}) {
 
 // Function to get a healthy instance from AWS Cloud Map
 async function getHealthyInstance(namespace, service) {
+    // --- BEGIN DIAGNOSTIC LOGGING ---
+    log('INFO', 'Attempting to discover instances with parameters', { namespace, service });
+    // --- END DIAGNOSTIC LOGGING ---
+
     const command = new DiscoverInstancesCommand({
         NamespaceName: namespace,
         ServiceName: service,
@@ -102,6 +106,16 @@ async function getHealthyInstance(namespace, service) {
 
 exports.handler = async (event, context) => {
     const requestId = context.requestId;
+
+    // --- BEGIN DIAGNOSTIC LOGGING ---
+    // Log all relevant environment variables at the start of the execution.
+    log('INFO', 'Lambda function starting. Environment variables:', {
+        TARGET_SERVICE_NAME: process.env.TARGET_SERVICE_NAME,
+        SERVICE_CONNECT_NAMESPACE: process.env.SERVICE_CONNECT_NAMESPACE,
+        AWS_REGION: process.env.AWS_REGION
+    });
+    // --- END DIAGNOSTIC LOGGING ---
+
     log('DEBUG', 'Incoming request', { requestId, event });
 
     try {
@@ -225,6 +239,7 @@ function makeHttpRequest(options) {
 }
 EOF
 }
+
 
 # IAM role for Lambda
 resource "aws_iam_role" "lambda" {
