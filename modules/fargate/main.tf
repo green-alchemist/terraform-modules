@@ -20,7 +20,7 @@ resource "aws_ecs_task_definition" "this" {
       essential = true
       portMappings = [
         {
-          name          = "${var.service_name}-port"
+          name          = "${var.service_name}"
           containerPort = var.container_port
           hostPort      = var.container_port
         }
