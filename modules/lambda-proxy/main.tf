@@ -55,15 +55,9 @@ data "archive_file" "lambda_zip" {
 locals {
   lambda_code = var.custom_lambda_code != null ? var.custom_lambda_code : <<-EOF
 const http = require('http');
-const { ServiceDiscoveryClient, DiscoverInstancesCommand } = require("@aws-sdk/client-servicediscovery");
-const { STSClient, GetCallerIdentityCommand } = require("@aws-sdk/client-sts"); // Import STS Client
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'INFO';
 const LOG_LEVELS = { ERROR: 0, WARN: 1, INFO: 2, DEBUG: 3 };
-
-// Initialize the clients, explicitly setting the region.
-const sdClient = new ServiceDiscoveryClient({ region: process.env.AWS_REGION });
-const stsClient = new STSClient({ region: process.env.AWS_REGION }); // Initialize STS Client
 
 function log(level, message, data = {}) {
     if (LOG_LEVELS[level] <= LOG_LEVELS[LOG_LEVEL]) {
@@ -76,111 +70,19 @@ function log(level, message, data = {}) {
     }
 }
 
-// --- BEGIN MASTER DIAGNOSTIC FUNCTION ---
-// This function performs the simplest possible AWS API call to test STS connectivity.
-async function testStsConnectivity() {
-    log('INFO', 'Performing master diagnostic: Testing STS connectivity...');
-    try {
-        const command = new GetCallerIdentityCommand({});
-        const response = await stsClient.send(command);
-        log('INFO', '✅ STS connectivity test SUCCEEDED.', { Arn: response.Arn });
-        return true;
-    } catch (error) {
-        log('ERROR', '❌ STS connectivity test FAILED.', { 
-            errorName: error.name, 
-            errorMessage: error.message, 
-            errorStack: error.stack 
-        });
-        return false;
-    }
-}
-// --- END MASTER DIAGNOSTIC FUNCTION ---
-
-// Function to get a healthy instance from AWS Cloud Map
-async function getHealthyInstance(namespace, service) {
-    // --- BEGIN DIAGNOSTIC LOGGING ---
-    log('INFO', 'Attempting to discover instances with parameters', { namespace, service });
-    // --- END DIAGNOSTIC LOGGING ---
-
-    const command = new DiscoverInstancesCommand({
-        NamespaceName: namespace,
-        ServiceName: service,
-        HealthStatus: "HEALTHY"
-    });
-
-    try {
-        const response = await sdClient.send(command);
-        if (!response.Instances || response.Instances.length === 0) {
-            log('ERROR', 'No healthy instances found for service', { service, namespace });
-            return null;
-        }
-        // Return a random healthy instance
-        const instance = response.Instances[Math.floor(Math.random() * response.Instances.length)];
-        return {
-            hostname: instance.Attributes.AWS_INSTANCE_IPV4,
-            port: parseInt(instance.Attributes.AWS_INSTANCE_PORT)
-        };
-    } catch (error) {
-        // Enhanced error logging to capture the full error object
-        log('ERROR', 'Failed to discover instances', { 
-            errorName: error.name, 
-            errorMessage: error.message, 
-            errorStack: error.stack,
-            service, 
-            namespace 
-        });
-        throw error;
-    }
-}
-
 exports.handler = async (event, context) => {
     const requestId = context.requestId;
-
-    // --- BEGIN DIAGNOSTIC LOGGING ---
-    log('INFO', 'Lambda function starting. Environment variables:', {
-        TARGET_SERVICE_NAME: process.env.TARGET_SERVICE_NAME,
-        SERVICE_CONNECT_NAMESPACE: process.env.SERVICE_CONNECT_NAMESPACE,
-        AWS_REGION: process.env.AWS_REGION
-    });
-    // --- END DIAGNOSTIC LOGGING ---
-    
-    // --- RUN MASTER DIAGNOSTIC ---
-    const isStsConnected = await testStsConnectivity();
-    if (!isStsConnected) {
-        return {
-            statusCode: 504, // Gateway Timeout
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ error: "Network Configuration Error", message: "Lambda could not connect to AWS STS. Check VPC endpoints and security groups." })
-        };
-    }
-    // --- END MASTER DIAGNOSTIC ---
-
-    log('DEBUG', 'Incoming request', { requestId, event });
+    log('DEBUG', 'Full incoming request event', { requestId, event });
 
     try {
-        // Discover a healthy instance of the target service
-        const targetInstance = await getHealthyInstance(
-            process.env.SERVICE_CONNECT_NAMESPACE,
-            process.env.TARGET_SERVICE_NAME
-        );
-
-        if (!targetInstance) {
-            return {
-                statusCode: 503, // Service Unavailable
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ error: "Service Unavailable", message: "No healthy instances found for the target service." })
-            };
-        }
-
-        const { hostname, port } = targetInstance;
-
-        // Parse request details from the original event
+        // --- Step 1: Parse incoming request ---
         const requestPath = event.path || event.rawPath || '/';
         const queryStringParameters = event.queryStringParameters || {};
         const httpMethod = event.httpMethod || event.requestContext?.http?.method || 'GET';
         const headers = event.headers || {};
         const body = event.body;
         const isBase64 = event.isBase64Encoded || false;
+        log('INFO', 'Parsed incoming request details', { requestId, httpMethod, requestPath });
         
         const queryString = Object.entries(queryStringParameters)
             .map(([key, value]) => `$${key}=$${encodeURIComponent(value)}`)
@@ -188,19 +90,23 @@ exports.handler = async (event, context) => {
         
         const fullPath = queryString ? `$${requestPath}?$${queryString}` : requestPath;
         
-        log('INFO', 'Proxying request to discovered instance', {
+        // --- Step 2: Determine target endpoint ---
+        const serviceEndpoint = `$${process.env.TARGET_SERVICE_NAME}.$${process.env.SERVICE_CONNECT_NAMESPACE}`;
+        const port = parseInt(process.env.TARGET_PORT || '80');
+        log('INFO', 'Determined target endpoint', { requestId, targetHost: serviceEndpoint, targetPort: port });
+        
+        log('INFO', 'Proxying request via DNS lookup', {
             requestId,
-            target: `http://$${hostname}:$${port}$${fullPath}`,
+            target: `http://$${serviceEndpoint}:$${port}$${fullPath}`,
             method: httpMethod
         });
         
-        // Prepare request body
+        // --- Step 3: Prepare the request for forwarding ---
         let requestBody = body;
         if (body && isBase64) {
             requestBody = Buffer.from(body, 'base64').toString('utf-8');
         }
         
-        // Clean and forward headers
         const cleanHeaders = Object.entries(headers).reduce((acc, [key, value]) => {
             const lowerKey = key.toLowerCase();
             if (!['host', 'x-forwarded-for', 'x-forwarded-port', 'x-forwarded-proto', 'x-amzn-trace-id', 'x-amz-cf-id'].includes(lowerKey)) {
@@ -209,15 +115,16 @@ exports.handler = async (event, context) => {
             return acc;
         }, {});
         
-        cleanHeaders['Host'] = hostname;
+        cleanHeaders['Host'] = serviceEndpoint;
         
         if (requestBody) {
             cleanHeaders['Content-Length'] = Buffer.byteLength(requestBody);
         }
+        log('DEBUG', 'Forwarding request with cleaned headers', { requestId, headers: cleanHeaders });
         
-        // Forward the request
+        // --- Step 4: Make the outbound HTTP request ---
         const response = await makeHttpRequest({
-            hostname: hostname,
+            hostname: serviceEndpoint, // Use the DNS name directly
             port: port,
             path: fullPath,
             method: httpMethod,
@@ -226,43 +133,52 @@ exports.handler = async (event, context) => {
             timeout: (context.getRemainingTimeInMillis() - 1000)
         });
         
-        log('INFO', 'Request completed', { requestId, statusCode: response.statusCode });
+        log('INFO', 'Received response from target service', { requestId, statusCode: response.statusCode, headers: response.headers });
         
-        return {
+        // --- Step 5: Return the response to API Gateway ---
+        const finalResponse = {
             statusCode: response.statusCode,
             headers: response.headers,
             body: response.body,
             isBase64Encoded: false
         };
+        log('INFO', 'Request completed successfully', { requestId, statusCode: finalResponse.statusCode });
+        return finalResponse;
         
     } catch (error) {
-        log('ERROR', 'Request failed', {
+        log('ERROR', 'Request processing failed', {
             requestId,
-            error: error.message,
-            stack: error.stack
+            errorName: error.name,
+            errorMessage: error.message,
+            errorCode: error.code,
+            errorStack: error.stack
         });
         
         let statusCode = 500;
         let errorMessage = 'Internal Server Error';
         
-        if (error.code === 'ECONNREFUSED') {
+        if (error.code === 'ENOTFOUND') {
             statusCode = 503;
-            errorMessage = 'Service Unavailable';
-        } else if (error.code === 'ETIMEDOUT') {
+            errorMessage = 'Service Discovery Failed: The target service could not be found via DNS.';
+        } else if (error.code === 'ECONNREFUSED') {
+            statusCode = 503;
+            errorMessage = 'Service Unavailable: Connection was refused by the target service.';
+        } else if (error.code === 'ETIMEDOUT' || error.message === 'Request timeout') {
             statusCode = 504;
-            errorMessage = 'Gateway Timeout';
+            errorMessage = 'Gateway Timeout: The request to the target service timed out.';
         }
         
         return {
             statusCode: statusCode,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ error: errorMessage, message: error.message, requestId: requestId })
+            body: JSON.stringify({ error: errorMessage, details: error.message, requestId: requestId })
         };
     }
 };
 
 function makeHttpRequest(options) {
     return new Promise((resolve, reject) => {
+        log('DEBUG', 'Making outbound HTTP request', { options: { ...options, body: '...' } }); // Avoid logging potentially large bodies
         const req = http.request(options, (res) => {
             let body = '';
             res.on('data', (chunk) => { body += chunk; });
