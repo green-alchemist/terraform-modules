@@ -56,12 +56,14 @@ locals {
   lambda_code = var.custom_lambda_code != null ? var.custom_lambda_code : <<-EOF
 const http = require('http');
 const { ServiceDiscoveryClient, DiscoverInstancesCommand } = require("@aws-sdk/client-servicediscovery");
+const { STSClient, GetCallerIdentityCommand } = require("@aws-sdk/client-sts"); // Import STS Client
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'INFO';
 const LOG_LEVELS = { ERROR: 0, WARN: 1, INFO: 2, DEBUG: 3 };
 
-// Initialize the Service Discovery client, explicitly setting the region.
+// Initialize the clients, explicitly setting the region.
 const sdClient = new ServiceDiscoveryClient({ region: process.env.AWS_REGION });
+const stsClient = new STSClient({ region: process.env.AWS_REGION }); // Initialize STS Client
 
 function log(level, message, data = {}) {
     if (LOG_LEVELS[level] <= LOG_LEVELS[LOG_LEVEL]) {
@@ -73,6 +75,26 @@ function log(level, message, data = {}) {
         }));
     }
 }
+
+// --- BEGIN MASTER DIAGNOSTIC FUNCTION ---
+// This function performs the simplest possible AWS API call to test STS connectivity.
+async function testStsConnectivity() {
+    log('INFO', 'Performing master diagnostic: Testing STS connectivity...');
+    try {
+        const command = new GetCallerIdentityCommand({});
+        const response = await stsClient.send(command);
+        log('INFO', '✅ STS connectivity test SUCCEEDED.', { Arn: response.Arn });
+        return true;
+    } catch (error) {
+        log('ERROR', '❌ STS connectivity test FAILED.', { 
+            errorName: error.name, 
+            errorMessage: error.message, 
+            errorStack: error.stack 
+        });
+        return false;
+    }
+}
+// --- END MASTER DIAGNOSTIC FUNCTION ---
 
 // Function to get a healthy instance from AWS Cloud Map
 async function getHealthyInstance(namespace, service) {
@@ -115,13 +137,23 @@ exports.handler = async (event, context) => {
     const requestId = context.requestId;
 
     // --- BEGIN DIAGNOSTIC LOGGING ---
-    // Log all relevant environment variables at the start of the execution.
     log('INFO', 'Lambda function starting. Environment variables:', {
         TARGET_SERVICE_NAME: process.env.TARGET_SERVICE_NAME,
         SERVICE_CONNECT_NAMESPACE: process.env.SERVICE_CONNECT_NAMESPACE,
         AWS_REGION: process.env.AWS_REGION
     });
     // --- END DIAGNOSTIC LOGGING ---
+    
+    // --- RUN MASTER DIAGNOSTIC ---
+    const isStsConnected = await testStsConnectivity();
+    if (!isStsConnected) {
+        return {
+            statusCode: 504, // Gateway Timeout
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: "Network Configuration Error", message: "Lambda could not connect to AWS STS. Check VPC endpoints and security groups." })
+        };
+    }
+    // --- END MASTER DIAGNOSTIC ---
 
     log('DEBUG', 'Incoming request', { requestId, event });
 
@@ -151,14 +183,14 @@ exports.handler = async (event, context) => {
         const isBase64 = event.isBase64Encoded || false;
         
         const queryString = Object.entries(queryStringParameters)
-            .map(([key, value]) => `$${key}=$${encodeURIComponent(value)}`)
+            .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
             .join('&');
         
-        const fullPath = queryString ? `$${requestPath}?$${queryString}` : requestPath;
+        const fullPath = queryString ? `${requestPath}?${queryString}` : requestPath;
         
         log('INFO', 'Proxying request to discovered instance', {
             requestId,
-            target: `http://$${hostname}:$${port}$${fullPath}`,
+            target: `http://${hostname}:${port}${fullPath}`,
             method: httpMethod
         });
         
