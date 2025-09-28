@@ -290,8 +290,6 @@ resource "aws_security_group" "lambda" {
       Name = "${var.service_name}-lambda-proxy"
     }
   )
-
-  depends_on = [aws_lambda_function.proxy]
 }
 
 # Egress rule for target service
