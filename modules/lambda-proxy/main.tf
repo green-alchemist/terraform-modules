@@ -183,14 +183,14 @@ exports.handler = async (event, context) => {
         const isBase64 = event.isBase64Encoded || false;
         
         const queryString = Object.entries(queryStringParameters)
-            .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+            .map(([key, value]) => `$${key}=$${encodeURIComponent(value)}`)
             .join('&');
         
-        const fullPath = queryString ? `${requestPath}?${queryString}` : requestPath;
+        const fullPath = queryString ? `$${requestPath}?$${queryString}` : requestPath;
         
         log('INFO', 'Proxying request to discovered instance', {
             requestId,
-            target: `http://${hostname}:${port}${fullPath}`,
+            target: `http://$${hostname}:$${port}$${fullPath}`,
             method: httpMethod
         });
         
@@ -331,8 +331,10 @@ resource "aws_iam_role_policy" "service_discovery" {
           "servicediscovery:DiscoverInstances",
           "servicediscovery:GetInstance",
           "servicediscovery:ListInstances",
-          "servicediscovery:GetOperation",
-          "servicediscovery:GetInstancesHealthStatus",
+          "servicediscovery:GetService",
+          "servicediscovery:ListServices",
+          "servicediscovery:GetNamespace",
+          "servicediscovery:ListNamespaces"
         ]
         Resource = "*"
       },
