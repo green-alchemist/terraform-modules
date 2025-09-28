@@ -292,51 +292,51 @@ resource "aws_security_group" "lambda" {
   )
 }
 
-# Egress rule for target service
-resource "aws_security_group_rule" "lambda_egress_target" {
-  type                     = "egress"
-  from_port                = var.target_port
-  to_port                  = var.target_port
-  protocol                 = "tcp"
-  source_security_group_id = module.strapi_security_group.security_group_id
-  security_group_id        = aws_security_group.lambda.id
-  description              = "Allow outbound to target service"
-}
+# # Egress rule for target service
+# resource "aws_security_group_rule" "lambda_egress_target" {
+#   type                     = "egress"
+#   from_port                = var.target_port
+#   to_port                  = var.target_port
+#   protocol                 = "tcp"
+#   source_security_group_id = module.strapi_security_group.security_group_id
+#   security_group_id        = aws_security_group.lambda.id
+#   description              = "Allow outbound to target service"
+# }
 
-# Egress rule for HTTPS (AWS services)
-resource "aws_security_group_rule" "lambda_egress_https" {
-  type              = "egress"
-  from_port         = 443
-  to_port           = 443
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.lambda.id
-  description       = "Allow HTTPS for AWS services"
-}
+# # Egress rule for HTTPS (AWS services)
+# resource "aws_security_group_rule" "lambda_egress_https" {
+#   type              = "egress"
+#   from_port         = 443
+#   to_port           = 443
+#   protocol          = "tcp"
+#   cidr_blocks       = ["0.0.0.0/0"]
+#   security_group_id = aws_security_group.lambda.id
+#   description       = "Allow HTTPS for AWS services"
+# }
 
-# Egress rule for DNS
-resource "aws_security_group_rule" "lambda_egress_dns" {
-  type              = "egress"
-  from_port         = 53
-  to_port           = 53
-  protocol          = "udp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.lambda.id
-  description       = "Allow DNS resolution"
-}
+# # Egress rule for DNS
+# resource "aws_security_group_rule" "lambda_egress_dns" {
+#   type              = "egress"
+#   from_port         = 53
+#   to_port           = 53
+#   protocol          = "udp"
+#   cidr_blocks       = ["0.0.0.0/0"]
+#   security_group_id = aws_security_group.lambda.id
+#   description       = "Allow DNS resolution"
+# }
 
-# Additional egress rules
-resource "aws_security_group_rule" "lambda_egress_additional" {
-  for_each = var.additional_egress_rules
+# # Additional egress rules
+# resource "aws_security_group_rule" "lambda_egress_additional" {
+#   for_each = var.additional_egress_rules
 
-  type              = "egress"
-  from_port         = each.value.from_port
-  to_port           = each.value.to_port
-  protocol          = each.value.protocol
-  cidr_blocks       = lookup(each.value, "cidr_blocks", null)
-  security_group_id = aws_security_group.lambda.id
-  description       = lookup(each.value, "description", "Additional egress rule")
-}
+#   type              = "egress"
+#   from_port         = each.value.from_port
+#   to_port           = each.value.to_port
+#   protocol          = each.value.protocol
+#   cidr_blocks       = lookup(each.value, "cidr_blocks", null)
+#   security_group_id = aws_security_group.lambda.id
+#   description       = lookup(each.value, "description", "Additional egress rule")
+# }
 
 # CloudWatch log group
 resource "aws_cloudwatch_log_group" "lambda" {
