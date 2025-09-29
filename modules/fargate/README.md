@@ -73,6 +73,7 @@ No modules.
 | Name | Description |
 |------|-------------|
 | <a name="output_cluster_name"></a> [cluster\_name](#output\_cluster\_name) | The name of the ECS cluster. |
+| <a name="output_container_port"></a> [container\_port](#output\_container\_port) | The port exposed by the container. |
 | <a name="output_service_arn"></a> [service\_arn](#output\_service\_arn) | The ARN of the ECS service. |
 | <a name="output_service_discovery_dns_name"></a> [service\_discovery\_dns\_name](#output\_service\_discovery\_dns\_name) | The private DNS name of the service. |
 | <a name="output_service_name"></a> [service\_name](#output\_service\_name) | The name of the ECS service. |

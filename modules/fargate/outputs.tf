@@ -18,7 +18,7 @@ output "service_arn" {
   value       = aws_ecs_service.this.id
 }
 
-# output "service_discovery_arn" {
-#   description = "The ARN of the Service Discovery service."
-#   value       = aws_service_discovery_service.this[0].arn
-# }
+output "container_port" {
+  description = "The port exposed by the container."
+  value       = var.container_port
+}
