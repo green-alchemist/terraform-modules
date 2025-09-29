@@ -21,7 +21,6 @@ resource "aws_lambda_function" "proxy" {
         SERVICE_CONNECT_NAMESPACE = var.service_connect_namespace
         TARGET_PORT               = var.target_port
         LOG_LEVEL                 = var.log_level
-        AWS_REGION                = var.aws_region
       },
       var.additional_environment_variables
     )
