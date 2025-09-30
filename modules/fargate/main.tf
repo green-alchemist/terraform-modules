@@ -173,9 +173,9 @@ resource "aws_service_discovery_service" "this" {
     }
   }
 
-  health_check_custom_config {
+  health_check_config {
     # ECS manages the health status, so we set a nominal failure threshold.
-    failure_threshold = 1
+    failure_threshold = 10
   }
 }
 
