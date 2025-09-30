@@ -133,6 +133,7 @@ resource "aws_appautoscaling_target" "this" {
 # }
 
 resource "aws_appautoscaling_policy" "scale_up" {
+  count              = var.enable_autoscaling ? 1 : 0
   name               = "${var.service_name}-request-scaling"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.this[0].resource_id
