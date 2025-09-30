@@ -55,6 +55,8 @@ No modules.
 | <a name="input_private_dns_namespace"></a> [private\_dns\_namespace](#input\_private\_dns\_namespace) | The name of the private DNS namespace (e.g., 'internal'). | `string` | `"internal"` | no |
 | <a name="input_scale_down_evaluation_periods"></a> [scale\_down\_evaluation\_periods](#input\_scale\_down\_evaluation\_periods) | The number of consecutive periods the scale-down metric must be low to trigger an alarm. | `number` | `3` | no |
 | <a name="input_scale_down_period_seconds"></a> [scale\_down\_period\_seconds](#input\_scale\_down\_period\_seconds) | The period in seconds over which to evaluate the scale-down metric. | `number` | `300` | no |
+| <a name="input_scale_in_cooldown"></a> [scale\_in\_cooldown](#input\_scale\_in\_cooldown) | Scale in cooldown, down | `number` | `300` | no |
+| <a name="input_scale_out_cooldown"></a> [scale\_out\_cooldown](#input\_scale\_out\_cooldown) | Scale out cooldown, up | `number` | `60` | no |
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | A list of security group IDs to associate with the service. | `list(string)` | n/a | yes |
 | <a name="input_service_connect_enabled"></a> [service\_connect\_enabled](#input\_service\_connect\_enabled) | If true, registers the service with AWS Cloud Map. | `bool` | `false` | no |
 | <a name="input_service_discovery_health_check_enabled"></a> [service\_discovery\_health\_check\_enabled](#input\_service\_discovery\_health\_check\_enabled) | If true, enables custom health checking for the AWS Cloud Map service. If false, Cloud Map will not perform health checks. | `bool` | `false` | no |

@@ -160,6 +160,18 @@ variable "cpu_utilization_low_threshold" {
   default     = 20 # A low threshold to indicate idleness
 }
 
+variable "scale_in_cooldown" {
+  description = "Scale in cooldown, down"
+  type        = number
+  default     = 300
+}
+
+variable "scale_out_cooldown" {
+  description = "Scale out cooldown, up"
+  type        = number
+  default     = 60
+}
+
 variable "enable_execute_command" {
   description = "Specifies whether to enable Amazon ECS Exec for the tasks within the service."
   type        = bool

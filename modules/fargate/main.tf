@@ -145,8 +145,8 @@ resource "aws_appautoscaling_policy" "scale_up" {
     predefined_metric_specification {
       predefined_metric_type = "ECSServiceAverageCPUUtilization" # Valid metric
     }
-    scale_in_cooldown  = 300 # 5 min to prevent rapid scale-down
-    scale_out_cooldown = 60  # Fast scale-up from zero
+    scale_in_cooldown  = var.scale_in_cooldown  # 5 min to prevent rapid scale-down
+    scale_out_cooldown = var.scale_out_cooldown # Fast scale-up from zero
   }
 }
 
