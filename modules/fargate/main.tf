@@ -152,11 +152,11 @@ resource "aws_appautoscaling_policy" "scale_down" {
 }
 
 # Create a private DNS namespace for service discovery (e.g., ".internal")
-# resource "aws_service_discovery_private_dns_namespace" "this" {
-#   count = var.service_connect_enabled ? 1 : 0
-#   name  = var.private_dns_namespace
-#   vpc   = var.vpc_id
-# }
+resource "aws_service_discovery_private_dns_namespace" "this" {
+  count = var.service_connect_enabled ? 1 : 0
+  name  = var.private_dns_namespace
+  vpc   = var.vpc_id
+}
 
 # # Register the ECS service with the DNS namespace
 resource "aws_service_discovery_service" "this" {
@@ -164,7 +164,7 @@ resource "aws_service_discovery_service" "this" {
   name  = var.service_name
 
   dns_config {
-    namespace_id   = var.service_connect_namespace_arn # This now expects the namespace ARN
+    namespace_id   = aws_service_discovery_private_dns_namespace.this.id
     routing_policy = "MULTIVALUE"
 
     dns_records {
@@ -173,9 +173,8 @@ resource "aws_service_discovery_service" "this" {
     }
   }
 
-  health_check_config {
+  health_check_custom_config {
     # ECS manages the health status, so we set a nominal failure threshold.
-    failure_threshold = 10
   }
 }
 
