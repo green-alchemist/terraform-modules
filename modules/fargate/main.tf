@@ -73,21 +73,26 @@ resource "aws_ecs_service" "this" {
     security_groups  = var.security_group_ids
   }
 
-  service_connect_configuration {
-    enabled   = var.service_connect_enabled
-    namespace = var.service_connect_namespace_arn
+  # service_connect_configuration {
+  #   enabled   = var.service_connect_enabled
+  #   namespace = var.service_connect_namespace_arn
 
-    service {
-      port_name = var.service_name
-      # You can optionally define client aliases for different connection protocols
-      dynamic "client_alias" {
-        for_each = var.service_connect_enabled != null ? [1] : []
-        content {
-          port = var.container_port
-        }
-      }
-    }
+  #   service {
+  #     port_name = var.service_name
+  #     # You can optionally define client aliases for different connection protocols
+  #     dynamic "client_alias" {
+  #       for_each = var.service_connect_enabled != null ? [1] : []
+  #       content {
+  #         port = var.container_port
+  #       }
+  #     }
+  #   }
+  # }
+  service_registries {
+    registry_arn = one(aws_service_discovery_service.this[*].arn)
   }
+
+  depends_on = [aws_service_discovery_service.this]
 }
 
 resource "aws_cloudwatch_log_group" "this" {
@@ -154,26 +159,25 @@ resource "aws_appautoscaling_policy" "scale_down" {
 # }
 
 # # Register the ECS service with the DNS namespace
-# resource "aws_service_discovery_service" "this" {
-#   count = var.service_connect_enabled ? 1 : 0
-#   name  = var.service_name
+resource "aws_service_discovery_service" "this" {
+  count = var.service_connect_enabled ? 1 : 0
+  name  = var.service_name
 
-#   dns_config {
-#     namespace_id   = aws_service_discovery_private_dns_namespace.this[0].id
-#     routing_policy = "MULTIVALUE"
-#     dns_records {
-#       ttl  = 10
-#       type = "A"
-#     }
-#   }
+  dns_config {
+    namespace_id   = var.service_connect_namespace_arn # This now expects the namespace ARN
+    routing_policy = "MULTIVALUE"
 
-#   dynamic "health_check_custom_config" {
-#     for_each = var.service_discovery_health_check_enabled ? [1] : []
-#     content {
-#       failure_threshold = 1
-#     }
-#   }
-# }
+    dns_records {
+      ttl  = 60
+      type = "A" # Use 'A' records for IP-based discovery
+    }
+  }
+
+  health_check_custom_config {
+    # ECS manages the health status, so we set a nominal failure threshold.
+    failure_threshold = 1
+  }
+}
 
 # --- CloudWatch Alarms for Auto Scaling ---
 

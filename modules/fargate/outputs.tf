@@ -13,6 +13,11 @@ output "service_discovery_dns_name" {
   value       = var.service_connect_enabled ? "${var.service_name}.${var.private_dns_namespace}" : ""
 }
 
+output "service_discovery_arn" {
+  description = "The ARN of the Service Discovery service, for use in API Gateway integrations."
+  value       = one(aws_service_discovery_service.this[*].arn)
+}
+
 output "service_arn" {
   description = "The ARN of the ECS service."
   value       = aws_ecs_service.this.id
