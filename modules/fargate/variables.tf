@@ -213,3 +213,9 @@ variable "health_check_start_period" {
   type        = number
   default     = 0
 }
+
+variable "target_request_count" {
+  type        = number
+  default     = 10
+  description = "Target average requests per second per task to trigger scaling."
+}
