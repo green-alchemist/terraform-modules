@@ -89,7 +89,9 @@ resource "aws_ecs_service" "this" {
   #   }
   # }
   service_registries {
-    registry_arn = aws_service_discovery_service.this[0].arn
+    registry_arn   = aws_service_discovery_service.this[0].arn
+    container_name = "strapi-admin"
+    container_port = 1337
   }
 
   depends_on = [aws_service_discovery_service.this]
