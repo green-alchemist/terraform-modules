@@ -26,9 +26,9 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_bastion_security_group_id"></a> [bastion\_security\_group\_id](#input\_bastion\_security\_group\_id) | n/a | `string` | n/a | yes |
-| <a name="input_public_subnet_id"></a> [public\_subnet\_id](#input\_public\_subnet\_id) | n/a | `string` | n/a | yes |
-| <a name="input_service_name"></a> [service\_name](#input\_service\_name) | n/a | `string` | n/a | yes |
+| <a name="input_bastion_security_group_id"></a> [bastion\_security\_group\_id](#input\_bastion\_security\_group\_id) | ID of the security group to attach to the bastion host, allowing outbound traffic for SSM and optional intra-VPC access. | `string` | n/a | yes |
+| <a name="input_public_subnet_id"></a> [public\_subnet\_id](#input\_public\_subnet\_id) | ID of the public subnet where the bastion host will be deployed. | `string` | n/a | yes |
+| <a name="input_service_name"></a> [service\_name](#input\_service\_name) | Name of the service (e.g., strapi-admin) used for naming the bastion resources. | `string` | n/a | yes |
 
 ## Outputs
 
