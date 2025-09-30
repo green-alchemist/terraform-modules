@@ -21,9 +21,11 @@ resource "aws_apigatewayv2_integration" "this" {
   integration_uri    = var.integration_uri
 
   # Conditional configuration based on integration type
-  connection_type        = var.integration_type == "HTTP_PROXY" ? "VPC_LINK" : null
-  connection_id          = var.integration_type == "HTTP_PROXY" ? one(aws_apigatewayv2_vpc_link.this[*].id) : null
-  payload_format_version = var.integration_type == "AWS_PROXY" ? "2.0" : null
+  connection_type            = var.integration_type == "HTTP_PROXY" ? "VPC_LINK" : null
+  connection_id              = var.integration_type == "HTTP_PROXY" ? one(aws_apigatewayv2_vpc_link.this[*].id) : null
+  payload_format_version     = var.integration_type == "AWS_PROXY" ? "2.0" : null
+  integration_timeout_millis = 60000
+
 }
 
 # Creates a default route that sends all traffic to our integration
@@ -69,12 +71,11 @@ resource "aws_apigatewayv2_stage" "this" {
   dynamic "default_route_settings" {
     for_each = var.enable_access_logging ? [1] : []
     content {
-      detailed_metrics_enabled   = true
-      logging_level              = "INFO" # Or "ERROR" to reduce noise
-      data_trace_enabled         = true   # Full request/response logging
-      throttling_burst_limit     = 10000  # Increase from default 5000
-      throttling_rate_limit      = 5000   # Increase from default 2500
-      integration_timeout_millis = 60000
+      detailed_metrics_enabled = true
+      logging_level            = "INFO" # Or "ERROR" to reduce noise
+      data_trace_enabled       = true   # Full request/response logging
+      throttling_burst_limit   = 10000  # Increase from default 5000
+      throttling_rate_limit    = 5000   # Increase from default 2500
     }
   }
 
