@@ -67,6 +67,9 @@ resource "aws_ecs_service" "this" {
   launch_type            = "FARGATE"
   enable_execute_command = var.enable_execute_command
 
+  deployment_minimum_healthy_percent = 0   # Allow scaling to zero
+  deployment_maximum_percent         = 200 # Default, for safety during scale-up
+
   network_configuration {
     assign_public_ip = var.assign_public_ip
     subnets          = var.subnet_ids
