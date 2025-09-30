@@ -53,16 +53,25 @@ resource "aws_apigatewayv2_stage" "this" {
     content {
       destination_arn = one(aws_cloudwatch_log_group.this[*].arn)
       format = jsonencode({
-        requestId               = "$context.requestId"
-        sourceIp                = "$context.identity.sourceIp"
-        requestTime             = "$context.requestTime"
-        protocol                = "$context.protocol"
-        httpMethod              = "$context.httpMethod"
-        resourcePath            = "$context.resourcePath"
-        status                  = "$context.status"
-        responseLength          = "$context.responseLength"
-        integrationErrorMessage = "$context.integrationErrorMessage"
+        requestId        = "$context.requestId"
+        ip               = "$context.identity.sourceIp"
+        requestTime      = "$context.requestTime"
+        httpMethod       = "$context.httpMethod"
+        routeKey         = "$context.routeKey"
+        status           = "$context.status"
+        protocol         = "$context.protocol"
+        integrationError = "$context.integrationErrorMessage"
+        responseLength   = "$context.responseLength"
       })
+    }
+  }
+
+  dynamic "default_route_settings" {
+    for_each = var.enable_access_logging ? [1] : []
+    content {
+      detailed_metrics_enabled = true
+      logging_level            = "INFO" # Or "ERROR" to reduce noise
+      data_trace_enabled       = true   # Full request/response logging
     }
   }
 

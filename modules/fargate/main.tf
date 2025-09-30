@@ -177,7 +177,7 @@ resource "aws_service_discovery_service" "this" {
   force_destroy = true
 
   health_check_custom_config {
-    # ECS manages the health status, so we set a nominal failure threshold.
+    failure_threshold = 1 # ECS controls health
   }
 }
 

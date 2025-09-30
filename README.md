@@ -11,6 +11,7 @@ Below is a list of the modules available in this repository. For detailed inform
 * [`alb`](./modules/alb/README.md)
 * [`api-gateway`](./modules/api-gateway/README.md)
 * [`aurora-serverless`](./modules/aurora-serverless/README.md)
+* [`bastion-host`](./modules/bastion-host/README.md)
 * [`cloudfront`](./modules/cloudfront/README.md)
 * [`ec2`](./modules/ec2/README.md)
 * [`ecr`](./modules/ecr/README.md)

@@ -3,6 +3,7 @@
 * [alb](./alb/README.md)
 * [api-gateway](./api-gateway/README.md)
 * [aurora-serverless](./aurora-serverless/README.md)
+* [bastion-host](./bastion-host/README.md)
 * [cloudfront](./cloudfront/README.md)
 * [ec2](./ec2/README.md)
 * [ecr](./ecr/README.md)
