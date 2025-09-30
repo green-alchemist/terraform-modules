@@ -107,11 +107,11 @@ variable "service_connect_enabled" {
   default     = false
 }
 
-variable "service_connect_namespace_arn" {
-  description = "The ARN of the Service Connect namespace."
-  type        = string
-  default     = null
-}
+# variable "service_connect_namespace_arn" {
+#   description = "The ARN of the Service Connect namespace."
+#   type        = string
+#   default     = null
+# }
 
 variable "private_dns_namespace" {
   description = "The name of the private DNS namespace (e.g., 'internal')."
