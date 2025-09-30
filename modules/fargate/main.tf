@@ -172,6 +172,7 @@ resource "aws_service_discovery_service" "this" {
       type = "A" # Use 'A' records for IP-based discovery
     }
   }
+  force_destroy = true
 
   health_check_custom_config {
     # ECS manages the health status, so we set a nominal failure threshold.
