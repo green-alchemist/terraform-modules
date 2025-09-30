@@ -72,6 +72,8 @@ resource "aws_apigatewayv2_stage" "this" {
       detailed_metrics_enabled = true
       logging_level            = "INFO" # Or "ERROR" to reduce noise
       data_trace_enabled       = true   # Full request/response logging
+      throttling_burst_limit   = 10000  # Increase from default 5000
+      throttling_rate_limit    = 5000   # Increase from default 2500
     }
   }
 
