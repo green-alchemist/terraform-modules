@@ -169,7 +169,7 @@ resource "aws_service_discovery_service" "this" {
 
     dns_records {
       ttl  = 60
-      type = "A" # Use 'A' records for IP-based discovery
+      type = "SRV" # Use 'A' records for IP-based discovery
     }
   }
   force_destroy = true
