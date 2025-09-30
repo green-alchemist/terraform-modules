@@ -164,7 +164,7 @@ resource "aws_service_discovery_service" "this" {
   name  = var.service_name
 
   dns_config {
-    namespace_id   = aws_service_discovery_private_dns_namespace.this.id
+    namespace_id   = aws_service_discovery_private_dns_namespace[0].this.id
     routing_policy = "MULTIVALUE"
 
     dns_records {
