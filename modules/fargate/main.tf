@@ -134,21 +134,20 @@ resource "aws_appautoscaling_target" "this" {
 
 resource "aws_appautoscaling_policy" "scale_up" {
   count              = var.enable_autoscaling ? 1 : 0
-  name               = "${var.service_name}-request-scaling"
+  name               = "${var.service_name}-cpu-scaling"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.this[0].resource_id
   scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
   service_namespace  = aws_appautoscaling_target.this[0].service_namespace
 
   target_tracking_scaling_policy_configuration {
-    target_value = var.target_request_count
+    target_value = var.target_cpu_utilization  # New variable
     predefined_metric_specification {
-      predefined_metric_type = "ECSServiceAverageRequestCountPerTarget"
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"  # Valid metric
     }
-    scale_in_cooldown  = 600 # 5 min to prevent rapid scale-down
-    scale_out_cooldown = 60  # Fast scale-up
+    scale_in_cooldown  = 300  # 5 min to prevent rapid scale-down
+    scale_out_cooldown = 60   # Fast scale-up from zero
   }
-}
 
 # This policy tells the service how to scale DOWN
 # resource "aws_appautoscaling_policy" "scale_down" {
