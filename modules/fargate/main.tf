@@ -111,24 +111,41 @@ resource "aws_appautoscaling_target" "this" {
   depends_on         = [aws_ecs_service.this]
 }
 
-# This policy tells the service how to scale UP
+# # This policy tells the service how to scale UP
+# resource "aws_appautoscaling_policy" "scale_up" {
+#   count              = var.enable_autoscaling ? 1 : 0
+#   name               = "${var.service_name}-scale-up"
+#   policy_type        = "StepScaling"
+#   resource_id        = aws_appautoscaling_target.this[0].resource_id
+#   scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
+#   service_namespace  = aws_appautoscaling_target.this[0].service_namespace
+
+#   step_scaling_policy_configuration {
+#     adjustment_type         = "ChangeInCapacity"
+#     cooldown                = 60
+#     metric_aggregation_type = "Average"
+
+#     step_adjustment {
+#       metric_interval_lower_bound = 0
+#       scaling_adjustment          = 1
+#     }
+#   }
+# }
+
 resource "aws_appautoscaling_policy" "scale_up" {
-  count              = var.enable_autoscaling ? 1 : 0
-  name               = "${var.service_name}-scale-up"
-  policy_type        = "StepScaling"
-  resource_id        = aws_appautoscaling_target.this[0].resource_id
-  scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
-  service_namespace  = aws_appautoscaling_target.this[0].service_namespace
+  name               = "${var.service_name}-request-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.ecs_service.resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_service.service_namespace
 
-  step_scaling_policy_configuration {
-    adjustment_type         = "ChangeInCapacity"
-    cooldown                = 60
-    metric_aggregation_type = "Average"
-
-    step_adjustment {
-      metric_interval_lower_bound = 0
-      scaling_adjustment          = 1
+  target_tracking_scaling_policy_configuration {
+    target_value = var.target_request_count
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageRequestCountPerTarget"
     }
+    scale_in_cooldown  = 300 # 5 min to prevent rapid scale-down
+    scale_out_cooldown = 60  # Fast scale-up
   }
 }
 
