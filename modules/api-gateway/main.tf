@@ -24,7 +24,7 @@ resource "aws_apigatewayv2_integration" "this" {
   connection_type        = var.integration_type == "HTTP_PROXY" ? "VPC_LINK" : null
   connection_id          = var.integration_type == "HTTP_PROXY" ? one(aws_apigatewayv2_vpc_link.this[*].id) : null
   payload_format_version = var.integration_type == "AWS_PROXY" ? "2.0" : null
-  timeout_in_millis      = 60000
+  timeout_milliseconds   = 60000
 
 }
 
