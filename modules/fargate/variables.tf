@@ -157,7 +157,7 @@ variable "cpu_utilization_high_threshold" {
 variable "cpu_utilization_low_threshold" {
   description = "The CPU utilization percentage to trigger a scale-down event. This should be low for scale-to-zero."
   type        = number
-  default     = 10 # A low threshold to indicate idleness
+  default     = 20 # A low threshold to indicate idleness
 }
 
 variable "enable_execute_command" {

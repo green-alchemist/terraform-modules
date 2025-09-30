@@ -36,7 +36,7 @@ No modules.
 | <a name="input_container_port"></a> [container\_port](#input\_container\_port) | The port on the container to expose. | `number` | `1337` | no |
 | <a name="input_container_secrets"></a> [container\_secrets](#input\_container\_secrets) | A map of secret environment variables to set. The key is the variable name, the value is the full ARN of the SSM Parameter Store parameter. | `map(string)` | `{}` | no |
 | <a name="input_cpu_utilization_high_threshold"></a> [cpu\_utilization\_high\_threshold](#input\_cpu\_utilization\_high\_threshold) | The CPU utilization percentage to trigger a scale-up event. | `number` | `75` | no |
-| <a name="input_cpu_utilization_low_threshold"></a> [cpu\_utilization\_low\_threshold](#input\_cpu\_utilization\_low\_threshold) | The CPU utilization percentage to trigger a scale-down event. This should be low for scale-to-zero. | `number` | `10` | no |
+| <a name="input_cpu_utilization_low_threshold"></a> [cpu\_utilization\_low\_threshold](#input\_cpu\_utilization\_low\_threshold) | The CPU utilization percentage to trigger a scale-down event. This should be low for scale-to-zero. | `number` | `20` | no |
 | <a name="input_desired_count"></a> [desired\_count](#input\_desired\_count) | The number of instances of the task to run. | `number` | `1` | no |
 | <a name="input_ecr_repository_url"></a> [ecr\_repository\_url](#input\_ecr\_repository\_url) | The URL of the ECR repository. | `string` | n/a | yes |
 | <a name="input_ecs_task_execution_role_arn"></a> [ecs\_task\_execution\_role\_arn](#input\_ecs\_task\_execution\_role\_arn) | The ARN of the IAM role that allows ECS tasks to make API calls. | `string` | n/a | yes |
