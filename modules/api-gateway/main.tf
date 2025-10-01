@@ -55,7 +55,7 @@ resource "aws_apigatewayv2_integration_response" "ecs_503" {
 resource "aws_apigatewayv2_route" "fallback" {
   count              = var.enable_lambda_fallback ? 1 : 0
   api_id             = aws_apigatewayv2_api.this.id
-  route_key          = "ANY /{proxy+}"
+  route_key          = "ANY /scale-up"
   target             = "integrations/${aws_apigatewayv2_integration.lambda_fallback[0].id}"
   authorization_type = "NONE"
 }
