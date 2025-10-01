@@ -74,16 +74,6 @@ resource "aws_apigatewayv2_route" "scale_up" {
   authorization_type = "NONE"
 }
 
-# Lambda permission for API Gateway to invoke the fallback Lambda
-resource "aws_lambda_permission" "apigw" {
-  count         = var.integration_type == "HTTP_PROXY" && var.enable_lambda_fallback ? 1 : 0
-  statement_id  = "AllowExecutionFromAPIGateway"
-  action        = "lambda:InvokeFunction"
-  function_name = var.lambda_fallback_arn
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*"
-}
-
 # CloudWatch log group for access logging
 resource "aws_cloudwatch_log_group" "this" {
   count = var.enable_access_logging ? 1 : 0
