@@ -57,17 +57,17 @@ resource "aws_apigatewayv2_integration_response" "ecs_503" {
 }
 
 resource "aws_apigatewayv2_route" "fallback" {
-  count              = var.lambda_fallback_arn != null ? 1 : 0
+  count              = var.lambda_fallback_arn != "" ? 1 : 0
   api_id             = aws_apigatewayv2_api.this.id
   route_key          = "ANY /{proxy+}"
-  target             = "integrations/${aws_apigatewayv2_integration.lambda_fallback[0].id}"
+  target             = var.lambda_fallback_arn != "" ? "integrations/${aws_apigatewayv2_integration.lambda_fallback[0].id}" : null
   authorization_type = "NONE"
 }
 
 resource "aws_apigatewayv2_route_response" "fallback_response" {
-  count              = var.lambda_fallback_arn != null ? 1 : 0
+  count              = var.lambda_fallback_arn != "" ? 1 : 0
   api_id             = aws_apigatewayv2_api.this.id
-  route_id           = aws_apigatewayv2_route.fallback[0].id
+  route_id           = var.lambda_fallback_arn != "" ? aws_apigatewayv2_route.fallback[0].id : null
   route_response_key = "$default"
 }
 
