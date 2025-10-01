@@ -47,8 +47,8 @@ resource "aws_apigatewayv2_integration" "this" {
 }
 
 # Creates the Lambda fallback integration for scale-up (only for HTTP_PROXY)
-resource "aws_apigatewayv2_integration" "lambda_fallback" {
-  count              = var.integration_type == "HTTP_PROXY" && var.enable_lambda_fallback ? 1 : 0
+resource "aws_apigatewayv2_integration" "lambda_proxy" {
+  count              = var.integration_type == "HTTP_PROXY" && var.enable_lambda_proxy ? 1 : 0
   api_id             = aws_apigatewayv2_api.this.id
   integration_type   = "AWS_PROXY"
   integration_method = "POST"
@@ -65,12 +65,12 @@ resource "aws_apigatewayv2_route" "this" {
   authorization_type = "NONE"
 }
 
-# Creates /scale-up route for manual Lambda trigger (only for HTTP_PROXY + enable_lambda_fallback)
+# Creates /scale-up route for manual Lambda trigger (only for HTTP_PROXY + enable_lambda_proxy)
 resource "aws_apigatewayv2_route" "scale_up" {
-  count              = var.integration_type == "HTTP_PROXY" && var.enable_lambda_fallback ? 1 : 0
+  count              = var.integration_type == "HTTP_PROXY" && var.enable_lambda_proxy ? 1 : 0
   api_id             = aws_apigatewayv2_api.this.id
   route_key          = "POST /scale-up"
-  target             = "integrations/${aws_apigatewayv2_integration.lambda_fallback[0].id}"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda_proxy[0].id}"
   authorization_type = "NONE"
 }
 
