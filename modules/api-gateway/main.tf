@@ -72,7 +72,7 @@ resource "aws_apigatewayv2_route_response" "fallback_response" {
 }
 
 resource "aws_lambda_permission" "apigw" {
-  count         = var.lambda_fallback_arn != null ? 1 : 0
+  count         = aws_apigatewayv2_integration.lambda_fallback != null ? 1 : 0
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
   function_name = var.lambda_fallback_arn
