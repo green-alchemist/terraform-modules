@@ -34,6 +34,7 @@ resource "aws_apigatewayv2_api" "this" {
 
 # Creates the integration that connects the API to the backend (conditional based on type)
 resource "aws_apigatewayv2_integration" "this" {
+  count              = var.integration_type == "HTTP_PROXY" && var.enable_lambda_proxy ? 0 : 1
   api_id             = aws_apigatewayv2_api.this.id
   integration_type   = var.integration_type
   integration_method = var.integration_type == "AWS_PROXY" ? "POST" : "ANY"
