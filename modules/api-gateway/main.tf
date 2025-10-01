@@ -35,7 +35,7 @@ resource "aws_apigatewayv2_integration" "this" {
   connection_type        = var.enable_lambda_proxy ? null : "VPC_LINK"
   connection_id          = var.enable_lambda_proxy ? null : one(aws_apigatewayv2_vpc_link.this[*].id)
   payload_format_version = var.enable_lambda_proxy ? "2.0" : null
-  timeout_in_millis      = var.integration_timeout_millis
+  timeout_milliseconds   = var.integration_timeout_millis
 }
 
 # Creates routes based on route_keys (e.g., "ANY /{proxy+} for passthrough)
