@@ -52,7 +52,7 @@ resource "aws_apigatewayv2_integration" "lambda_fallback" {
   api_id             = aws_apigatewayv2_api.this.id
   integration_type   = "AWS_PROXY"
   integration_method = "POST"
-  integration_uri    = var.lambda_fallback_arn
+  integration_uri    = module.lambda_scale_up.lambda_arn
 }
 
 # Creates routes based on route_keys (e.g., "ANY /{proxy+}" for passthrough)

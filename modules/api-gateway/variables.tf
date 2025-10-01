@@ -63,12 +63,6 @@ variable "enable_lambda_proxy" {
   default     = false
 }
 
-variable "lambda_fallback_arn" {
-  description = "ARN of the Lambda function for /scale-up route (only for HTTP_PROXY)."
-  type        = string
-  default     = ""
-}
-
 variable "cluster_name" {
   description = "The ECS cluster name (for Lambda proxy scale-up)."
   type        = string
