@@ -78,4 +78,5 @@ No modules.
 | <a name="output_service_arn"></a> [service\_arn](#output\_service\_arn) | The ARN of the ECS service. |
 | <a name="output_service_discovery_arn"></a> [service\_discovery\_arn](#output\_service\_discovery\_arn) | The ARN of the Service Discovery service, for use in API Gateway integrations. |
 | <a name="output_service_discovery_dns_name"></a> [service\_discovery\_dns\_name](#output\_service\_discovery\_dns\_name) | The private DNS name of the service. |
+| <a name="output_service_discovery_namespace"></a> [service\_discovery\_namespace](#output\_service\_discovery\_namespace) | Cloud Map namespace for Service Connect. |
 | <a name="output_service_name"></a> [service\_name](#output\_service\_name) | The name of the ECS service. |
