@@ -18,7 +18,7 @@ variable "service_connect_namespace" {
   description = "Cloud Map namespace for Service Connect."
 }
 
-variable "api_gateway_arn" {
-  type        = string
-  description = "ARN of the API Gateway execution."
-}
+# variable "api_gateway_arn" {
+#   type        = string
+#   description = "ARN of the API Gateway execution."
+# }

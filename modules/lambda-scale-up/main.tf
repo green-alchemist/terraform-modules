@@ -56,13 +56,13 @@ resource "aws_iam_role_policy" "lambda_policy" {
   })
 }
 
-resource "aws_lambda_permission" "apigw" {
-  statement_id  = "AllowExecutionFromAPIGateway"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.scale_trigger.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${var.api_gateway_arn}/*/*"
-}
+# resource "aws_lambda_permission" "apigw" {
+#   statement_id  = "AllowExecutionFromAPIGateway"
+#   action        = "lambda:InvokeFunction"
+#   function_name = aws_lambda_function.scale_trigger.function_name
+#   principal     = "apigateway.amazonaws.com"
+#   source_arn    = "${var.api_gateway_arn}/*/*"
+# }
 
 data "archive_file" "lambda_zip" {
   type        = "zip"
