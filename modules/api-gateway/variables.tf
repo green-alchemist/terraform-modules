@@ -55,7 +55,6 @@ variable "vpc_link_security_group_ids" {
   default     = []
 }
 
-
 # --- Logging Variables ---
 
 variable "enable_access_logging" {
@@ -68,4 +67,10 @@ variable "log_retention_in_days" {
   description = "The number of days to retain the access logs."
   type        = number
   default     = 7
+}
+
+variable "lambda_fallback_arn" {
+  type        = string
+  default     = null
+  description = "ARN of the Lambda function for 503 fallback."
 }
