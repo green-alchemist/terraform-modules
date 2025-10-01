@@ -18,6 +18,11 @@ output "service_discovery_namespace" {
   description = "Cloud Map namespace for Service Connect."
 }
 
+output "service_discovery_id" {
+  value       = aws_service_discovery_service.this[0].id
+  description = "The ID of the Cloud Map service."
+}
+
 output "service_discovery_arn" {
   description = "The ARN of the Service Discovery service, for use in API Gateway integrations."
   value       = one(aws_service_discovery_service.this[*].arn)
