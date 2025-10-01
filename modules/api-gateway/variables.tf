@@ -4,7 +4,7 @@ variable "name" {
 }
 
 variable "stage_name" {
-  description = "The name of the deployment stage (e.g., 'staging')."
+  description = "The name of the deployment stage (e.g., '$default')."
   type        = string
   default     = "$default"
 }
@@ -19,8 +19,10 @@ variable "acm_certificate_arn" {
   type        = string
 }
 
+# --- Integration Variables ---
+
 variable "integration_type" {
-  description = "The integration type. Supported values: 'HTTP_PROXY' (for VPC Link), 'AWS_PROXY' (for Lambda)."
+  description = "The integration type. Supported values: 'HTTP_PROXY' (for ECS), 'AWS_PROXY' (for Lambda)."
   type        = string
   validation {
     condition     = contains(["HTTP_PROXY", "AWS_PROXY"], var.integration_type)
@@ -29,15 +31,17 @@ variable "integration_type" {
 }
 
 variable "integration_uri" {
-  description = "The integration URI. For Lambda, this is the function's invoke ARN. For HTTP_PROXY, this is the target URI (e.g., Cloud Map service)."
+  description = "The integration URI. For HTTP_PROXY, this is the Cloud Map service ARN. For AWS_PROXY, this is the Lambda ARN."
   type        = string
 }
 
 variable "route_keys" {
-  description = "A list of route keys to create for the integration."
+  description = "A list of route keys to create for the integration (e.g., ['ANY /{proxy+}', 'POST /scale-up'])."
   type        = list(string)
-  default     = ["$default"]
+  default     = ["ANY /{proxy+}"]
 }
+
+# --- VPC Link Specific Variables (only used if integration_type is 'HTTP_PROXY') ---
 
 variable "subnet_ids" {
   description = "A list of subnet IDs for the VPC Link. Required for 'HTTP_PROXY' integration."
@@ -51,6 +55,22 @@ variable "vpc_link_security_group_ids" {
   default     = []
 }
 
+# --- Lambda Fallback Variables (only used if integration_type is 'HTTP_PROXY') ---
+
+variable "enable_lambda_fallback" {
+  description = "Enable the /scale-up route for manual Lambda trigger (only for HTTP_PROXY)."
+  type        = bool
+  default     = false
+}
+
+variable "lambda_fallback_arn" {
+  description = "ARN of the Lambda function for /scale-up route (only for HTTP_PROXY)."
+  type        = string
+  default     = ""
+}
+
+# --- Logging Variables ---
+
 variable "enable_access_logging" {
   description = "Set to true to enable access logging for the API Gateway stage."
   type        = bool
@@ -63,14 +83,20 @@ variable "log_retention_in_days" {
   default     = 7
 }
 
-variable "lambda_fallback_arn" {
-  type        = string
-  default     = ""
-  description = "ARN of the Lambda function for 503 fallback. Set to empty string to disable."
+variable "throttling_burst_limit" {
+  description = "The throttling burst limit for the API."
+  type        = number
+  default     = 10000
 }
 
-variable "enable_lambda_fallback" {
-  type        = bool
-  default     = false
-  description = "Enable the Lambda fallback integration for 503 errors."
+variable "throttling_rate_limit" {
+  description = "The throttling rate limit for the API."
+  type        = number
+  default     = 5000
+}
+
+variable "integration_timeout_millis" {
+  description = "The timeout in milliseconds for the API Gateway integration."
+  type        = number
+  default     = 60000
 }

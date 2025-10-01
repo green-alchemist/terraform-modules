@@ -26,6 +26,7 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
+| <a name="input_cloud_map_service_id"></a> [cloud\_map\_service\_id](#input\_cloud\_map\_service\_id) | The Cloud Map service ID for listing instances. | `string` | n/a | yes |
 | <a name="input_cluster_name"></a> [cluster\_name](#input\_cluster\_name) | ECS cluster name. | `string` | n/a | yes |
 | <a name="input_service_connect_namespace"></a> [service\_connect\_namespace](#input\_service\_connect\_namespace) | Cloud Map namespace for Service Connect. | `string` | n/a | yes |
 | <a name="input_service_name"></a> [service\_name](#input\_service\_name) | ECS service name. | `string` | n/a | yes |
@@ -35,4 +36,5 @@ No modules.
 
 | Name | Description |
 |------|-------------|
-| <a name="output_lambda_arn"></a> [lambda\_arn](#output\_lambda\_arn) | ARN of the Lambda function. |
+| <a name="output_lambda_arn"></a> [lambda\_arn](#output\_lambda\_arn) | The invoke ARN of the Lambda function. |
+| <a name="output_lambda_function_name"></a> [lambda\_function\_name](#output\_lambda\_function\_name) | The name of the Lambda function. |

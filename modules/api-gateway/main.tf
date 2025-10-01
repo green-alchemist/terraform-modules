@@ -1,3 +1,4 @@
+# Creates the private link between API Gateway and your VPC (only for HTTP_PROXY)
 resource "aws_apigatewayv2_vpc_link" "this" {
   count = var.integration_type == "HTTP_PROXY" ? 1 : 0
 
@@ -6,69 +7,57 @@ resource "aws_apigatewayv2_vpc_link" "this" {
   subnet_ids         = var.subnet_ids
 }
 
+# Creates the API Gateway itself
 resource "aws_apigatewayv2_api" "this" {
   name          = var.name
   protocol_type = "HTTP"
 }
 
+# Creates the integration that connects the API to the backend (conditional based on type)
 resource "aws_apigatewayv2_integration" "this" {
   api_id             = aws_apigatewayv2_api.this.id
   integration_type   = var.integration_type
   integration_method = var.integration_type == "AWS_PROXY" ? "POST" : "ANY"
   integration_uri    = var.integration_uri
 
+  # VPC Link settings only for HTTP_PROXY
   connection_type        = var.integration_type == "HTTP_PROXY" ? "VPC_LINK" : null
   connection_id          = var.integration_type == "HTTP_PROXY" ? one(aws_apigatewayv2_vpc_link.this[*].id) : null
   payload_format_version = var.integration_type == "AWS_PROXY" ? "2.0" : null
-  timeout_milliseconds   = 30000
+  timeout_milliseconds   = var.integration_timeout_millis
 }
 
+# Creates the Lambda fallback integration for scale-up (only for HTTP_PROXY)
 resource "aws_apigatewayv2_integration" "lambda_fallback" {
-  count              = var.enable_lambda_fallback ? 1 : 0
+  count              = var.integration_type == "HTTP_PROXY" && var.enable_lambda_fallback ? 1 : 0
   api_id             = aws_apigatewayv2_api.this.id
   integration_type   = "AWS_PROXY"
   integration_method = "POST"
   integration_uri    = var.lambda_fallback_arn
 }
 
+# Creates routes based on route_keys (e.g., "ANY /{proxy+}" for passthrough)
 resource "aws_apigatewayv2_route" "this" {
-  api_id    = aws_apigatewayv2_api.this.id
-  route_key = "ANY /{proxy+}"
-  target    = "integrations/${aws_apigatewayv2_integration.this.id}"
-}
+  for_each = toset(var.route_keys)
 
-resource "aws_apigatewayv2_route_response" "default" {
   api_id             = aws_apigatewayv2_api.this.id
-  route_id           = aws_apigatewayv2_route.this.id
-  route_response_key = "$default"
+  route_key          = each.key
+  target             = "integrations/${aws_apigatewayv2_integration.this.id}"
+  authorization_type = "NONE"
 }
 
-resource "aws_apigatewayv2_integration_response" "ecs_503" {
-  api_id                   = aws_apigatewayv2_api.this.id
-  integration_id           = aws_apigatewayv2_integration.this.id
-  integration_response_key = "/503/"
-  response_templates = {
-    "503" = "{\"error\": \"No target endpoints, triggering Lambda\"}"
-  }
-}
-
-resource "aws_apigatewayv2_route" "fallback" {
-  count              = var.enable_lambda_fallback ? 1 : 0
+# Creates /scale-up route for manual Lambda trigger (only for HTTP_PROXY + enable_lambda_fallback)
+resource "aws_apigatewayv2_route" "scale_up" {
+  count              = var.integration_type == "HTTP_PROXY" && var.enable_lambda_fallback ? 1 : 0
   api_id             = aws_apigatewayv2_api.this.id
   route_key          = "POST /scale-up"
   target             = "integrations/${aws_apigatewayv2_integration.lambda_fallback[0].id}"
   authorization_type = "NONE"
 }
 
-resource "aws_apigatewayv2_route_response" "fallback_response" {
-  count              = var.enable_lambda_fallback ? 1 : 0
-  api_id             = aws_apigatewayv2_api.this.id
-  route_id           = aws_apigatewayv2_route.fallback[0].id
-  route_response_key = "$default"
-}
-
+# Lambda permission for API Gateway to invoke the fallback Lambda
 resource "aws_lambda_permission" "apigw" {
-  count         = var.enable_lambda_fallback ? 1 : 0
+  count         = var.integration_type == "HTTP_PROXY" && var.enable_lambda_fallback ? 1 : 0
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
   function_name = var.lambda_fallback_arn
@@ -76,6 +65,7 @@ resource "aws_lambda_permission" "apigw" {
   source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*"
 }
 
+# CloudWatch log group for access logging
 resource "aws_cloudwatch_log_group" "this" {
   count = var.enable_access_logging ? 1 : 0
 
@@ -83,6 +73,7 @@ resource "aws_cloudwatch_log_group" "this" {
   retention_in_days = var.log_retention_in_days
 }
 
+# Deploys the API to a stage
 resource "aws_apigatewayv2_stage" "this" {
   api_id      = aws_apigatewayv2_api.this.id
   name        = var.stage_name
@@ -112,14 +103,15 @@ resource "aws_apigatewayv2_stage" "this" {
       detailed_metrics_enabled = true
       logging_level            = "INFO"
       data_trace_enabled       = true
-      throttling_burst_limit   = 10000
-      throttling_rate_limit    = 5000
+      throttling_burst_limit   = var.throttling_burst_limit
+      throttling_rate_limit    = var.throttling_rate_limit
     }
   }
 
   depends_on = [aws_cloudwatch_log_group.this]
 }
 
+# Custom domain for the API
 resource "aws_apigatewayv2_domain_name" "this" {
   domain_name = var.domain_name
 
@@ -130,6 +122,7 @@ resource "aws_apigatewayv2_domain_name" "this" {
   }
 }
 
+# Maps the API to the custom domain
 resource "aws_apigatewayv2_api_mapping" "this" {
   api_id      = aws_apigatewayv2_api.this.id
   domain_name = aws_apigatewayv2_domain_name.this.id

@@ -14,6 +14,7 @@ resource "aws_lambda_function" "scale_trigger" {
       SERVICE_CONNECT_NAMESPACE = var.service_connect_namespace
       TARGET_PORT               = var.target_port
       LOG_LEVEL                 = "DEBUG"
+      CLOUD_MAP_SERVICE_ID      = var.cloud_map_service_id
     }
   }
 }
