@@ -12,7 +12,7 @@ resource "aws_lambda_permission" "apigw" {
   count         = var.enable_lambda_proxy ? 1 : 0
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
-  function_name = module.lambda_proxy[0].lambda_function_name
+  function_name = module.lambda_scale_up[0].lambda_function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*"
 }
@@ -52,7 +52,7 @@ resource "aws_apigatewayv2_integration" "lambda_fallback" {
   api_id             = aws_apigatewayv2_api.this.id
   integration_type   = "AWS_PROXY"
   integration_method = "POST"
-  integration_uri    = module.lambda_scale_up.lambda_arn
+  integration_uri    = module.lambda_scale_up[0].lambda_arn
 }
 
 # Creates routes based on route_keys (e.g., "ANY /{proxy+}" for passthrough)
