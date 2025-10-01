@@ -40,7 +40,7 @@ No modules.
 | <a name="input_enable_access_logging"></a> [enable\_access\_logging](#input\_enable\_access\_logging) | Set to true to enable access logging for the API Gateway stage. | `bool` | `false` | no |
 | <a name="input_integration_type"></a> [integration\_type](#input\_integration\_type) | The integration type. Supported values: 'HTTP\_PROXY' (for VPC Link), 'AWS\_PROXY' (for Lambda). | `string` | n/a | yes |
 | <a name="input_integration_uri"></a> [integration\_uri](#input\_integration\_uri) | The integration URI. For Lambda, this is the function's invoke ARN. For HTTP\_PROXY, this is the target URI (e.g., Cloud Map service). | `string` | n/a | yes |
-| <a name="input_lambda_fallback_arn"></a> [lambda\_fallback\_arn](#input\_lambda\_fallback\_arn) | ARN of the Lambda function for 503 fallback. | `string` | `null` | no |
+| <a name="input_lambda_fallback_arn"></a> [lambda\_fallback\_arn](#input\_lambda\_fallback\_arn) | ARN of the Lambda function for 503 fallback. | `string` | `""` | no |
 | <a name="input_log_retention_in_days"></a> [log\_retention\_in\_days](#input\_log\_retention\_in\_days) | The number of days to retain the access logs. | `number` | `7` | no |
 | <a name="input_name"></a> [name](#input\_name) | The name for the API Gateway and related resources. | `string` | n/a | yes |
 | <a name="input_route_keys"></a> [route\_keys](#input\_route\_keys) | A list of route keys to create for the integration. | `list(string)` | <pre>[<br/>  "$default"<br/>]</pre> | no |

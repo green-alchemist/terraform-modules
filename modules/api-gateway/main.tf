@@ -28,7 +28,7 @@ resource "aws_apigatewayv2_integration" "this" {
 }
 
 resource "aws_apigatewayv2_integration" "lambda_fallback" {
-  count              = var.lambda_fallback_arn != null ? 1 : 0
+  count              = var.lambda_fallback_arn != "" ? 1 : 0
   api_id             = aws_apigatewayv2_api.this.id
   integration_type   = "AWS_PROXY"
   integration_method = "POST"

@@ -71,6 +71,6 @@ variable "log_retention_in_days" {
 
 variable "lambda_fallback_arn" {
   type        = string
-  default     = null
+  default     = ""
   description = "ARN of the Lambda function for 503 fallback."
 }
