@@ -36,11 +36,24 @@ resource "aws_apigatewayv2_integration" "lambda_fallback" {
 }
 # Creates a default route that sends all traffic to our integration
 resource "aws_apigatewayv2_route" "this" {
-  for_each = toset(var.route_keys) # Create a route for each key in the list
-
   api_id    = aws_apigatewayv2_api.this.id
-  route_key = each.value
-  target    = "integrations/${aws_apigatewayv2_integration.this.id}"
+  route_key = "ANY /{proxy+}"
+  target    = "integrations/${aws_apigatewayv2_integration.ecs_integration.id}"
+}
+
+resource "aws_apigatewayv2_route_response" "default" {
+  api_id             = aws_apigatewayv2_api.this.id
+  route_id           = aws_apigatewayv2_route.this.id
+  route_response_key = "$default"
+}
+
+resource "aws_apigatewayv2_integration_response" "ecs_503" {
+  api_id                   = aws_apigatewayv2_api.this.id
+  integration_id           = aws_apigatewayv2_integration.this.id
+  integration_response_key = "/503/"
+  response_templates = {
+    "503" = "{\"error\": \"No target endpoints, triggering Lambda\"}"
+  }
 }
 
 resource "aws_apigatewayv2_route" "fallback" {
@@ -65,21 +78,6 @@ resource "aws_lambda_permission" "apigw" {
   function_name = var.lambda_fallback_arn
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*"
-}
-
-resource "aws_apigatewayv2_route_response" "default" {
-  api_id             = aws_apigatewayv2_api.this.id
-  route_id           = aws_apigatewayv2_route.this[0].id
-  route_response_key = "$default"
-}
-
-resource "aws_apigatewayv2_integration_response" "ecs_503" {
-  api_id                   = aws_apigatewayv2_api.this.id
-  integration_id           = aws_apigatewayv2_integration.this.id
-  integration_response_key = "/503/"
-  response_templates = {
-    "503" = "{\"error\": \"No target endpoints, triggering Lambda\"}"
-  }
 }
 
 resource "aws_cloudwatch_log_group" "this" {
