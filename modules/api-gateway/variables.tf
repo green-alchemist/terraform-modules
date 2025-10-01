@@ -68,3 +68,9 @@ variable "lambda_fallback_arn" {
   default     = ""
   description = "ARN of the Lambda function for 503 fallback. Set to empty string to disable."
 }
+
+variable "enable_lambda_fallback" {
+  type        = bool
+  default     = false
+  description = "Enable the Lambda fallback integration for 503 errors."
+}

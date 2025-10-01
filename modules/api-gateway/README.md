@@ -38,6 +38,7 @@ No modules.
 | <a name="input_acm_certificate_arn"></a> [acm\_certificate\_arn](#input\_acm\_certificate\_arn) | The ARN of the ACM certificate for the custom domain. | `string` | n/a | yes |
 | <a name="input_domain_name"></a> [domain\_name](#input\_domain\_name) | The custom domain name for the API Gateway. | `string` | n/a | yes |
 | <a name="input_enable_access_logging"></a> [enable\_access\_logging](#input\_enable\_access\_logging) | Set to true to enable access logging for the API Gateway stage. | `bool` | `false` | no |
+| <a name="input_enable_lambda_fallback"></a> [enable\_lambda\_fallback](#input\_enable\_lambda\_fallback) | Enable the Lambda fallback integration for 503 errors. | `bool` | `false` | no |
 | <a name="input_integration_type"></a> [integration\_type](#input\_integration\_type) | The integration type. Supported values: 'HTTP\_PROXY' (for VPC Link), 'AWS\_PROXY' (for Lambda). | `string` | n/a | yes |
 | <a name="input_integration_uri"></a> [integration\_uri](#input\_integration\_uri) | The integration URI. For Lambda, this is the function's invoke ARN. For HTTP\_PROXY, this is the target URI (e.g., Cloud Map service). | `string` | n/a | yes |
 | <a name="input_lambda_fallback_arn"></a> [lambda\_fallback\_arn](#input\_lambda\_fallback\_arn) | ARN of the Lambda function for 503 fallback. Set to empty string to disable. | `string` | `""` | no |
