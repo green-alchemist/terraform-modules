@@ -22,7 +22,7 @@ variable "acm_certificate_arn" {
 # --- Integration Variables ---
 
 variable "integration_type" {
-  description = "The integration type. Supported values: 'HTTP_PROXY' (for ECS), 'AWS_PROXY' (for Lambda)."
+  description = "The integration type. Supported values: 'HTTP_PROXY' (for VPC Link), 'AWS_PROXY' (for Lambda)."
   type        = string
   validation {
     condition     = contains(["HTTP_PROXY", "AWS_PROXY"], var.integration_type)
@@ -31,12 +31,12 @@ variable "integration_type" {
 }
 
 variable "integration_uri" {
-  description = "The integration URI. For HTTP_PROXY, this is the Cloud Map service ARN. For AWS_PROXY, this is the Lambda ARN."
+  description = "The integration URI. For Lambda, this is the function's invoke ARN. For HTTP_PROXY, this is the target URI (e.g., Cloud Map service)."
   type        = string
 }
 
 variable "route_keys" {
-  description = "A list of route keys to create for the integration (e.g., ['ANY /{proxy+}', 'POST /scale-up'])."
+  description = "A list of route keys to create for the integration."
   type        = list(string)
   default     = ["ANY /{proxy+}"]
 }
@@ -55,18 +55,42 @@ variable "vpc_link_security_group_ids" {
   default     = []
 }
 
-# --- Lambda Fallback Variables (only used if integration_type is 'HTTP_PROXY') ---
+# --- Lambda Proxy Variables ---
 
-variable "enable_lambda_fallback" {
-  description = "Enable the /scale-up route for manual Lambda trigger (only for HTTP_PROXY)."
+variable "enable_lambda_proxy" {
+  description = "Enable the nested Lambda proxy for scale-to-zero (overrides integration_type to 'AWS_PROXY')."
   type        = bool
   default     = false
 }
 
-variable "lambda_fallback_arn" {
-  description = "ARN of the Lambda function for /scale-up route (only for HTTP_PROXY)."
+variable "cluster_name" {
+  description = "The ECS cluster name (for Lambda proxy scale-up)."
   type        = string
   default     = ""
+}
+
+variable "service_name" {
+  description = "The ECS service name (for Lambda proxy scale-up)."
+  type        = string
+  default     = ""
+}
+
+variable "service_connect_namespace" {
+  description = "The Cloud Map namespace for Service Connect (for Lambda proxy)."
+  type        = string
+  default     = ""
+}
+
+variable "cloud_map_service_id" {
+  description = "The Cloud Map service ID for listing instances (for Lambda proxy)."
+  type        = string
+  default     = ""
+}
+
+variable "target_port" {
+  description = "The target port for the ECS service (for Lambda proxy)."
+  type        = number
+  default     = 1337
 }
 
 # --- Logging Variables ---

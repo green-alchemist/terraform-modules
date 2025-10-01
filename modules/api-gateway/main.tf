@@ -1,3 +1,22 @@
+module "lambda_scale_up" {
+  count                     = var.enable_lambda_proxy ? 1 : 0
+  source                    = "git@github.com:green-alchemist/terraform-modules.git//modules/lambda-scale-up"
+  cluster_name              = var.cluster_name # Pass from parent vars
+  service_name              = var.service_name
+  service_connect_namespace = var.service_connect_namespace
+  cloud_map_service_id      = var.cloud_map_service_id
+  target_port               = var.target_port
+}
+
+resource "aws_lambda_permission" "apigw" {
+  count         = var.enable_lambda_proxy ? 1 : 0
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = module.lambda_proxy[0].lambda_function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*"
+}
+
 # Creates the private link between API Gateway and your VPC (only for HTTP_PROXY)
 resource "aws_apigatewayv2_vpc_link" "this" {
   count = var.integration_type == "HTTP_PROXY" ? 1 : 0
