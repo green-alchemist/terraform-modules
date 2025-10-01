@@ -58,6 +58,15 @@ resource "aws_apigatewayv2_route_response" "fallback_response" {
   route_response_key = "$default"
 }
 
+resource "aws_lambda_permission" "apigw" {
+  count         = var.lambda_fallback_arn != null ? 1 : 0
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = var.lambda_fallback_arn
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*"
+}
+
 resource "aws_apigatewayv2_route_response" "default" {
   api_id             = aws_apigatewayv2_api.this.id
   route_id           = aws_apigatewayv2_route.this[0].id
