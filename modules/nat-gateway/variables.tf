@@ -17,3 +17,8 @@ variable "private_subnet_ids" {
   description = "A list of private subnet IDs to associate with the NAT Gateway's route table."
   type        = list(string)
 }
+
+variable "public_subnet_ids" {
+  description = "A list of public subnet IDs to associate with the NAT Gateway's route table."
+  type        = list(string)
+}
