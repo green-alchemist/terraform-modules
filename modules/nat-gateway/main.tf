@@ -17,7 +17,7 @@ resource "aws_nat_gateway" "this" {
 
 # Create a unique route table for each private subnet.
 resource "aws_route_table" "private" {
-  for_each = var.private_subnet_ids
+  for_each = var.private_subnets_map
   vpc_id   = var.vpc_id
 
   tags = {
@@ -37,7 +37,7 @@ resource "aws_route" "private_nat_gateway" {
 
 # Associate each private subnet with its corresponding new route table.
 resource "aws_route_table_association" "private" {
-  for_each       = var.private_subnet_ids
+  for_each       = var.private_subnets_map
   subnet_id      = each.value
   route_table_id = aws_route_table.private[each.key].id
 }

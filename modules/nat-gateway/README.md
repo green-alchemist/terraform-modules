@@ -29,7 +29,9 @@ No modules.
 |------|-------------|------|---------|:--------:|
 | <a name="input_name"></a> [name](#input\_name) | The name for the NAT Gateway and related resources. | `string` | n/a | yes |
 | <a name="input_private_subnet_ids"></a> [private\_subnet\_ids](#input\_private\_subnet\_ids) | A list of private subnet IDs to associate with the NAT Gateway's route table. | `list(string)` | n/a | yes |
+| <a name="input_private_subnets_map"></a> [private\_subnets\_map](#input\_private\_subnets\_map) | A map of private subnet objects to associate with the private route table. | `map(object({ id = string }))` | `{}` | no |
 | <a name="input_public_subnet_ids"></a> [public\_subnet\_ids](#input\_public\_subnet\_ids) | A list of public subnet IDs to associate with the NAT Gateway's route table. | `list(string)` | n/a | yes |
+| <a name="input_public_subnets_map"></a> [public\_subnets\_map](#input\_public\_subnets\_map) | A map of public subnet objects to associate with the public route table. | `map(object({ id = string }))` | `{}` | no |
 | <a name="input_subnet_id"></a> [subnet\_id](#input\_subnet\_id) | The ID of the public subnet in which to place the NAT Gateway. | `string` | n/a | yes |
 | <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | The ID of the VPC. | `string` | n/a | yes |
 
