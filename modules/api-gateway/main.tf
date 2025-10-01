@@ -1,25 +1,18 @@
+# Conditional nested Lambda proxy module
 module "lambda_scale_up" {
-  count                     = var.enable_lambda_proxy ? 1 : 0
+  count = var.enable_lambda_proxy ? 1 : 0
+
   source                    = "git@github.com:green-alchemist/terraform-modules.git//modules/lambda-scale-up"
-  cluster_name              = var.cluster_name # Pass from parent vars
+  cluster_name              = var.cluster_name
   service_name              = var.service_name
   service_connect_namespace = var.service_connect_namespace
   cloud_map_service_id      = var.cloud_map_service_id
   target_port               = var.target_port
 }
 
-resource "aws_lambda_permission" "apigw" {
-  count         = var.enable_lambda_proxy ? 1 : 0
-  statement_id  = "AllowExecutionFromAPIGateway"
-  action        = "lambda:InvokeFunction"
-  function_name = module.lambda_scale_up[0].lambda_function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*"
-}
-
-# Creates the private link between API Gateway and your VPC (only for HTTP_PROXY)
+# Creates the private link between API Gateway and your VPC (only for HTTP_PROXY mode)
 resource "aws_apigatewayv2_vpc_link" "this" {
-  count = var.integration_type == "HTTP_PROXY" ? 1 : 0
+  count = var.enable_lambda_proxy ? 0 : 1 # Disabled for Lambda proxy
 
   name               = "${var.name}-vpc-link"
   security_group_ids = var.vpc_link_security_group_ids
@@ -32,47 +25,37 @@ resource "aws_apigatewayv2_api" "this" {
   protocol_type = "HTTP"
 }
 
-# Creates the integration that connects the API to the backend (conditional based on type)
+# Creates the integration that connects the API to the backend (conditional on mode)
 resource "aws_apigatewayv2_integration" "this" {
-  count              = var.integration_type == "HTTP_PROXY" && var.enable_lambda_proxy ? 0 : 1
   api_id             = aws_apigatewayv2_api.this.id
-  integration_type   = var.integration_type
-  integration_method = var.integration_type == "AWS_PROXY" ? "POST" : "ANY"
-  integration_uri    = var.integration_uri
+  integration_type   = var.enable_lambda_proxy ? "AWS_PROXY" : var.integration_type
+  integration_method = var.enable_lambda_proxy ? "POST" : "ANY"
+  integration_uri    = var.enable_lambda_proxy ? module.lambda_scale_up[0].lambda_arn : var.integration_uri
 
-  # VPC Link settings only for HTTP_PROXY
-  connection_type        = var.integration_type == "HTTP_PROXY" ? "VPC_LINK" : null
-  connection_id          = var.integration_type == "HTTP_PROXY" ? one(aws_apigatewayv2_vpc_link.this[*].id) : null
-  payload_format_version = var.integration_type == "AWS_PROXY" ? "2.0" : null
-  timeout_milliseconds   = var.integration_timeout_millis
+  connection_type        = var.enable_lambda_proxy ? null : "VPC_LINK"
+  connection_id          = var.enable_lambda_proxy ? null : one(aws_apigatewayv2_vpc_link.this[*].id)
+  payload_format_version = var.enable_lambda_proxy ? "2.0" : null
+  timeout_in_millis      = var.integration_timeout_millis
 }
 
-# Creates the Lambda fallback integration for scale-up (only for HTTP_PROXY)
-resource "aws_apigatewayv2_integration" "lambda_proxy" {
-  count              = var.integration_type == "HTTP_PROXY" && var.enable_lambda_proxy ? 1 : 0
-  api_id             = aws_apigatewayv2_api.this.id
-  integration_type   = "AWS_PROXY"
-  integration_method = "POST"
-  integration_uri    = module.lambda_scale_up[0].lambda_arn
-}
-
-# Creates routes based on route_keys (e.g., "ANY /{proxy+}" for passthrough)
+# Creates routes based on route_keys (e.g., "ANY /{proxy+} for passthrough)
 resource "aws_apigatewayv2_route" "this" {
   for_each = toset(var.route_keys)
 
   api_id             = aws_apigatewayv2_api.this.id
-  route_key          = each.key
+  route_key          = each.value
   target             = "integrations/${aws_apigatewayv2_integration.this.id}"
   authorization_type = "NONE"
 }
 
-# Creates /scale-up route for manual Lambda trigger (only for HTTP_PROXY + enable_lambda_proxy)
-resource "aws_apigatewayv2_route" "scale_up" {
-  count              = var.integration_type == "HTTP_PROXY" && var.enable_lambda_proxy ? 1 : 0
-  api_id             = aws_apigatewayv2_api.this.id
-  route_key          = "POST /scale-up"
-  target             = "integrations/${aws_apigatewayv2_integration.lambda_proxy[0].id}"
-  authorization_type = "NONE"
+# Lambda permission (internal, conditional)
+resource "aws_lambda_permission" "apigw" {
+  count         = var.enable_lambda_proxy ? 1 : 0
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = module.lambda_scale_up[0].lambda_function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*"
 }
 
 # CloudWatch log group for access logging
