@@ -1,4 +1,3 @@
-# Creates the private link between API Gateway and your VPC (only if needed)
 resource "aws_apigatewayv2_vpc_link" "this" {
   count = var.integration_type == "HTTP_PROXY" ? 1 : 0
 
@@ -7,20 +6,17 @@ resource "aws_apigatewayv2_vpc_link" "this" {
   subnet_ids         = var.subnet_ids
 }
 
-# Creates the API Gateway itself
 resource "aws_apigatewayv2_api" "this" {
   name          = var.name
   protocol_type = "HTTP"
 }
 
-# Creates the integration that connects the API to the backend
 resource "aws_apigatewayv2_integration" "this" {
   api_id             = aws_apigatewayv2_api.this.id
   integration_type   = var.integration_type
   integration_method = var.integration_type == "AWS_PROXY" ? "POST" : "ANY"
   integration_uri    = var.integration_uri
 
-  # Conditional configuration based on integration type
   connection_type        = var.integration_type == "HTTP_PROXY" ? "VPC_LINK" : null
   connection_id          = var.integration_type == "HTTP_PROXY" ? one(aws_apigatewayv2_vpc_link.this[*].id) : null
   payload_format_version = var.integration_type == "AWS_PROXY" ? "2.0" : null
@@ -34,7 +30,7 @@ resource "aws_apigatewayv2_integration" "lambda_fallback" {
   integration_method = "POST"
   integration_uri    = var.lambda_fallback_arn
 }
-# Creates a default route that sends all traffic to our integration
+
 resource "aws_apigatewayv2_route" "this" {
   api_id    = aws_apigatewayv2_api.this.id
   route_key = "ANY /{proxy+}"
@@ -57,7 +53,7 @@ resource "aws_apigatewayv2_integration_response" "ecs_503" {
 }
 
 resource "aws_apigatewayv2_route" "fallback" {
-  count              = aws_apigatewayv2_integration.lambda_fallback != "" ? 1 : 0
+  count              = var.lambda_fallback_arn != "" ? 1 : 0
   api_id             = aws_apigatewayv2_api.this.id
   route_key          = "ANY /{proxy+}"
   target             = var.lambda_fallback_arn != "" ? "integrations/${aws_apigatewayv2_integration.lambda_fallback[0].id}" : null
@@ -65,14 +61,14 @@ resource "aws_apigatewayv2_route" "fallback" {
 }
 
 resource "aws_apigatewayv2_route_response" "fallback_response" {
-  count              = aws_apigatewayv2_integration.lambda_fallback != "" ? 1 : 0
+  count              = var.lambda_fallback_arn != "" ? 1 : 0
   api_id             = aws_apigatewayv2_api.this.id
   route_id           = var.lambda_fallback_arn != "" ? aws_apigatewayv2_route.fallback[0].id : null
   route_response_key = "$default"
 }
 
 resource "aws_lambda_permission" "apigw" {
-  count         = aws_apigatewayv2_integration.lambda_fallback != null ? 1 : 0
+  count         = var.lambda_fallback_arn != "" ? 1 : 0
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
   function_name = var.lambda_fallback_arn
@@ -87,7 +83,6 @@ resource "aws_cloudwatch_log_group" "this" {
   retention_in_days = var.log_retention_in_days
 }
 
-# Deploys the API to a stage
 resource "aws_apigatewayv2_stage" "this" {
   api_id      = aws_apigatewayv2_api.this.id
   name        = var.stage_name
@@ -115,10 +110,10 @@ resource "aws_apigatewayv2_stage" "this" {
     for_each = var.enable_access_logging ? [1] : []
     content {
       detailed_metrics_enabled = true
-      logging_level            = "INFO" # Or "ERROR" to reduce noise
-      data_trace_enabled       = true   # Full request/response logging
-      throttling_burst_limit   = 10000  # Increase from default 5000
-      throttling_rate_limit    = 5000   # Increase from default 2500
+      logging_level            = "INFO"
+      data_trace_enabled       = true
+      throttling_burst_limit   = 10000
+      throttling_rate_limit    = 5000
     }
   }
 
@@ -135,7 +130,6 @@ resource "aws_apigatewayv2_domain_name" "this" {
   }
 }
 
-# Maps the API to the custom domain
 resource "aws_apigatewayv2_api_mapping" "this" {
   api_id      = aws_apigatewayv2_api.this.id
   domain_name = aws_apigatewayv2_domain_name.this.id

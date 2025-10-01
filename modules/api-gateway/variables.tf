@@ -19,8 +19,6 @@ variable "acm_certificate_arn" {
   type        = string
 }
 
-# --- Integration Variables ---
-
 variable "integration_type" {
   description = "The integration type. Supported values: 'HTTP_PROXY' (for VPC Link), 'AWS_PROXY' (for Lambda)."
   type        = string
@@ -41,8 +39,6 @@ variable "route_keys" {
   default     = ["$default"]
 }
 
-# --- VPC Link Specific Variables (only used if integration_type is 'HTTP_PROXY') ---
-
 variable "subnet_ids" {
   description = "A list of subnet IDs for the VPC Link. Required for 'HTTP_PROXY' integration."
   type        = list(string)
@@ -54,8 +50,6 @@ variable "vpc_link_security_group_ids" {
   type        = list(string)
   default     = []
 }
-
-# --- Logging Variables ---
 
 variable "enable_access_logging" {
   description = "Set to true to enable access logging for the API Gateway stage."
@@ -72,5 +66,5 @@ variable "log_retention_in_days" {
 variable "lambda_fallback_arn" {
   type        = string
   default     = ""
-  description = "ARN of the Lambda function for 503 fallback."
+  description = "ARN of the Lambda function for 503 fallback. Set to empty string to disable."
 }
