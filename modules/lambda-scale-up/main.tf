@@ -23,10 +23,6 @@ resource "aws_lambda_function" "scale_trigger" {
     subnet_ids         = var.subnet_ids
     security_group_ids = var.security_group_ids
   }
-
-  lifecycle {
-    ignore_changes = [last_modified] # Ignore last_modified to fix provider bug
-  }
 }
 
 resource "aws_iam_role" "lambda" {
@@ -103,6 +99,20 @@ function log(level, message, data = {}) {
             timestamp: new Date().toISOString(),
             ...data
         }));
+    }
+}
+
+async function hasRegisteredInstances(serviceId, requestId) {
+    try {
+        const sdClient = new ServiceDiscoveryClient();
+        const listCommand = new ListInstancesCommand({ ServiceId: serviceId });
+        const instances = await sdClient.send(listCommand);
+        const healthyCount = instances.Instances?.filter(inst => inst.Attributes?.AWS_INSTANCE_HEALTH === 'HEALTHY').length || 0;
+        log('DEBUG', 'Checked registered instances', { requestId, healthyCount });
+        return healthyCount > 0;
+    } catch (error) {
+        log('ERROR', 'Failed to list instances', { requestId, error: error.message });
+        return false;
     }
 }
 
@@ -231,10 +241,12 @@ export const handler = async (event, context) => {
                         if (retryError.code !== 'ENOTFOUND') {
                             throw retryError;
                         }
-                        log('DEBUG', 'Retry attempt failed, waiting', { requestId, attempt: retryAttempts + 1 });
-                        await new Promise(resolve => setTimeout(resolve, 5000));
-                        retryAttempts++;
+                        log('DEBUG', 'Retry attempt failed (connection error), waiting', { requestId, attempt: retryAttempts + 1 });
+                    } else {
+                        log('DEBUG', 'No healthy instances registered yet, waiting', { requestId, attempt: retryAttempts + 1 });
                     }
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    retryAttempts++;
                 }
 
                 log('ERROR', 'Timeout waiting for service after scale-up', { requestId });
