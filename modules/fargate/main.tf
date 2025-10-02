@@ -212,7 +212,7 @@ resource "aws_cloudwatch_metric_alarm" "scale_up" {
   evaluation_periods  = "2"
   metric_name         = "CPUUtilization"
   namespace           = "AWS/ECS"
-  period              = "80" # Scale up quickly
+  period              = "60" # Scale up quickly
   statistic           = "Average"
   threshold           = var.cpu_utilization_high_threshold
   dimensions = {
