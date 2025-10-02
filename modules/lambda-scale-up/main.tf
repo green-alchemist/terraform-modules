@@ -23,6 +23,10 @@ resource "aws_lambda_function" "scale_trigger" {
     subnet_ids         = var.subnet_ids
     security_group_ids = var.security_group_ids
   }
+
+  lifecycle {
+    ignore_changes = [last_modified] # Ignore last_modified to fix provider bug
+  }
 }
 
 resource "aws_iam_role" "lambda" {
@@ -102,20 +106,6 @@ function log(level, message, data = {}) {
     }
 }
 
-async function hasRegisteredInstances(serviceId, requestId) {
-    try {
-        const sdClient = new ServiceDiscoveryClient();
-        const listCommand = new ListInstancesCommand({ ServiceId: serviceId });
-        const instances = await sdClient.send(listCommand);
-        const healthyCount = instances.Instances?.filter(inst => inst.Attributes?.AWS_INSTANCE_HEALTH === 'HEALTHY').length || 0;
-        log('DEBUG', 'Checked registered instances', { requestId, healthyCount });
-        return healthyCount > 0;
-    } catch (error) {
-        log('ERROR', 'Failed to list instances', { requestId, error: error.message });
-        return false;
-    }
-}
-
 async function scaleUpEcsService(cluster, service, requestId) {
     try {
         const ecsClient = new ECSClient();
@@ -131,6 +121,28 @@ async function scaleUpEcsService(cluster, service, requestId) {
         }
     } catch (error) {
         log('ERROR', 'Failed to scale up ECS service', { requestId, error: error.message });
+        throw error;
+    }
+}
+
+async function getHealthyInstance(serviceId, requestId) {
+    try {
+        const sdClient = new ServiceDiscoveryClient();
+        const listCommand = new ListInstancesCommand({ ServiceId: serviceId });
+        const response = await sdClient.send(listCommand);
+        const instances = response.Instances || [];
+        const healthyInstances = instances.filter(inst => inst.Attributes?.ECS_TASK_HEALTH_STATUS === 'HEALTHY' || inst.Attributes?.AWS_INSTANCE_HEALTH === 'HEALTHY');
+        log('DEBUG', 'Discovered instances', { requestId, totalInstances: instances.length, healthyCount: healthyInstances.length });
+        if (healthyInstances.length > 0) {
+            const instance = healthyInstances[0]; // Pick first healthy; could randomize for LB
+            const ip = instance.Attributes.AWS_INSTANCE_IPV4;
+            const port = instance.Attributes.AWS_INSTANCE_PORT || process.env.TARGET_PORT;
+            log('INFO', 'Selected healthy instance', { requestId, ip: ip.substring(0, ip.lastIndexOf('.')) + '.xxx', port }); // Mask IP for logs
+            return { ip, port: parseInt(port) };
+        }
+        return null;
+    } catch (error) {
+        log('ERROR', 'Failed to list instances', { requestId, error: error.message });
         throw error;
     }
 }
@@ -155,18 +167,43 @@ export const handler = async (event, context) => {
 
         const fullPath = queryString ? `$${requestPath}?$${queryString}` : requestPath;
 
-        // --- Step 2: Determine target endpoint ---
-        const serviceEndpoint = `$${process.env.SERVICE_CONNECT_NAMESPACE}.$${process.env.TARGET_SERVICE_NAME}`;
-        const port = parseInt(process.env.TARGET_PORT || '1337');
-        log('INFO', 'Determined target endpoint', { requestId, targetHost: serviceEndpoint, targetPort: port });
+        // --- Step 2: Discover target instance via Cloud Map (bypass DNS) ---
+        const serviceId = process.env.CLOUD_MAP_SERVICE_ID;
+        let target = await getHealthyInstance(serviceId, requestId);
+        let scaleUpAttempted = false;
 
-        log('INFO', 'Proxying request via DNS lookup', {
+        if (!target) {
+            log('WARN', 'No healthy instances found, attempting to scale up ECS', { requestId });
+            await scaleUpEcsService(process.env.ECS_CLUSTER, process.env.ECS_SERVICE, requestId);
+            scaleUpAttempted = true;
+        }
+
+        // --- Step 3: Retry loop if no instances or after scale-up ---
+        let retryAttempts = 0;
+        const maxRetryAttempts = 12; // 60s total
+        while (!target && retryAttempts < maxRetryAttempts) {
+            log('DEBUG', 'Polling for healthy instances after scale-up', { requestId, attempt: retryAttempts + 1 });
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            target = await getHealthyInstance(serviceId, requestId);
+            retryAttempts++;
+        }
+
+        if (!target) {
+            log('ERROR', 'Timeout waiting for healthy instances after scale-up', { requestId });
+            return {
+                statusCode: 503,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ error: 'No healthy service instances available after scale-up attempt', requestId })
+            };
+        }
+
+        log('INFO', 'Proxying request to discovered instance', {
             requestId,
-            target: `http://$${serviceEndpoint}:$${port}$${fullPath}`,
+            target: `http://$${target.ip}:$${target.port}$${fullPath}`,
             method: httpMethod
         });
 
-        // --- Step 3: Prepare the request for forwarding ---
+        // --- Step 4: Prepare the request for forwarding ---
         let requestBody = body;
         if (body && isBase64) {
             requestBody = Buffer.from(body, 'base64').toString('utf-8');
@@ -180,82 +217,35 @@ export const handler = async (event, context) => {
             return acc;
         }, {});
 
-        cleanHeaders['Host'] = serviceEndpoint;
+        cleanHeaders['Host'] = target.ip; // Use IP as host
 
         if (requestBody) {
             cleanHeaders['Content-Length'] = Buffer.byteLength(requestBody);
         }
         log('DEBUG', 'Forwarding request with cleaned headers', { requestId, headers: cleanHeaders });
 
-        // --- Step 4: Make the outbound HTTP request ---
-        try {
-            const response = await makeHttpRequest({
-                hostname: serviceEndpoint,
-                port: port,
-                path: fullPath,
-                method: httpMethod,
-                headers: cleanHeaders,
-                body: requestBody,
-                timeout: (context.getRemainingTimeInMillis() - 1000)
-            });
-            
-            log('INFO', 'Received response from target service', { requestId, statusCode: response.statusCode, headers: response.headers });
+        // --- Step 5: Make the outbound HTTP request ---
+        const response = await makeHttpRequest({
+            hostname: target.ip,
+            port: target.port,
+            path: fullPath,
+            method: httpMethod,
+            headers: cleanHeaders,
+            body: requestBody,
+            timeout: (context.getRemainingTimeInMillis() - 1000)
+        });
+        
+        log('INFO', 'Received response from target service', { requestId, statusCode: response.statusCode, headers: response.headers });
 
-            // --- Step 5: Return the response to API Gateway ---
-            const finalResponse = {
-                statusCode: response.statusCode,
-                headers: response.headers,
-                body: response.body,
-                isBase64Encoded: false
-            };
-            log('INFO', 'Request completed successfully', { requestId, statusCode: finalResponse.statusCode });
-            return finalResponse;
-
-        } catch (error) {
-            if (error.code === 'ENOTFOUND') {
-                log('WARN', 'No service endpoints found, attempting to scale up ECS', { requestId });
-                await scaleUpEcsService(process.env.ECS_CLUSTER, process.env.ECS_SERVICE, requestId);
-
-                // Retry the request after scale-up
-                let retryAttempts = 0;
-                const maxRetryAttempts = 12; // 60s total
-                while (retryAttempts < maxRetryAttempts) {
-                    try {
-                        const retryResponse = await makeHttpRequest({
-                            hostname: serviceEndpoint,
-                            port: port,
-                            path: fullPath,
-                            method: httpMethod,
-                            headers: cleanHeaders,
-                            body: requestBody,
-                            timeout: (context.getRemainingTimeInMillis() - 1000)
-                        });
-                        log('INFO', 'Retry succeeded after scale-up', { requestId, statusCode: retryResponse.statusCode });
-                        return {
-                            statusCode: retryResponse.statusCode,
-                            headers: retryResponse.headers,
-                            body: retryResponse.body,
-                            isBase64Encoded: false
-                        };
-                    } catch (retryError) {
-                        if (retryError.code !== 'ENOTFOUND') {
-                            throw retryError;
-                        }
-                        log('DEBUG', 'Retry attempt failed (connection error), waiting', { requestId, attempt: retryAttempts + 1 });
-                    }
-                    await new Promise(resolve => setTimeout(resolve, 5000));
-                    retryAttempts++;
-                }
-
-                log('ERROR', 'Timeout waiting for service after scale-up', { requestId });
-                return {
-                    statusCode: 503,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ error: 'Service unavailable after scale-up attempt', requestId })
-                };
-            }
-            throw error;
-        }
+        // --- Step 6: Return the response to API Gateway ---
+        const finalResponse = {
+            statusCode: response.statusCode,
+            headers: response.headers,
+            body: response.body,
+            isBase64Encoded: false
+        };
+        log('INFO', 'Request completed successfully', { requestId, statusCode: finalResponse.statusCode });
+        return finalResponse;
 
     } catch (error) {
         log('ERROR', 'Request processing failed', { requestId, error: error.name, errorMessage: error.message, errorCode: error.code, errorStack: error.stack });
@@ -263,10 +253,7 @@ export const handler = async (event, context) => {
         let statusCode = 500;
         let errorMessage = 'Internal Server Error';
 
-        if (error.code === 'ENOTFOUND') {
-            statusCode = 503;
-            errorMessage = 'Service Discovery Failed: The target service could not be found via DNS.';
-        } else if (error.code === 'ECONNREFUSED') {
+        if (error.code === 'ECONNREFUSED') {
             statusCode = 503;
             errorMessage = 'Service Unavailable: Connection was refused by the target service.';
         } else if (error.code === 'ETIMEDOUT' || error.message === 'Request timeout') {
