@@ -111,7 +111,7 @@ async function scaleUpEcsService(cluster, service, requestId) {
     }
 }
 
-exports.handler = async (event, context) => {
+export const handler = async (event, context) => {
     const requestId = context.awsRequestId;
     log('DEBUG', 'Full incoming request event', { requestId, event });
 
