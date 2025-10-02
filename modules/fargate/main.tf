@@ -135,7 +135,7 @@ resource "aws_appautoscaling_target" "this" {
 #   }
 # }
 
-resource "aws_appautoscaling_policy" "scale_up" {
+resource "aws_appautoscaling_policy" "scale" {
   count              = var.enable_autoscaling ? 1 : 0
   name               = "${var.service_name}-cpu-scaling"
   policy_type        = "TargetTrackingScaling"
@@ -219,7 +219,7 @@ resource "aws_cloudwatch_metric_alarm" "scale_up" {
     ClusterName = aws_ecs_cluster.this.name
     ServiceName = aws_ecs_service.this.name
   }
-  alarm_actions = [aws_appautoscaling_policy.scale_up[0].arn]
+  alarm_actions = [aws_appautoscaling_policy.scale[0].arn]
 }
 
 resource "aws_cloudwatch_metric_alarm" "scale_down" {
@@ -237,5 +237,5 @@ resource "aws_cloudwatch_metric_alarm" "scale_down" {
     ClusterName = aws_ecs_cluster.this.name
     ServiceName = aws_ecs_service.this.name
   }
-  alarm_actions = [aws_appautoscaling_policy.scale_down[0].arn]
+  alarm_actions = [aws_appautoscaling_policy.scale[0].arn]
 }
