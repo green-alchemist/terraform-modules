@@ -1,10 +1,11 @@
 resource "aws_lambda_function" "scale_trigger" {
-  filename      = data.archive_file.lambda_zip.output_path
-  function_name = "${var.service_name}-scale-trigger"
-  role          = aws_iam_role.lambda.arn
-  handler       = "index.handler"
-  runtime       = "nodejs20.x"
-  timeout       = 60
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  function_name    = "${var.service_name}-scale-trigger"
+  role             = aws_iam_role.lambda.arn
+  handler          = "index.handler"
+  runtime          = "nodejs20.x"
+  timeout          = 60
 
   environment {
     variables = {
