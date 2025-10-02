@@ -156,7 +156,7 @@ export const handler = async (event, context) => {
         const fullPath = queryString ? `$${requestPath}?$${queryString}` : requestPath;
 
         // --- Step 2: Determine target endpoint ---
-        const serviceEndpoint = `$${process.env.TARGET_SERVICE_NAME}.$${process.env.SERVICE_CONNECT_NAMESPACE}`;
+        const serviceEndpoint = `$${process.env.SERVICE_CONNECT_NAMESPACE}.$${process.env.TARGET_SERVICE_NAME}`;
         const port = parseInt(process.env.TARGET_PORT || '1337');
         log('INFO', 'Determined target endpoint', { requestId, targetHost: serviceEndpoint, targetPort: port });
 
