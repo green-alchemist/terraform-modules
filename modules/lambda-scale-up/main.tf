@@ -91,7 +91,7 @@ locals {
   lambda_code = <<-EOF
 import http from 'http';
 import { ECSClient, UpdateServiceCommand, DescribeServicesCommand } from '@aws-sdk/client-ecs';
-import { ServiceDiscoveryClient, ListInstancesCommand } from '@aws-sdk/client-servicediscovery';
+import { ServiceDiscoveryClient, ListInstancesCommand, GetInstancesHealthStatusCommand } from '@aws-sdk/client-servicediscovery';
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'INFO';
 const LOG_LEVELS = { ERROR: 0, WARN: 1, INFO: 2, DEBUG: 3 };
@@ -109,7 +109,7 @@ function log(level, message, data = {}) {
 
 async function scaleUpEcsService(cluster, service, requestId) {
     try {
-        const ecsClient = new ECSClient();
+        const ecsClient = new ECSClient({ requestTimeout: 10000 });
         const describeCommand = new DescribeServicesCommand({ cluster, services: [service] });
         const serviceDesc = await ecsClient.send(describeCommand);
         const desiredCount = serviceDesc.services[0].desiredCount;
@@ -128,22 +128,43 @@ async function scaleUpEcsService(cluster, service, requestId) {
 
 async function getHealthyInstance(serviceId, requestId) {
     try {
-        const sdClient = new ServiceDiscoveryClient();
+        const sdClient = new ServiceDiscoveryClient({ requestTimeout: 10000 });
+        
+        // Step 1: List all instances
+        log('DEBUG', 'Starting ListInstances call', { requestId });
         const listCommand = new ListInstancesCommand({ ServiceId: serviceId });
-        const response = await sdClient.send(listCommand);
-        const instances = response.Instances || [];
-        const healthyInstances = instances.filter(inst => inst.Attributes?.ECS_TASK_HEALTH_STATUS === 'HEALTHY' || inst.Attributes?.AWS_INSTANCE_HEALTH === 'HEALTHY');
-        log('DEBUG', 'Discovered instances', { requestId, totalInstances: instances.length, healthyCount: healthyInstances.length });
+        const listResponse = await sdClient.send(listCommand);
+        const instances = listResponse.Instances || [];
+        log('DEBUG', 'ListInstances response', { requestId, totalInstances: instances.length, instances: instances.map(inst => ({ id: inst.Id, attributes: inst.Attributes })) }); // Log full details for debug
+
+        if (instances.length === 0) {
+            return null;
+        }
+
+        // Step 2: Get health statuses for the instances
+        log('DEBUG', 'Starting GetInstancesHealthStatus call', { requestId });
+        const healthCommand = new GetInstancesHealthStatusCommand({
+            ServiceId: serviceId,
+            Instances: instances.map(inst => inst.Id) // Get health for all listed instances
+        });
+        const healthResponse = await sdClient.send(healthCommand);
+        const healthMap = healthResponse.Status || {};
+        log('DEBUG', 'Health statuses', { requestId, healthMap });
+
+        // Step 3: Filter healthy instances
+        const healthyInstances = instances.filter(inst => healthMap[inst.Id] === 'HEALTHY');
+        log('DEBUG', 'Filtered healthy instances', { requestId, healthyCount: healthyInstances.length });
+
         if (healthyInstances.length > 0) {
-            const instance = healthyInstances[0]; // Pick first healthy; could randomize for LB
+            const instance = healthyInstances[0]; // Pick first healthy
             const ip = instance.Attributes.AWS_INSTANCE_IPV4;
             const port = instance.Attributes.AWS_INSTANCE_PORT || process.env.TARGET_PORT;
-            log('INFO', 'Selected healthy instance', { requestId, ip: ip.substring(0, ip.lastIndexOf('.')) + '.xxx', port }); // Mask IP for logs
+            log('INFO', 'Selected healthy instance', { requestId, ip: ip.substring(0, ip.lastIndexOf('.')) + '.xxx', port });
             return { ip, port: parseInt(port) };
         }
         return null;
     } catch (error) {
-        log('ERROR', 'Failed to list instances', { requestId, error: error.message });
+        log('ERROR', 'Failed to discover healthy instances', { requestId, error: error.message });
         throw error;
     }
 }
@@ -168,7 +189,7 @@ export const handler = async (event, context) => {
 
         const fullPath = queryString ? `$${requestPath}?$${queryString}` : requestPath;
 
-        // --- Step 2: Discover target instance via Cloud Map (bypass DNS) ---
+        // --- Step 2: Discover target instance ---
         const serviceId = process.env.CLOUD_MAP_SERVICE_ID;
         let target = await getHealthyInstance(serviceId, requestId);
         let scaleUpAttempted = false;
@@ -183,18 +204,18 @@ export const handler = async (event, context) => {
         let retryAttempts = 0;
         const maxRetryAttempts = 12; // 60s total
         while (!target && retryAttempts < maxRetryAttempts) {
-            log('DEBUG', 'Polling for healthy instances after scale-up', { requestId, attempt: retryAttempts + 1 });
+            log('DEBUG', 'Polling for healthy instances', { requestId, attempt: retryAttempts + 1 });
             await new Promise(resolve => setTimeout(resolve, 5000));
             target = await getHealthyInstance(serviceId, requestId);
             retryAttempts++;
         }
 
         if (!target) {
-            log('ERROR', 'Timeout waiting for healthy instances after scale-up', { requestId });
+            log('ERROR', 'Timeout waiting for healthy instances', { requestId });
             return {
                 statusCode: 503,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ error: 'No healthy service instances available after scale-up attempt', requestId })
+                body: JSON.stringify({ error: 'No healthy service instances available', requestId })
             };
         }
 
@@ -218,7 +239,7 @@ export const handler = async (event, context) => {
             return acc;
         }, {});
 
-        cleanHeaders['Host'] = target.ip; // Use IP as host
+        cleanHeaders['Host'] = target.ip;
 
         if (requestBody) {
             cleanHeaders['Content-Length'] = Buffer.byteLength(requestBody);
