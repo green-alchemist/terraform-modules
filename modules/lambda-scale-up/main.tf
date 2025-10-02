@@ -1,6 +1,6 @@
 resource "aws_lambda_function" "scale_trigger" {
   filename         = data.archive_file.lambda_zip.output_path
-  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  # source_code_hash = data.archive_file.lambda_zip.output_base64sha256
   function_name    = "${var.service_name}-scale-trigger"
   role             = aws_iam_role.lambda.arn
   handler          = "index.handler"
@@ -17,6 +17,10 @@ resource "aws_lambda_function" "scale_trigger" {
       LOG_LEVEL                 = "DEBUG"
       CLOUD_MAP_SERVICE_ID      = var.cloud_map_service_id
     }
+  }
+
+  lifecycle {
+    ignore_changes = [last_modified]  # Ignore last_modified to fix provider bug
   }
 }
 
