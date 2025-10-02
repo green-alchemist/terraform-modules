@@ -68,15 +68,15 @@ data "archive_file" "lambda_zip" {
 
   source {
     content  = local.lambda_code
-    filename = "index.js"
+    filename = "index.mjs"
   }
 }
 
 locals {
   lambda_code = <<-EOF
 const http = require('http');
-import { ECSClient, UpdateServiceCommand, DescribeServicesCommand } = from '@aws-sdk/client-ecs';
-import { ServiceDiscoveryClient, ListInstancesCommand } = from '@aws-sdk/client-servicediscovery';
+import { ECSClient, UpdateServiceCommand, DescribeServicesCommand } from '@aws-sdk/client-ecs';
+import { ServiceDiscoveryClient, ListInstancesCommand } from '@aws-sdk/client-servicediscovery';
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'INFO';
 const LOG_LEVELS = { ERROR: 0, WARN: 1, INFO: 2, DEBUG: 3 };
