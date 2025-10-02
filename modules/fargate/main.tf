@@ -198,7 +198,7 @@ resource "aws_cloudwatch_metric_alarm" "scale_down" {
     ClusterName = aws_ecs_cluster.this.name
     ServiceName = aws_ecs_service.this.name
   }
-  alarm_actions = [aws_appautoscaling_policy.scale[0].arn]
+  alarm_actions = [aws_appautoscaling_policy.scale_down[0].arn]
 }
 
 
