@@ -15,15 +15,12 @@ resource "aws_rds_cluster" "this" {
   vpc_security_group_ids          = var.security_group_ids
   skip_final_snapshot             = true
   enabled_cloudwatch_logs_exports = var.enabled_cloudwatch_logs_exports
-  serverlessv2_scaling_configuration {
-    max_capacity             = var.max_capacity
-    min_capacity             = var.min_capacity
-    seconds_until_auto_pause = var.min_capacity > 0 ? null : var.seconds_until_auto_pause
-  }
 
-  # lifecycle {
-  #   ignore_changes = [master_password]
-  # }
+  serverlessv2_scaling_configuration {
+    max_capacity = var.max_capacity
+    min_capacity = var.min_capacity
+  }
+  seconds_until_auto_pause = var.seconds_until_auto_pause
 }
 
 
