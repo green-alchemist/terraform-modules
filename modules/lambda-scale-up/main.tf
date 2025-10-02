@@ -242,8 +242,6 @@ export const handler = async (event, context) => {
                             throw retryError;
                         }
                         log('DEBUG', 'Retry attempt failed (connection error), waiting', { requestId, attempt: retryAttempts + 1 });
-                    } else {
-                        log('DEBUG', 'No healthy instances registered yet, waiting', { requestId, attempt: retryAttempts + 1 });
                     }
                     await new Promise(resolve => setTimeout(resolve, 5000));
                     retryAttempts++;
