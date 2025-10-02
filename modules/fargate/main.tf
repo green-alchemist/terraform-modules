@@ -123,22 +123,13 @@ resource "aws_appautoscaling_policy" "scale" {
   scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
   service_namespace  = aws_appautoscaling_target.this[0].service_namespace
 
-  # target_tracking_scaling_policy_configuration {
-  #   target_value = var.cpu_utilization_low_threshold # New variable
-  #   predefined_metric_specification {
-  #     predefined_metric_type = "ECSServiceAverageCPUUtilization" # Valid metric
-  #   }
-  #   scale_in_cooldown     = var.scale_in_cooldown  # 5 min to prevent rapid scale-down
-  #   scale_out_cooldown    = var.scale_out_cooldown # Fast scale-up from zero
-  # }
   target_tracking_scaling_policy_configuration {
-    target_value = 0.01 # e.g., 10% of max requests
-    customized_metric_specification {
-      metric_name = "RequestCount"
-      namespace   = "YourApp/Strapi"
-      statistic   = "Sum"
-      unit        = "Count"
+    target_value = var.cpu_utilization_low_threshold # New variable
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization" # Valid metric
     }
+    scale_in_cooldown     = var.scale_in_cooldown  # 5 min to prevent rapid scale-down
+    scale_out_cooldown    = var.scale_out_cooldown # Fast scale-up from zero
   }
 }
 
