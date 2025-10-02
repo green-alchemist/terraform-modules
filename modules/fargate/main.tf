@@ -138,10 +138,6 @@ resource "aws_appautoscaling_policy" "scale" {
       namespace   = "YourApp/Strapi"
       statistic   = "Sum"
       unit        = "Count"
-      dimensions = [
-        { name = "ServiceName", value = var.service_name },
-        { name = "ClusterName", value = var.cluster_name }
-      ]
     }
   }
 }
