@@ -76,6 +76,7 @@ locals {
   lambda_code = <<-EOF
 const http = require('http');
 import { ECSClient, UpdateServiceCommand, DescribeServicesCommand } = from '@aws-sdk/client-ecs';
+import { ServiceDiscoveryClient, ListInstancesCommand } = from '@aws-sdk/client-servicediscovery';
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'INFO';
 const LOG_LEVELS = { ERROR: 0, WARN: 1, INFO: 2, DEBUG: 3 };
@@ -108,23 +109,6 @@ async function scaleUpEcsService(cluster, service, requestId) {
         log('ERROR', 'Failed to scale up ECS service', { requestId, error: error.message });
         throw error;
     }
-}
-
-function makeHttpRequest(options) {
-    return new Promise((resolve, reject) => {
-        log('DEBUG', 'Making outbound HTTP request', { options: { ...options, body: '...' } });
-        const req = http.request(options, (res) => {
-            let body = '';
-            res.on('data', (chunk) => { body += chunk; });
-            res.on('end', () => resolve({ statusCode: res.statusCode, headers: res.headers, body: body }));
-        });
-        req.on('error', reject);
-        req.on('timeout', () => { req.destroy(); reject(new Error('Request timeout')); });
-        if (options.body) {
-            req.write(options.body);
-        }
-        req.end();
-    });
 }
 
 exports.handler = async (event, context) => {
@@ -190,7 +174,7 @@ exports.handler = async (event, context) => {
                 body: requestBody,
                 timeout: (context.getRemainingTimeInMillis() - 1000)
             });
-
+            
             log('INFO', 'Received response from target service', { requestId, statusCode: response.statusCode, headers: response.headers });
 
             // --- Step 5: Return the response to API Gateway ---
