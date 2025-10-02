@@ -157,13 +157,13 @@ variable "cpu_utilization_high_threshold" {
 variable "cpu_utilization_low_threshold" {
   description = "The CPU utilization percentage to trigger a scale-down event. This should be low for scale-to-zero."
   type        = number
-  default     = 20 # A low threshold to indicate idleness
+  default     = 10 # A low threshold to indicate idleness
 }
 
 variable "scale_in_cooldown" {
   description = "Scale in cooldown, down"
   type        = number
-  default     = 300
+  default     = 60
 }
 
 variable "scale_out_cooldown" {
