@@ -78,8 +78,8 @@ data "archive_file" "lambda_zip" {
 locals {
   lambda_code = <<-EOF
 const http = require('http');
-const aws = require('aws-sdk');
-const ecs = new aws.ECS();
+const { ECSClient, UpdateServiceCommand, DescribeServicesCommand } = require('@aws-sdk/client-ecs');
+const { ServiceDiscoveryClient, ListInstancesCommand } = require('@aws-sdk/client-servicediscovery');
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'INFO';
 const LOG_LEVELS = { ERROR: 0, WARN: 1, INFO: 2, DEBUG: 3 };
@@ -97,16 +97,31 @@ function log(level, message, data = {}) {
 
 async function scaleUpEcsService(cluster, service, requestId) {
     try {
-        const serviceDesc = await ecs.describeServices({ cluster, service }).promise();
+        const ecsClient = new ECSClient();
+        const describeCommand = new DescribeServicesCommand({ cluster, services: [service] });
+        const serviceDesc = await ecsClient.send(describeCommand);
         const desiredCount = serviceDesc.services[0].desiredCount;
         if (desiredCount === 0) {
             log('INFO', 'No tasks running, scaling up to 1', { requestId, cluster, service });
-            await ecs.updateService({ cluster, service, desiredCount: 1 }).promise();
+            const updateCommand = new UpdateServiceCommand({ cluster, service, desiredCount: 1 });
+            await ecsClient.send(updateCommand);
         } else {
             log('DEBUG', 'Tasks already running', { requestId, desiredCount });
         }
     } catch (error) {
         log('ERROR', 'Failed to scale up ECS service', { requestId, error: error.message });
+        throw error;
+    }
+}
+
+async function listInstances(serviceId, requestId) {
+    try {
+        const sdClient = new ServiceDiscoveryClient();
+        const command = new ListInstancesCommand({ ServiceId: serviceId });
+        const instances = await sdClient.send(command);
+        return instances.Instances;
+    } catch (error) {
+        log('ERROR', 'Failed to list Cloud Map instances', { requestId, error: error.message });
         throw error;
     }
 }
