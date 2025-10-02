@@ -50,7 +50,8 @@ resource "aws_iam_role_policy" "lambda_policy" {
         Action = [
           "ecs:UpdateService",
           "ecs:DescribeServices",
-          "servicediscovery:ListInstances"
+          "servicediscovery:ListInstances",
+          "servicediscovery:GetInstancesHealthStatus"
         ]
         Resource = "*"
       },
