@@ -70,7 +70,7 @@ data "archive_file" "lambda_zip" {
 locals {
   lambda_code = <<-EOF
 const http = require('http');
-const { ECSClient, UpdateServiceCommand, DescribeServicesCommand } = require('@aws-sdk/client-ecs');
+import { ECSClient, UpdateServiceCommand, DescribeServicesCommand } = from '@aws-sdk/client-ecs';
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'INFO';
 const LOG_LEVELS = { ERROR: 0, WARN: 1, INFO: 2, DEBUG: 3 };
