@@ -55,6 +55,12 @@ variable "vpc_link_security_group_ids" {
   default     = []
 }
 
+variable "lambda_security_group_ids" {
+  description = "A list of security group IDs for the Lambda. Required for 'HTTP_PROXY' integration."
+  type        = list(string)
+  default     = []
+}
+
 # --- Lambda Proxy Variables ---
 
 variable "enable_lambda_proxy" {

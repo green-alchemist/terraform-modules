@@ -41,6 +41,7 @@ No requirements.
 | <a name="input_integration_timeout_millis"></a> [integration\_timeout\_millis](#input\_integration\_timeout\_millis) | The timeout in milliseconds for the API Gateway integration. | `number` | `60000` | no |
 | <a name="input_integration_type"></a> [integration\_type](#input\_integration\_type) | The integration type. Supported values: 'HTTP\_PROXY' (for VPC Link), 'AWS\_PROXY' (for Lambda). | `string` | n/a | yes |
 | <a name="input_integration_uri"></a> [integration\_uri](#input\_integration\_uri) | The integration URI. For Lambda, this is the function's invoke ARN. For HTTP\_PROXY, this is the target URI (e.g., Cloud Map service). | `string` | n/a | yes |
+| <a name="input_lambda_security_group_ids"></a> [lambda\_security\_group\_ids](#input\_lambda\_security\_group\_ids) | A list of security group IDs for the Lambda. Required for 'HTTP\_PROXY' integration. | `list(string)` | `[]` | no |
 | <a name="input_log_retention_in_days"></a> [log\_retention\_in\_days](#input\_log\_retention\_in\_days) | The number of days to retain the access logs. | `number` | `7` | no |
 | <a name="input_name"></a> [name](#input\_name) | The name for the API Gateway and related resources. | `string` | n/a | yes |
 | <a name="input_route_keys"></a> [route\_keys](#input\_route\_keys) | A list of route keys to create for the integration. | `list(string)` | <pre>[<br/>  "ANY /{proxy+}"<br/>]</pre> | no |
