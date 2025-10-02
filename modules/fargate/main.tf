@@ -115,23 +115,23 @@ resource "aws_appautoscaling_target" "this" {
 }
 
 
-resource "aws_appautoscaling_policy" "scale" {
-  count              = var.enable_autoscaling ? 1 : 0
-  name               = "${var.service_name}-cpu-scaling"
-  policy_type        = "TargetTrackingScaling"
-  resource_id        = aws_appautoscaling_target.this[0].resource_id
-  scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
-  service_namespace  = aws_appautoscaling_target.this[0].service_namespace
+# resource "aws_appautoscaling_policy" "scale" {
+#   count              = var.enable_autoscaling ? 1 : 0
+#   name               = "${var.service_name}-cpu-scaling"
+#   policy_type        = "TargetTrackingScaling"
+#   resource_id        = aws_appautoscaling_target.this[0].resource_id
+#   scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
+#   service_namespace  = aws_appautoscaling_target.this[0].service_namespace
 
-  target_tracking_scaling_policy_configuration {
-    target_value = var.cpu_utilization_low_threshold # New variable
-    predefined_metric_specification {
-      predefined_metric_type = "ECSServiceAverageCPUUtilization" # Valid metric
-    }
-    scale_in_cooldown     = var.scale_in_cooldown  # 5 min to prevent rapid scale-down
-    scale_out_cooldown    = var.scale_out_cooldown # Fast scale-up from zero
-  }
-}
+#   target_tracking_scaling_policy_configuration {
+#     target_value = var.cpu_utilization_low_threshold # New variable
+#     predefined_metric_specification {
+#       predefined_metric_type = "ECSServiceAverageCPUUtilization" # Valid metric
+#     }
+#     scale_in_cooldown  = var.scale_in_cooldown  # 5 min to prevent rapid scale-down
+#     scale_out_cooldown = var.scale_out_cooldown # Fast scale-up from zero
+#   }
+# }
 
 
 
@@ -183,45 +183,45 @@ resource "aws_service_discovery_service" "this" {
 #   alarm_actions = [aws_appautoscaling_policy.scale[0].arn]
 # }
 
-# resource "aws_cloudwatch_metric_alarm" "scale_down" {
-#   count               = var.enable_autoscaling ? 1 : 0
-#   alarm_name          = "${var.service_name}-scale-down"
-#   alarm_description   = "Trigger scale-down of ${var.service_name} due to low CPU utilization"
-#   comparison_operator = "LessThanOrEqualToThreshold"
-#   evaluation_periods  = var.scale_down_evaluation_periods # Use our new variable (3 periods)
-#   metric_name         = "CPUUtilization"
-#   namespace           = "AWS/ECS"
-#   period              = var.scale_down_period_seconds # Use our new variable (5 minutes)
-#   statistic           = "Average"
-#   threshold           = var.cpu_utilization_low_threshold # Use our new variable (10%)
-#   dimensions = {
-#     ClusterName = aws_ecs_cluster.this.name
-#     ServiceName = aws_ecs_service.this.name
-#   }
-#   alarm_actions = [aws_appautoscaling_policy.scale[0].arn]
-# }
+resource "aws_cloudwatch_metric_alarm" "scale_down" {
+  count               = var.enable_autoscaling ? 1 : 0
+  alarm_name          = "${var.service_name}-scale-down"
+  alarm_description   = "Trigger scale-down of ${var.service_name} due to low CPU utilization"
+  comparison_operator = "LessThanOrEqualToThreshold"
+  evaluation_periods  = var.scale_down_evaluation_periods # Use our new variable (3 periods)
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/ECS"
+  period              = var.scale_down_period_seconds # Use our new variable (5 minutes)
+  statistic           = "Average"
+  threshold           = var.cpu_utilization_low_threshold # Use our new variable (10%)
+  dimensions = {
+    ClusterName = aws_ecs_cluster.this.name
+    ServiceName = aws_ecs_service.this.name
+  }
+  alarm_actions = [aws_appautoscaling_policy.scale[0].arn]
+}
 
 
 # This policy tells the service how to scale DOWN
-# resource "aws_appautoscaling_policy" "scale_down" {
-#   count              = var.enable_autoscaling ? 1 : 0
-#   name               = "${var.service_name}-scale-down"
-#   policy_type        = "StepScaling"
-#   resource_id        = aws_appautoscaling_target.this[0].resource_id
-#   scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
-#   service_namespace  = aws_appautoscaling_target.this[0].service_namespace
+resource "aws_appautoscaling_policy" "scale_down" {
+  count              = var.enable_autoscaling ? 1 : 0
+  name               = "${var.service_name}-scale-down"
+  policy_type        = "StepScaling"
+  resource_id        = aws_appautoscaling_target.this[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.this[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.this[0].service_namespace
 
-#   step_scaling_policy_configuration {
-#     adjustment_type         = "ChangeInCapacity"
-#     cooldown                = 300
-#     metric_aggregation_type = "Average"
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 300
+    metric_aggregation_type = "Average"
 
-#     step_adjustment {
-#       metric_interval_upper_bound = 0
-#       scaling_adjustment          = -1
-#     }
-#   }
-# }
+    step_adjustment {
+      metric_interval_upper_bound = 0
+      scaling_adjustment          = -1
+    }
+  }
+}
 
 
 # # This policy tells the service how to scale UP
