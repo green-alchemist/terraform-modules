@@ -19,6 +19,11 @@ resource "aws_lambda_function" "scale_trigger" {
     }
   }
 
+  vpc_config {
+    subnet_ids         = var.subnet_ids
+    security_group_ids = var.security_group_ids
+  }
+
   lifecycle {
     ignore_changes = [last_modified] # Ignore last_modified to fix provider bug
   }

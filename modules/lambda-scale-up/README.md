@@ -28,8 +28,10 @@ No modules.
 |------|-------------|------|---------|:--------:|
 | <a name="input_cloud_map_service_id"></a> [cloud\_map\_service\_id](#input\_cloud\_map\_service\_id) | The Cloud Map service ID for listing instances. | `string` | n/a | yes |
 | <a name="input_cluster_name"></a> [cluster\_name](#input\_cluster\_name) | ECS cluster name. | `string` | n/a | yes |
+| <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | List of security group IDs for the Lambda VPC config | `list(string)` | n/a | yes |
 | <a name="input_service_connect_namespace"></a> [service\_connect\_namespace](#input\_service\_connect\_namespace) | Cloud Map namespace for Service Connect. | `string` | n/a | yes |
 | <a name="input_service_name"></a> [service\_name](#input\_service\_name) | ECS service name. | `string` | n/a | yes |
+| <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | List of subnet IDs for the Lambda VPC config | `list(string)` | n/a | yes |
 | <a name="input_target_port"></a> [target\_port](#input\_target\_port) | ECS port number. | `number` | n/a | yes |
 
 ## Outputs

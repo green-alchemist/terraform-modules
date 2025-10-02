@@ -22,3 +22,13 @@ variable "cloud_map_service_id" {
   description = "The Cloud Map service ID for listing instances."
   type        = string
 }
+
+variable "subnet_ids" {
+  description = "List of subnet IDs for the Lambda VPC config"
+  type        = list(string)
+}
+
+variable "security_group_ids" {
+  description = "List of security group IDs for the Lambda VPC config"
+  type        = list(string)
+}

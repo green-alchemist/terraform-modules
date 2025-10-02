@@ -8,6 +8,8 @@ module "lambda_scale_up" {
   service_connect_namespace = var.service_connect_namespace
   cloud_map_service_id      = var.cloud_map_service_id
   target_port               = var.target_port
+  subnet_ids                = var.subnet_ids
+  security_group_ids        = var.vpc_link_security_group_ids
 }
 
 # Creates the private link between API Gateway and your VPC (only for HTTP_PROXY mode)
