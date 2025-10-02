@@ -20,7 +20,7 @@ resource "aws_lambda_function" "scale_trigger" {
   }
 
   vpc_config {
-    subnet_ids         = var.subnet_ids
+    subnet_ids         = [var.subnet_ids[1]]
     security_group_ids = var.security_group_ids
   }
 
