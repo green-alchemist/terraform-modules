@@ -132,16 +132,17 @@ resource "aws_appautoscaling_policy" "scale" {
   #   scale_out_cooldown    = var.scale_out_cooldown # Fast scale-up from zero
   # }
   target_tracking_scaling_policy_configuration {
-  target_value = 0.01  # e.g., 10% of max requests
-  customized_metric_specification {
-    metric_name = "RequestCount"
-    namespace   = "YourApp/Strapi"
-    statistic   = "Sum"
-    unit        = "Count"
-    dimensions = [
-      { name = "ServiceName", value = var.service_name },
-      { name = "ClusterName", value = var.cluster_name }
-    ]
+    target_value = 0.01 # e.g., 10% of max requests
+    customized_metric_specification {
+      metric_name = "RequestCount"
+      namespace   = "YourApp/Strapi"
+      statistic   = "Sum"
+      unit        = "Count"
+      dimensions = [
+        { name = "ServiceName", value = var.service_name },
+        { name = "ClusterName", value = var.cluster_name }
+      ]
+    }
   }
 }
 
