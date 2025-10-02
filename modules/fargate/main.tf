@@ -130,7 +130,6 @@ resource "aws_appautoscaling_policy" "scale" {
     }
     scale_in_cooldown     = var.scale_in_cooldown  # 5 min to prevent rapid scale-down
     scale_out_cooldown    = var.scale_out_cooldown # Fast scale-up from zero
-    disable_scale_to_zero = false                  # (default; ensure not set to true)
   }
 }
 
