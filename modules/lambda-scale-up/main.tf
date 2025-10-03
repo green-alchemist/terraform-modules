@@ -198,7 +198,7 @@ export const handler = async (event, context) => {
 
         // --- Step 3: Retry loop if no instances or after scale-up ---
         let retryAttempts = 0;
-        const maxRetryAttempts = 12; // 60s total
+        const maxRetryAttempts = 24; // 60s total
         while (!target && retryAttempts < maxRetryAttempts) {
             log('DEBUG', 'Polling for healthy instances', { requestId, attempt: retryAttempts + 1 });
             await new Promise(resolve => setTimeout(resolve, 5000));
