@@ -47,3 +47,15 @@ variable "enabled_cloudwatch_logs_exports" {
   type        = list(string)
   default     = ["postgresql"]
 }
+
+variable "skip_final_snapshot" {
+  description = "Determines whether a final DB snapshot is created before the DB cluster is deleted."
+  type        = bool
+  default     = false # Default to creating a final snapshot
+}
+
+variable "restore_from_latest_snapshot" {
+  description = "If true, the cluster will be created from the most recent available snapshot."
+  type        = bool
+  default     = false
+}

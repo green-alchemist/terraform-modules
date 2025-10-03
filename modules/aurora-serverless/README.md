@@ -19,6 +19,7 @@ No modules.
 | [aws_db_subnet_group.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/db_subnet_group) | resource |
 | [aws_rds_cluster.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/rds_cluster) | resource |
 | [aws_rds_cluster_instance.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/rds_cluster_instance) | resource |
+| [aws_db_cluster_snapshot.latest](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/db_cluster_snapshot) | data source |
 
 ## Inputs
 
@@ -30,8 +31,10 @@ No modules.
 | <a name="input_master_username"></a> [master\_username](#input\_master\_username) | The username for the master database user. | `string` | n/a | yes |
 | <a name="input_max_capacity"></a> [max\_capacity](#input\_max\_capacity) | The maximum capacity for the Aurora Serverless v1 cluster. | `number` | `1` | no |
 | <a name="input_min_capacity"></a> [min\_capacity](#input\_min\_capacity) | The minimum capacity for the Aurora Serverless v1 cluster. | `number` | `0` | no |
+| <a name="input_restore_from_latest_snapshot"></a> [restore\_from\_latest\_snapshot](#input\_restore\_from\_latest\_snapshot) | If true, the cluster will be created from the most recent available snapshot. | `bool` | `false` | no |
 | <a name="input_seconds_until_auto_pause"></a> [seconds\_until\_auto\_pause](#input\_seconds\_until\_auto\_pause) | The time, in seconds, before an idle cluster is paused. | `number` | `600` | no |
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | A list of security group IDs to associate with the database. | `list(string)` | n/a | yes |
+| <a name="input_skip_final_snapshot"></a> [skip\_final\_snapshot](#input\_skip\_final\_snapshot) | Determines whether a final DB snapshot is created before the DB cluster is deleted. | `bool` | `false` | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | A list of subnet IDs to associate with the database. | `list(string)` | n/a | yes |
 
 ## Outputs

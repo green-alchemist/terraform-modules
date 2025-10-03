@@ -1,20 +1,33 @@
+data "aws_db_cluster_snapshot" "latest" {
+  count                 = var.restore_from_latest_snapshot ? 1 : 0
+  most_recent           = true
+  db_cluster_identifier = var.database_name
+}
+
 resource "aws_db_subnet_group" "this" {
   name       = "${var.database_name}-subnet-group"
   subnet_ids = var.subnet_ids
 }
 
 resource "aws_rds_cluster" "this" {
-  cluster_identifier              = var.database_name
-  engine                          = "aurora-postgresql"
-  engine_mode                     = "provisioned"
-  engine_version                  = "16.3"
-  database_name                   = var.database_name
-  master_username                 = var.master_username
-  master_password                 = var.master_password
-  db_subnet_group_name            = aws_db_subnet_group.this.name
-  vpc_security_group_ids          = var.security_group_ids
-  # backup_retention_period         = 0   ## test
-  skip_final_snapshot             = true
+  cluster_identifier     = var.database_name
+  engine                 = "aurora-postgresql"
+  engine_mode            = "provisioned"
+  engine_version         = "16.3"
+  database_name          = var.database_name
+  master_username        = var.master_username
+  master_password        = var.master_password
+  db_subnet_group_name   = aws_db_subnet_group.this.name
+  vpc_security_group_ids = var.security_group_ids
+  # 1. Use the new variable to control skipping the final snapshot
+  skip_final_snapshot = var.skip_final_snapshot
+
+  # 2. If we are creating a final snapshot, give it a unique name with a timestamp
+  final_snapshot_identifier = var.skip_final_snapshot ? null : "${var.database_name}-final-${formatdate("YYYYMMDD-hhmmss", timestamp())}"
+
+  # 3. If restoring, use the ID from our data source. Otherwise, create a new cluster.
+  #    This also correctly handles the very first run when no snapshot exists.
+  snapshot_identifier             = var.restore_from_latest_snapshot && length(data.aws_db_cluster_snapshot.latest) > 0 ? data.aws_db_cluster_snapshot.latest[0].id : null
   enabled_cloudwatch_logs_exports = var.enabled_cloudwatch_logs_exports
 
   serverlessv2_scaling_configuration {
