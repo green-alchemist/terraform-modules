@@ -1,6 +1,8 @@
-data "aws_db_cluster_snapshot" "latest" {
-  most_recent           = true
-  db_cluster_identifier = var.database_name
+data "external" "latest_snapshot" {
+  program = ["bash", "${path.module}/find_latest_snapshot.sh"]
+  query = {
+    cluster_id = var.database_name
+  }
 }
 
 resource "aws_db_subnet_group" "this" {
@@ -26,7 +28,7 @@ resource "aws_rds_cluster" "this" {
 
   # 3. If restoring, use the ID from our data source. Otherwise, create a new cluster.
   #    This also correctly handles the very first run when no snapshot exists.
-  snapshot_identifier             = try(data.aws_db_cluster_snapshot.latest.id, null) 
+  snapshot_identifier             = try(data.external.latest_snapshot.result.id, null)
   enabled_cloudwatch_logs_exports = var.enabled_cloudwatch_logs_exports
 
   serverlessv2_scaling_configuration {
