@@ -1,5 +1,4 @@
 data "aws_db_cluster_snapshot" "latest" {
-  count                 = var.restore_from_latest_snapshot ? 1 : 0
   most_recent           = true
   db_cluster_identifier = var.database_name
 }
@@ -27,7 +26,7 @@ resource "aws_rds_cluster" "this" {
 
   # 3. If restoring, use the ID from our data source. Otherwise, create a new cluster.
   #    This also correctly handles the very first run when no snapshot exists.
-  snapshot_identifier             = var.restore_from_latest_snapshot ? try(data.aws_db_cluster_snapshot.latest[0].id, null) : null
+  snapshot_identifier             = var.restore_from_latest_snapshot ? try(data.aws_db_cluster_snapshot.latest.id, null) : null
   enabled_cloudwatch_logs_exports = var.enabled_cloudwatch_logs_exports
 
   serverlessv2_scaling_configuration {
