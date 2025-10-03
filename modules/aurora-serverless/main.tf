@@ -7,7 +7,7 @@ resource "aws_rds_cluster" "this" {
   cluster_identifier              = var.database_name
   engine                          = "aurora-postgresql"
   engine_mode                     = "serverless"
-  engine_version                  = "16.6"
+  engine_version                  = "16.3"
   database_name                   = var.database_name
   master_username                 = var.master_username
   master_password                 = var.master_password
