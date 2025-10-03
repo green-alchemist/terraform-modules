@@ -13,7 +13,7 @@ resource "aws_rds_cluster" "this" {
   master_password                 = var.master_password
   db_subnet_group_name            = aws_db_subnet_group.this.name
   vpc_security_group_ids          = var.security_group_ids
-  backup_retention_period         = 0   ## test
+  # backup_retention_period         = 0   ## test
   skip_final_snapshot             = true
   enabled_cloudwatch_logs_exports = var.enabled_cloudwatch_logs_exports
 
