@@ -28,7 +28,7 @@ resource "aws_rds_cluster" "this" {
 
   # 3. If restoring, use the ID from our data source. Otherwise, create a new cluster.
   #    This also correctly handles the very first run when no snapshot exists.
-  snapshot_identifier = contains(["", "none"], try(data.external.latest_snapshot.result.id, "")) ? null : data.external.latest_snapshot.result.id 
+  snapshot_identifier = try(data.external.latest_snapshot.result.id, "null") == "null" ? null : data.external.latest_snapshot.result.id
   enabled_cloudwatch_logs_exports = var.enabled_cloudwatch_logs_exports
 
   serverlessv2_scaling_configuration {
