@@ -13,3 +13,21 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "enable_logging" {
+  description = "Set to true to enable CloudWatch logging for the state machine."
+  type        = bool
+  default     = true
+}
+
+variable "log_level" {
+  description = "Determines the logging level for the state machine. Valid values: ALL, ERROR, FATAL, OFF."
+  type        = string
+  default     = "ALL"
+}
+
+variable "include_execution_data" {
+  description = "Determines whether execution data is included in your log. When set to false, data is excluded."
+  type        = bool
+  default     = true
+}

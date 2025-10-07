@@ -1,3 +1,10 @@
+# CloudWatch Log Group for the State Machine
+resource "aws_cloudwatch_log_group" "sfn_log_group" {
+  count = var.enable_logging ? 1 : 0
+  name  = "/aws/vendedlogs/states/${var.state_machine_name}"
+  tags  = var.tags
+}
+
 # IAM Role for the Step Function to assume
 resource "aws_iam_role" "sfn_role" {
   name = "${var.state_machine_name}-role"
@@ -26,6 +33,20 @@ resource "aws_iam_role_policy" "sfn_policy" {
       Action   = "lambda:InvokeFunction",
       Effect   = "Allow",
       Resource = var.lambda_function_arn
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "logs:CreateLogDelivery",
+          "logs:GetLogDelivery",
+          "logs:UpdateLogDelivery",
+          "logs:DeleteLogDelivery",
+          "logs:ListLogDeliveries",
+          "logs:PutResourcePolicy",
+          "logs:DescribeResourcePolicies",
+          "logs:DescribeLogGroups"
+        ],
+        Resource = "*" # As required by AWS for logging setup
     }]
   })
 }
