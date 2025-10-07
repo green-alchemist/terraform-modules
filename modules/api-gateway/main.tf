@@ -69,25 +69,24 @@ resource "aws_apigatewayv2_api" "this" {
 
 # Creates the integration that connects the API to the backend (conditional on mode)
 resource "aws_apigatewayv2_integration" "this" {
-  api_id             = aws_apigatewayv2_api.this.id
-  integration_type   = var.enable_lambda_proxy ? "AWS_PROXY" : (var.enable_lambda_proxy ? "AWS_PROXY" : var.integration_type)
+  api_id              = aws_apigatewayv2_api.this.id
+  integration_type    = var.enable_lambda_proxy ? "AWS_PROXY" : var.integration_type
   integration_subtype = var.enable_lambda_proxy ? "StepFunctions-StartSyncExecution" : null
-  integration_method = var.enable_lambda_proxy ? "POST" : (var.enable_lambda_proxy ? "POST" : var.integration_method)
-  integration_uri    = var.enable_lambda_proxy ? "arn:aws:apigateway:${data.aws_region.current.name}:states:action/StartSyncExecution" : (var.enable_lambda_proxy ? module.lambda_scale_up[0].lambda_arn : var.integration_uri)
+  integration_method  = var.enable_lambda_proxy ? "POST" : var.integration_method
+  integration_uri     = var.enable_lambda_proxy ? null : var.integration_uri
 
-  connection_type        = var.enable_lambda_proxy ? "INTERNET" : (var.enable_lambda_proxy ? null : "VPC_LINK")
-  connection_id          = var.enable_lambda_proxy ? null : (var.enable_lambda_proxy ? null : one(aws_apigatewayv2_vpc_link.this[*].id))
-  payload_format_version = var.enable_lambda_proxy ? "1.0" : (var.enable_lambda_proxy ? "2.0" : "2.0")
-  timeout_milliseconds   = var.enable_lambda_proxy ? 30000 : var.integration_timeout_millis  # 30s max for API Gateway
+  connection_type        = var.enable_lambda_proxy ? "INTERNET" : (var.integration_type == "HTTP_PROXY" ? "VPC_LINK" : "INTERNET")
+  connection_id          = var.enable_lambda_proxy ? null : (var.integration_type == "HTTP_PROXY" ? one(aws_apigatewayv2_vpc_link.this[*].id) : null)
+  payload_format_version = var.enable_lambda_proxy ? "1.0" : "2.0"
+  timeout_milliseconds   = var.enable_lambda_proxy ? 30000 : var.integration_timeout_millis
 
-  credentials_arn = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
+  credentials_arn = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role.arn : null
 
-  # Map request body to Step Function input
   request_parameters = var.enable_lambda_proxy ? {
-    "integration.request.header.Content-Type" = "'application/json'"
+    "integration.request.header.Content-Type"    = "'application/json'"
     "integration.request.header.stateMachineArn" = module.step_function[0].state_machine_arn
-    "integration.request.header.name" = "'StrapiScaleUpExecution'"  # Optional unique name
-    "integration.request.header.input" = "$request.body"  # Pass body as input
+    "integration.request.header.input"           = "$request.body"
+    "integration.request.header.name"            = "'StrapiScaleUpExecution'" # Optional execution name
   } : {}
 
   depends_on = [aws_iam_role_policy.api_gateway_sfn_policy]
