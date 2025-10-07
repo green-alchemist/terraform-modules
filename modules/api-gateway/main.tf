@@ -85,7 +85,7 @@ resource "aws_apigatewayv2_integration" "this" {
   # Map request body to Step Function input
   request_parameters = var.enable_lambda_proxy ? {
     "integration.request.header.Content-Type" = "'application/json'"
-    "integration.request.header.stateMachineArn" = module.step_function.state_machine_arn
+    "integration.request.header.stateMachineArn" = module.step_function[0].state_machine_arn
     "integration.request.header.name" = "'StrapiScaleUpExecution'"  # Optional unique name
     "integration.request.header.input" = "$request.body"  # Pass body as input
   } : {}
