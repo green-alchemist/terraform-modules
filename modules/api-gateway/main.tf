@@ -83,7 +83,6 @@ resource "aws_apigatewayv2_integration" "this" {
   credentials_arn = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
 
   request_parameters = var.enable_lambda_proxy ? {
-    "integration.request.parameter.Content-Type"    = "'application/json'"
     "integration.request.parameter.StateMachineArn" = module.step_function[0].state_machine_arn
     "integration.request.parameter.Input"           = "$request.body"
     "integration.request.parameter.Name"            = "'StrapiScaleUpExecution'" # Optional execution name
