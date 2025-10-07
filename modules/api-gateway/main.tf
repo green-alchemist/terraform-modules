@@ -83,9 +83,13 @@ resource "aws_apigatewayv2_integration" "this" {
   credentials_arn = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
 
   request_parameters = var.enable_lambda_proxy ? {
-    "integration.request.parameter.StateMachineArn" = module.step_function[0].state_machine_arn
-    "integration.request.parameter.Input"           = "$request.body"
-    "integration.request.parameter.Name"            = "'StrapiScaleUpExecution'" # Optional execution name
+    "integration.request.header.X-Amz-Target"   = "'AWSStepFunctions.StartSyncExecution'"
+    "integration.request.header.Content-Type"   = "'application/x-amz-json-1.0'"
+    "integration.request.body" = jsonencode({
+      # Note the single quotes inside the jsonencode function
+      input           = "$util.escapeJavaScript($input.json('$'))"
+      stateMachineArn = one(module.step_function[*].state_machine_arn)
+    })
   } : {}
 
   depends_on = [aws_iam_role_policy.api_gateway_sfn_policy]
