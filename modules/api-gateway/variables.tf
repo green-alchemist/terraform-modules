@@ -130,3 +130,9 @@ variable "integration_timeout_millis" {
   type        = number
   default     = 60000
 }
+
+variable "tags" {
+  description = "A map of tags to assign to the resources."
+  type        = map(string)
+  default     = {}
+}
