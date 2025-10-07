@@ -29,6 +29,7 @@ Below is a list of the modules available in this repository. For detailed inform
 * [`s3-static-site`](./modules/s3-static-site/README.md)
 * [`security-group`](./modules/security-group/README.md)
 * [`ssm-parameter`](./modules/ssm-parameter/README.md)
+* [`step-function`](./modules/step-function/README.md)
 * [`subnets`](./modules/subnets/README.md)
 * [`vpc`](./modules/vpc/README.md)
 
