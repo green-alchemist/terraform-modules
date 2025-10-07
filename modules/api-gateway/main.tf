@@ -72,7 +72,7 @@ resource "aws_apigatewayv2_integration" "this" {
   api_id             = aws_apigatewayv2_api.this.id
   integration_type   = var.enable_lambda_proxy ? "AWS_PROXY" : var.integration_type
   integration_method = var.enable_lambda_proxy ? "POST" : "ANY"
-  integration_uri    = var.enable_lambda_proxy ? "arn:${data.aws_partition.current.partition}:apigateway:${data.aws_region.current.name}:states:action/StartSyncExecution" : var.integration_uri
+  integration_uri    = var.enable_lambda_proxy ? "arn:${data.aws_partition.current.partition}:apigateway:${data.aws_region.current.id}:states:action/StartSyncExecution" : var.integration_uri
   credentials_arn    = var.enable_lambda_proxy ? one(aws_iam_role.api_gateway_sfn_role[*].arn) : null
 
   connection_type = var.enable_lambda_proxy ? null : "VPC_LINK"
