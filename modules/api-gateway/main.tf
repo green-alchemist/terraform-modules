@@ -69,13 +69,16 @@ resource "aws_apigatewayv2_api" "this" {
 
 # Creates the integration that connects the API to the backend (conditional on mode)
 resource "aws_apigatewayv2_integration" "this" {
-  api_id              = aws_apigatewayv2_api.this.id
-  integration_type    = var.enable_lambda_proxy ? "AWS_PROXY" : var.integration_type
-  integration_subtype = var.enable_lambda_proxy ? "StepFunctions-StartSyncExecution" : null
-  integration_method  = var.enable_lambda_proxy ? null : var.integration_method
-  credentials_arn     = var.enable_lambda_proxy ? one(aws_iam_role.api_gateway_sfn_role[*].arn) : null
+  api_id = aws_apigatewayv2_api.this.id
+  # integration_type    = var.enable_lambda_proxy ? "AWS_PROXY" : var.integration_type
+  # integration_subtype = var.enable_lambda_proxy ? "StepFunctions-StartSyncExecution" : null
+  # integration_method  = var.enable_lambda_proxy ? null : var.integration_method
+  # credentials_arn     = var.enable_lambda_proxy ? one(aws_iam_role.api_gateway_sfn_role[*].arn) : null
+  integration_type   = var.enable_lambda_proxy ? "AWS" : var.integration_type
+  integration_uri    = var.enable_lambda_proxy ? "arn:${data.aws_partition.current.partition}:apigateway:${data.aws_region.current.id}:states:action/StartSyncExecution" : var.integration_uri
+  integration_method = var.enable_lambda_proxy ? "POST" : var.integration_method
 
-  integration_uri = var.enable_lambda_proxy ? null : var.integration_uri
+  # integration_uri = var.enable_lambda_proxy ? null : var.integration_uri
   connection_type = var.enable_lambda_proxy ? null : "VPC_LINK"
   connection_id   = var.enable_lambda_proxy ? null : one(aws_apigatewayv2_vpc_link.this[*].id)
 
