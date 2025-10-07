@@ -89,7 +89,7 @@ resource "aws_apigatewayv2_integration" "this" {
     "integration.request.header.name"            = "'StrapiScaleUpExecution'" # Optional execution name
   } : {}
 
-  depends_on = [module.aws_iam_role_policy.api_gateway_sfn_policy]
+  depends_on = [aws_iam_role_policy.api_gateway_sfn_policy]
 }
 # Creates routes based on route_keys (e.g., "ANY /{proxy+} for passthrough)
 resource "aws_apigatewayv2_route" "this" {
