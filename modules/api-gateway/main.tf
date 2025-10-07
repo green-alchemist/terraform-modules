@@ -80,12 +80,8 @@ resource "aws_apigatewayv2_integration" "this" {
   connection_id   = var.enable_lambda_proxy ? null : one(aws_apigatewayv2_vpc_link.this[*].id)
 
   request_parameters = var.enable_lambda_proxy ? {
-    "integration.request.header.X-Amz-Target" = "'AWSStepFunctions.StartSyncExecution'"
-    "integration.request.header.Content-Type" = "'application/x-amz-json-1.0'"
-    "integration.request.body" = jsonencode({
-      input           = "$util.escapeJavaScript($input.json('$'))"
-      stateMachineArn = one(module.step_function[*].state_machine_arn)
-    })
+    "StateMachineArn" = one(module.step_function[*].state_machine_arn)
+    "Input"           = "$request.body"
   } : null
   payload_format_version = var.enable_lambda_proxy ? null : "2.0"
   timeout_milliseconds   = var.enable_lambda_proxy ? null : var.integration_timeout_millis
