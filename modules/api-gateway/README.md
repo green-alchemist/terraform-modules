@@ -54,6 +54,7 @@ No requirements.
 | <a name="input_service_name"></a> [service\_name](#input\_service\_name) | The ECS service name (for Lambda proxy scale-up). | `string` | `""` | no |
 | <a name="input_stage_name"></a> [stage\_name](#input\_stage\_name) | The name of the deployment stage (e.g., '$default'). | `string` | `"$default"` | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | A list of subnet IDs for the VPC Link. Required for 'HTTP\_PROXY' integration. | `list(string)` | `[]` | no |
+| <a name="input_tags"></a> [tags](#input\_tags) | A map of tags to assign to the resources. | `map(string)` | `{}` | no |
 | <a name="input_target_port"></a> [target\_port](#input\_target\_port) | The target port for the ECS service (for Lambda proxy). | `number` | `1337` | no |
 | <a name="input_throttling_burst_limit"></a> [throttling\_burst\_limit](#input\_throttling\_burst\_limit) | The throttling burst limit for the API. | `number` | `10000` | no |
 | <a name="input_throttling_rate_limit"></a> [throttling\_rate\_limit](#input\_throttling\_rate\_limit) | The throttling rate limit for the API. | `number` | `5000` | no |
