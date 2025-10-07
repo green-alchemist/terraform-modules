@@ -35,6 +35,12 @@ variable "integration_uri" {
   type        = string
 }
 
+variable "integration_method" {
+  description = "The integration Method"
+  type        = string
+  default     = "ANY"
+}
+
 variable "route_keys" {
   description = "A list of route keys to create for the integration."
   type        = list(string)

@@ -43,6 +43,7 @@ No requirements.
 | <a name="input_domain_name"></a> [domain\_name](#input\_domain\_name) | The custom domain name for the API Gateway. | `string` | n/a | yes |
 | <a name="input_enable_access_logging"></a> [enable\_access\_logging](#input\_enable\_access\_logging) | Set to true to enable access logging for the API Gateway stage. | `bool` | `false` | no |
 | <a name="input_enable_lambda_proxy"></a> [enable\_lambda\_proxy](#input\_enable\_lambda\_proxy) | Enable the nested Lambda proxy for scale-to-zero (overrides integration\_type to 'AWS\_PROXY'). | `bool` | `false` | no |
+| <a name="input_integration_method"></a> [integration\_method](#input\_integration\_method) | The integration Method | `string` | `"ANY"` | no |
 | <a name="input_integration_timeout_millis"></a> [integration\_timeout\_millis](#input\_integration\_timeout\_millis) | The timeout in milliseconds for the API Gateway integration. | `number` | `60000` | no |
 | <a name="input_integration_type"></a> [integration\_type](#input\_integration\_type) | The integration type. Supported values: 'HTTP\_PROXY' (for VPC Link), 'AWS\_PROXY' (for Lambda). | `string` | n/a | yes |
 | <a name="input_integration_uri"></a> [integration\_uri](#input\_integration\_uri) | The integration URI. For Lambda, this is the function's invoke ARN. For HTTP\_PROXY, this is the target URI (e.g., Cloud Map service). | `string` | n/a | yes |
