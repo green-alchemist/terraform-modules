@@ -80,7 +80,7 @@ resource "aws_apigatewayv2_integration" "this" {
   payload_format_version = var.enable_lambda_proxy ? "1.0" : "2.0"
   timeout_milliseconds   = var.enable_lambda_proxy ? 30000 : var.integration_timeout_millis
 
-  credentials_arn = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role.arn : null
+  credentials_arn = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
 
   request_parameters = var.enable_lambda_proxy ? {
     "integration.request.header.Content-Type"    = "'application/json'"
