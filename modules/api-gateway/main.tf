@@ -1,3 +1,6 @@
+data "aws_partition" "current" {}
+data "aws_region" "current" {}
+
 # Conditional nested Lambda proxy module
 module "lambda_scale_up" {
   count = var.enable_lambda_proxy ? 1 : 0
@@ -10,6 +13,43 @@ module "lambda_scale_up" {
   target_port               = var.target_port
   subnet_ids                = var.subnet_ids
   security_group_ids        = var.vpc_link_security_group_ids
+}
+
+module "step_function" {
+  count  = var.enable_lambda_proxy ? 1 : 0
+  source = "git@github.com:green-alchemist/terraform-modules.git//modules/step-function"
+
+  state_machine_name  = "${var.name}-orchestrator"
+  lambda_function_arn = module.lambda_scale_up[0].lambda_arn
+  tags                = var.tags
+}
+
+resource "aws_iam_role" "api_gateway_sfn_role" {
+  count = var.enable_lambda_proxy ? 1 : 0
+  name  = "${var.name}-apigw-sfn-invoke-role"
+  tags  = var.tags
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Action    = "sts:AssumeRole",
+      Effect    = "Allow",
+      Principal = { Service = "apigateway.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "api_gateway_sfn_policy" {
+  count = var.enable_lambda_proxy ? 1 : 0
+  name  = "${var.name}-apigw-sfn-invoke-policy"
+  role  = aws_iam_role.api_gateway_sfn_role[0].id
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Action   = "states:StartSyncExecution",
+      Effect   = "Allow",
+      Resource = module.step_function[0].state_machine_arn
+    }]
+  })
 }
 
 # Creates the private link between API Gateway and your VPC (only for HTTP_PROXY mode)
@@ -32,12 +72,22 @@ resource "aws_apigatewayv2_integration" "this" {
   api_id             = aws_apigatewayv2_api.this.id
   integration_type   = var.enable_lambda_proxy ? "AWS_PROXY" : var.integration_type
   integration_method = var.enable_lambda_proxy ? "POST" : "ANY"
-  integration_uri    = var.enable_lambda_proxy ? module.lambda_scale_up[0].lambda_arn : var.integration_uri
+  integration_uri    = var.enable_lambda_proxy ? "arn:${data.aws_partition.current.partition}:apigateway:${data.aws_region.current.name}:states:action/StartSyncExecution" : var.integration_uri
+  credentials_arn    = var.enable_lambda_proxy ? one(aws_iam_role.api_gateway_sfn_role[*].arn) : null
 
-  connection_type        = var.enable_lambda_proxy ? null : "VPC_LINK"
-  connection_id          = var.enable_lambda_proxy ? null : one(aws_apigatewayv2_vpc_link.this[*].id)
-  payload_format_version = var.enable_lambda_proxy ? "2.0" : null
-  timeout_milliseconds   = var.integration_timeout_millis
+  connection_type = var.enable_lambda_proxy ? null : "VPC_LINK"
+  connection_id   = var.enable_lambda_proxy ? null : one(aws_apigatewayv2_vpc_link.this[*].id)
+
+  request_parameters = var.enable_lambda_proxy ? {
+    "integration.request.header.X-Amz-Target" = "'AWSStepFunctions.StartSyncExecution'"
+    "integration.request.header.Content-Type" = "'application/x-amz-json-1.0'"
+    "integration.request.body" = jsonencode({
+      input           = "$util.escapeJavaScript($input.json('$'))"
+      stateMachineArn = one(module.step_function[*].state_machine_arn)
+    })
+  } : null
+  payload_format_version = var.enable_lambda_proxy ? null : "2.0"
+  timeout_milliseconds   = var.enable_lambda_proxy ? null : var.integration_timeout_millis
 }
 
 # Creates routes based on route_keys (e.g., "ANY /{proxy+} for passthrough)

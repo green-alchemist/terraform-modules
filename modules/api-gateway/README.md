@@ -13,6 +13,7 @@ No requirements.
 | Name | Source | Version |
 |------|--------|---------|
 | <a name="module_lambda_scale_up"></a> [lambda\_scale\_up](#module\_lambda\_scale\_up) | git@github.com:green-alchemist/terraform-modules.git//modules/lambda-scale-up | n/a |
+| <a name="module_step_function"></a> [step\_function](#module\_step\_function) | git@github.com:green-alchemist/terraform-modules.git//modules/step-function | n/a |
 
 ## Resources
 
@@ -26,7 +27,11 @@ No requirements.
 | [aws_apigatewayv2_stage.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/apigatewayv2_stage) | resource |
 | [aws_apigatewayv2_vpc_link.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/apigatewayv2_vpc_link) | resource |
 | [aws_cloudwatch_log_group.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
+| [aws_iam_role.api_gateway_sfn_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
+| [aws_iam_role_policy.api_gateway_sfn_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_lambda_permission.apigw](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_permission) | resource |
+| [aws_partition.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/partition) | data source |
+| [aws_region.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/region) | data source |
 
 ## Inputs
 

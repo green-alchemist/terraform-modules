@@ -5,7 +5,7 @@ resource "aws_lambda_function" "scale_trigger" {
   role             = aws_iam_role.lambda.arn
   handler          = "index.handler"
   runtime          = "nodejs20.x"
-  timeout          = 60
+  timeout          = 90
 
   environment {
     variables = {
@@ -58,7 +58,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
-        Resource = "*"
+        Resource = "arn:aws:logs:*:*:*"
       },
       {
         Effect = "Allow"
@@ -82,6 +82,7 @@ data "archive_file" "lambda_zip" {
     filename = "index.mjs"
   }
 }
+
 locals {
   lambda_code = <<-EOF
 import http from 'http';
