@@ -72,70 +72,44 @@ resource "aws_sfn_state_machine" "this" {
     States = {
       "PreserveOriginalInput" : {
         "Type" : "Pass",
-        "ResultPath" : "$.original_input", // Simply copy the entire initial input
+        "Parameters" : {
+          "original_request.$" : "States.StringToJson($.input)"
+        },
+        "ResultPath" : "$.preserved",
         "Next" : "CheckIfHealthy"
       },
       CheckIfHealthy = {
-        Type     = "Task",
-        Resource = "arn:aws:states:::lambda:invoke",
-        Parameters = {
-          "FunctionName" = var.lambda_function_arn,
-          "Payload"      = { "action" = "checkHealth" }
-        },
-        ResultSelector = {
-          "body.$" = "$.Payload.body"
-        },
-        ResultPath = "$.health_status",
-        Next       = "IsAlreadyHealthy"
+        Type           = "Task",
+        Resource       = "arn:aws:states:::lambda:invoke",
+        Parameters     = { "FunctionName" = var.lambda_function_arn, "Payload" = { "action" = "checkHealth" } },
+        ResultSelector = { "body.$" = "$.Payload.body" },
+        ResultPath     = "$.health_status",
+        Next           = "IsAlreadyHealthy"
       },
       IsAlreadyHealthy = {
-        Type = "Choice",
-        Choices = [
-          {
-            Variable     = "$.health_status.body.status",
-            StringEquals = "READY",
-            Next         = "ProxyRequest"
-          }
-        ],
+        Type    = "Choice",
+        Choices = [{ "Variable" = "$.health_status.body.status", "StringEquals" = "READY", "Next" = "ProxyRequest" }],
         Default = "ScaleUpEcsTask"
       },
       ScaleUpEcsTask = {
-        Type     = "Task",
-        Resource = "arn:aws:states:::lambda:invoke",
-        Parameters = {
-          "FunctionName" = var.lambda_function_arn,
-          "Payload"      = { "action" = "scaleUp" }
-        },
-        ResultPath = "$.scale_up_result", // Prevents overwriting the state
+        Type       = "Task",
+        Resource   = "arn:aws:states:::lambda:invoke",
+        Parameters = { "FunctionName" = var.lambda_function_arn, "Payload" = { "action" = "scaleUp" } },
+        ResultPath = "$.scale_up_result",
         Next       = "Wait"
       },
-      Wait = {
-        Type    = "Wait",
-        Seconds = 120,
-        Next    = "PollHealth"
-      },
+      Wait = { "Type" = "Wait", "Seconds" = 30, "Next" = "PollHealth" },
       PollHealth = {
-        Type     = "Task",
-        Resource = "arn:aws:states:::lambda:invoke",
-        Parameters = {
-          "FunctionName" = var.lambda_function_arn,
-          "Payload"      = { "action" = "checkHealth" }
-        },
-        ResultSelector = {
-          "body.$" = "$.Payload.body"
-        },
-        ResultPath = "$.health_status",
-        Next       = "IsTaskHealthyNow"
+        Type           = "Task",
+        Resource       = "arn:aws:states:::lambda:invoke",
+        Parameters     = { "FunctionName" = var.lambda_function_arn, "Payload" = { "action" = "checkHealth" } },
+        ResultSelector = { "body.$" = "$.Payload.body" },
+        ResultPath     = "$.health_status",
+        Next           = "IsTaskHealthyNow"
       },
       IsTaskHealthyNow = {
-        Type = "Choice",
-        Choices = [
-          {
-            Variable     = "$.health_status.body.status",
-            StringEquals = "READY",
-            Next         = "ProxyRequest"
-          }
-        ],
+        Type    = "Choice",
+        Choices = [{ "Variable" = "$.health_status.body.status", "StringEquals" = "READY", "Next" = "ProxyRequest" }],
         Default = "Wait"
       },
       ProxyRequest = {
@@ -145,7 +119,7 @@ resource "aws_sfn_state_machine" "this" {
           "FunctionName" = var.lambda_function_arn,
           "Payload" = {
             "action" : "proxy",
-            "original_request.$" : "$.original_input",
+            "original_request.$" : "$.preserved.original_request",
             "target.$" : "$.health_status.body"
           }
         },
