@@ -83,7 +83,24 @@ resource "aws_apigatewayv2_integration" "this" {
   credentials_arn        = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
 
   request_parameters = var.enable_lambda_proxy ? {
-    "Input"           = "$util.escapeJavaScript($input.json('$')"
+    "Input" = <<EOT
+    {
+      "body": "$request.body",
+      "headers": {
+          #foreach($header in $input.params().header.keySet())
+          "$header": "$util.escapeJavaScript($input.params().header.get($header))" #if($foreach.hasNext),#end
+          #end
+      },
+      "rawPath": "$context.http.path",
+      "rawQueryString": "$context.http.querystring",
+      "requestContext": {
+          "http": {
+              "method": "$context.http.method"
+          }
+      },
+      "isBase64Encoded": false 
+      }
+    EOT
     "StateMachineArn" = one(module.step_function[*].state_machine_arn)
   } : {}
 }
