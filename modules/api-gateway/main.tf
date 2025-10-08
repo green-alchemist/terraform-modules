@@ -110,7 +110,7 @@ resource "aws_apigatewayv2_integration" "this" {
   credentials_arn     = aws_iam_role.api_gateway_sfn_role[0].arn
 
   # Correctly form the integration URI for Step Functions
-  integration_uri = "arn:${data.aws_partition.current.partition}:apigateway:${data.aws_region.current.name}:states:action/StartSyncExecution"
+  integration_uri = var.enable_lambda_proxy ? null : "arn:${data.aws_partition.current.partition}:apigateway:${data.aws_region.current.name}:states:action/StartSyncExecution"
 
   payload_format_version = "1.0"
   timeout_milliseconds   = 29000 # Max for API GW
