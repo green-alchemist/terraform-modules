@@ -118,8 +118,8 @@ resource "aws_apigatewayv2_integration" "this" {
   # This request template is crucial for passing the API Gateway event to the Step Function
   request_templates = {
     "application/json" = jsonencode({
-      "input"            = "$util.escapeJavaScript($input.json('$'))",
-      "stateMachineArn"  = module.step_function[0].state_machine_arn
+      "Input"            = "$util.escapeJavaScript($input.json('$'))",
+      "StateMachineArn"  = module.step_function[0].state_machine_arn
     })
   }
 }
