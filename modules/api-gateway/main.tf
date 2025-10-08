@@ -82,7 +82,7 @@ resource "aws_apigatewayv2_integration" "this" {
 
   credentials_arn = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
 
- request_templates = var.enable_lambda_proxy ? {
+  request_templates = var.enable_lambda_proxy ? {
     # This template will be used for all requests
     "application/json" = <<-EOF
     {
