@@ -85,7 +85,7 @@ resource "aws_apigatewayv2_integration" "this" {
   request_parameters = var.enable_lambda_proxy ? {
     "integration.request.header.X-Amz-Target" = "'AWSStepFunctions.StartSyncExecution'"
     "integration.request.header.Content-Type" = "'application/x-amz-json-1.0'"
-    "input"                                   = "$util.escapeJavaScript($input.json('$'))"
+    "Input"                                   = "$util.escapeJavaScript($input.json('$'))"
     "stateMachineArn"                         = "${one(module.step_function[*].state_machine_arn)}"
   } : null
 
