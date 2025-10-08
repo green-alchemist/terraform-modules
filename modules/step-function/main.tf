@@ -68,12 +68,15 @@ resource "aws_sfn_state_machine" "this" {
 
   definition = jsonencode({
     Comment = "Orchestrates the scale-up, health check, and proxying for a serverless ECS task",
-    StartAt = "PreserveOriginalInput", // <-- 1. START HERE
+    StartAt = "PreserveOriginalInput",
     States = {
-      // 2. This new state copies the initial input into a preserved field
       "PreserveOriginalInput" : {
         "Type" : "Pass",
-        "ResultPath" : "$.original_input",
+        // 1. Use Intrinsic Functions to parse the nested JSON string
+        "Parameters" : {
+          "original_request.$" : "States.StringToJson($.Input)"
+        },
+        "ResultPath" : "$.preserved", // Store it in a new object
         "Next" : "CheckIfHealthy"
       },
       CheckIfHealthy = {
@@ -107,7 +110,7 @@ resource "aws_sfn_state_machine" "this" {
           "FunctionName" = var.lambda_function_arn,
           "Payload"      = { "action" = "scaleUp" }
         },
-        ResultPath = null, // <-- 3. Prevent this task from overwriting the state
+        ResultPath = null,
         Next       = "Wait"
       },
       Wait = {
@@ -146,7 +149,8 @@ resource "aws_sfn_state_machine" "this" {
           "FunctionName" = var.lambda_function_arn,
           "Payload" = {
             "action" : "proxy",
-            "original_request.$" : "$.original_input",
+            // 2. Reference the correctly parsed object
+            "original_request.$" : "$.preserved.original_request",
             "target.$" : "$.health_status.body"
           }
         },
