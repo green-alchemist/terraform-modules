@@ -74,7 +74,7 @@ resource "aws_apigatewayv2_integration" "this" {
   integration_type    = var.enable_lambda_proxy ? "AWS" : var.integration_type
   integration_subtype = var.enable_lambda_proxy ? "StepFunctions-StartSyncExecution" : null
   integration_method  = var.enable_lambda_proxy ? null : var.integration_method
-  integration_uri     = var.enable_lambda_proxy ? null : var.integration_uri
+  integration_uri     = var.enable_lambda_proxy ? "arn:${data.aws_partition.current.partition}:apigateway:${data.aws_region.current.id}:states:action/StartSyncExecution" : var.integration_uri
 
   connection_type        = var.enable_lambda_proxy ? null : "VPC_LINK"
   connection_id          = var.enable_lambda_proxy ? null : (var.integration_type == "HTTP_PROXY" ? aws_apigatewayv2_vpc_link.this[0].id : null)
