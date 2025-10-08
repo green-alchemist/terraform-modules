@@ -79,15 +79,13 @@ resource "aws_apigatewayv2_integration" "this" {
   connection_id       = var.enable_lambda_proxy ? null : (var.integration_type == "HTTP_PROXY" ? aws_apigatewayv2_vpc_link.this[0].id : null)
 
   payload_format_version = var.enable_lambda_proxy ? "1.0" : "2.0"
-  timeout_milliseconds   = var.enable_lambda_proxy ? 30000 : var.integration_timeout_millis
+  timeout_milliseconds   = var.enable_lambda_proxy ? 29000 : var.integration_timeout_millis
   credentials_arn        = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
 
-  request_parameters = {
+  request_parameters = var.enable_lambda_proxy ? {
     "Input"           = "$request.body"
     "StateMachineArn" = one(module.step_function[*].state_machine_arn)
-  }
-
-  depends_on = [aws_iam_role_policy.api_gateway_sfn_policy]
+  } : {}
 }
 
 # Creates routes based on route_keys (e.g., "ANY /{proxy+} for passthrough)
