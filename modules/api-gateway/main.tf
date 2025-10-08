@@ -82,13 +82,9 @@ resource "aws_apigatewayv2_integration" "this" {
 
   credentials_arn = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
 
-  request_templates = var.enable_lambda_proxy ? {
-    "application/json" = <<-EOF
-    {
-      "input": "$util.escapeJavaScript($input.json('$'))",
-      "stateMachineArn": "$${module.step_function[0].state_machine_arn}"
-    }
-    EOF
+  request_parameters = var.enable_lambda_proxy ? {
+    "input"           = "$context.request.body"
+    "stateMachineArn" = module.step_function[0].state_machine_arn
   } : {}
 
   depends_on = [aws_iam_role_policy.api_gateway_sfn_policy]
