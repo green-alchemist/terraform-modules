@@ -106,7 +106,6 @@ resource "aws_apigatewayv2_integration" "this" {
 
   integration_type    = var.enable_lambda_proxy ? "AWS_PROXY" : var.integration_type
   integration_subtype = var.enable_lambda_proxy ? "StepFunctions-StartSyncExecution" : null
-  integration_method  = "POST" # Always POST for SFN
   credentials_arn     = aws_iam_role.api_gateway_sfn_role[0].arn
 
   # Correctly form the integration URI for Step Functions
