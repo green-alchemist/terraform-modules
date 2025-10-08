@@ -72,7 +72,10 @@ resource "aws_sfn_state_machine" "this" {
     States = {
       "PreserveOriginalInput" : {
         "Type" : "Pass",
-        "ResultPath" : "$.original_input",
+        "Parameters" : {
+          "original_request.$" : "States.StringToJson($.input)"
+        },
+        "ResultPath" : "$.preserved",
         "Next" : "CheckIfHealthy"
       },
       CheckIfHealthy = {
@@ -106,14 +109,12 @@ resource "aws_sfn_state_machine" "this" {
           "FunctionName" = var.lambda_function_arn,
           "Payload"      = { "action" = "scaleUp" }
         },
-        // THIS IS THE FIX: Place the task's result in its own field,
-        // instead of letting it replace the entire state.
         ResultPath = "$.scale_up_result",
         Next       = "Wait"
       },
       Wait = {
         Type    = "Wait",
-        Seconds = 30, // You can increase this if you find it's not long enough
+        Seconds = 90,
         Next    = "PollHealth"
       },
       PollHealth = {
@@ -147,7 +148,7 @@ resource "aws_sfn_state_machine" "this" {
           "FunctionName" = var.lambda_function_arn,
           "Payload" = {
             "action" : "proxy",
-            "original_request.$" : "$.original_input",
+            "original_request.$" : "$.preserved.original_request",
             "target.$" : "$.health_status.body"
           }
         },
