@@ -89,7 +89,7 @@ resource "aws_apigatewayv2_integration" "this" {
       "stateMachineArn": "$${module.step_function[0].state_machine_arn}"
     }
     EOF
-  } : null
+  } : {}
 
   depends_on = [aws_iam_role_policy.api_gateway_sfn_policy]
 }
