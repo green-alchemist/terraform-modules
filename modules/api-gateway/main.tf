@@ -82,13 +82,9 @@ resource "aws_apigatewayv2_integration" "this" {
   timeout_milliseconds   = var.enable_lambda_proxy ? null : var.integration_timeout_millis
   credentials_arn        = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
 
-  request_templates  = var.enable_lambda_proxy ? {
-    "application/json" = <<-EOT
-    {
-      "Input": "$util.escapeJavaScript($input.json('$'))",
-      "StateMachineArn": "${one(module.step_function[*].state_machine_arn)}"
-    }
-    EOT
+  request_parameters  = var.enable_lambda_proxy ? {
+    "Input"           = "{\\\"rawPath\\\":\\\"$context.http.path\\\",\\\"rawQueryString\\\":\\\"$context.http.querystring\\\",\\\"requestContext\\\":{\\\"http\\\":{\\\"method\\\":\\\"$context.http.method\\\"}},\\\"body\\\":\\\"$util.escapeJavaScript($request.body)\\\",\\\"isBase64Encoded\\\":false}",
+    "StateMachineArn" = one(module.step_function[*].state_machine_arn)
   } : {}
 }
 
