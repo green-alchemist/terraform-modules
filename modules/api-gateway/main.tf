@@ -92,7 +92,7 @@ resource "aws_apigatewayv2_integration" "this" {
     "application/json" = <<-EOF
     {
       "Input": "$util.escapeJavaScript($input.json('$'))",
-      "StateMachineArn": "$${one(module.step_function[*].state_machine_arn)}"
+      "StateMachineArn": "${one(module.step_function[*].state_machine_arn)}"
     }
     EOF
   } : null
