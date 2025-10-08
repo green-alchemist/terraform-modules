@@ -68,8 +68,13 @@ resource "aws_sfn_state_machine" "this" {
 
   definition = jsonencode({
     Comment = "Orchestrates the scale-up, health check, and proxying for a serverless ECS task",
-    StartAt = "CheckIfHealthy", // We can start directly at the health check now
+    StartAt = "PreserveOriginalInput",
     States = {
+      "PreserveOriginalInput" : {
+        "Type" : "Pass",
+        "ResultPath" : "$.original_input", // Simply copy the entire initial input
+        "Next" : "CheckIfHealthy"
+      },
       CheckIfHealthy = {
         Type     = "Task",
         Resource = "arn:aws:states:::lambda:invoke",
@@ -101,8 +106,7 @@ resource "aws_sfn_state_machine" "this" {
           "FunctionName" = var.lambda_function_arn,
           "Payload"      = { "action" = "scaleUp" }
         },
-        // Preserve the state by putting the result in its own field
-        ResultPath = "$.scale_up_result",
+        ResultPath = "$.scale_up_result", // Prevents overwriting the state
         Next       = "Wait"
       },
       Wait = {
@@ -141,8 +145,7 @@ resource "aws_sfn_state_machine" "this" {
           "FunctionName" = var.lambda_function_arn,
           "Payload" = {
             "action" : "proxy",
-            // The original request is the entire state object ($)
-            "original_request.$" : "$",
+            "original_request.$" : "$.original_input",
             "target.$" : "$.health_status.body"
           }
         },
