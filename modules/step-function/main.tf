@@ -1,10 +1,3 @@
-# CloudWatch Log Group for the State Machine
-resource "aws_cloudwatch_log_group" "sfn_log_group" {
-  count = var.enable_logging ? 1 : 0
-  name  = "/aws/vendedlogs/states/${var.state_machine_name}"
-  tags  = var.tags
-}
-
 # IAM Role for the Step Function to assume
 resource "aws_iam_role" "sfn_role" {
   name = "${var.state_machine_name}-role"
@@ -22,17 +15,18 @@ resource "aws_iam_role" "sfn_role" {
   })
 }
 
-# IAM Policy allowing the Step Function to invoke your Lambda
+# IAM Policy allowing the Step Function to invoke your Lambda and write logs
 resource "aws_iam_role_policy" "sfn_policy" {
   name = "${var.state_machine_name}-invoke-lambda-policy"
   role = aws_iam_role.sfn_role.id
 
   policy = jsonencode({
     Version = "2012-10-17",
-    Statement = [{
-      Action   = "lambda:InvokeFunction",
-      Effect   = "Allow",
-      Resource = var.lambda_function_arn
+    Statement = [
+      {
+        Action   = "lambda:InvokeFunction",
+        Effect   = "Allow",
+        Resource = var.lambda_function_arn
       },
       {
         Effect = "Allow",
@@ -46,21 +40,35 @@ resource "aws_iam_role_policy" "sfn_policy" {
           "logs:DescribeResourcePolicies",
           "logs:DescribeLogGroups"
         ],
-        Resource = "*" # As required by AWS for logging setup
-    }]
+        Resource = "*"
+      }
+    ]
   })
+}
+
+# CloudWatch Log Group for the State Machine
+resource "aws_cloudwatch_log_group" "sfn_log_group" {
+  count = var.enable_logging ? 1 : 0
+  name  = "/aws/vendedlogs/states/${var.state_machine_name}"
+  tags  = var.tags
 }
 
 # The State Machine Definition
 resource "aws_sfn_state_machine" "this" {
   name     = var.state_machine_name
   role_arn = aws_iam_role.sfn_role.arn
-  type     = "EXPRESS" # Express Sync workflow is required for the API Gateway integration
+  type     = "EXPRESS"
   tags     = var.tags
+
+  logging_configuration {
+    log_destination        = var.enable_logging ? one(aws_cloudwatch_log_group.sfn_log_group[*].arn) : null
+    include_execution_data = var.include_execution_data
+    level                  = var.log_level
+  }
 
   definition = jsonencode({
     Comment = "Orchestrates the scale-up, health check, and proxying for a serverless ECS task",
-    StartAt = "CheckIfHealthy", # Start by checking if the service is already running
+    StartAt = "CheckIfHealthy",
     States = {
       CheckIfHealthy = {
         Type       = "Task",
@@ -75,10 +83,10 @@ resource "aws_sfn_state_machine" "this" {
           {
             Variable     = "$.health_status.body.status",
             StringEquals = "READY",
-            Next         = "ProxyRequest" # If already healthy, go straight to proxying
+            Next         = "ProxyRequest"
           }
         ],
-        Default = "ScaleUpEcsTask" # Otherwise, start the scale-up process
+        Default = "ScaleUpEcsTask"
       },
       ScaleUpEcsTask = {
         Type       = "Task",
@@ -88,7 +96,7 @@ resource "aws_sfn_state_machine" "this" {
       },
       Wait = {
         Type    = "Wait",
-        Seconds = 30, # Wait 30 seconds before polling
+        Seconds = 30,
         Next    = "PollHealth"
       },
       PollHealth = {
@@ -113,12 +121,15 @@ resource "aws_sfn_state_machine" "this" {
         Type     = "Task",
         Resource = var.lambda_function_arn,
         Parameters = {
-          "action"           = "proxy",
-          "original_request" = "$", # Pass the original API request payload
-          "target"           = "$.health_status.body"
+          "action" : "proxy",
+          "original_request.$" : "$",
+          "target.$" : "$.health_status.body"
         },
         End = true
       }
     }
   })
+
+  depends_on = [aws_iam_role_policy.sfn_policy]
 }
+

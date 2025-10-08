@@ -22,6 +22,7 @@ module "step_function" {
   state_machine_name  = "${var.name}-orchestrator"
   lambda_function_arn = module.lambda_scale_up[0].lambda_arn
   tags                = var.tags
+  enable_logging      = true
 }
 
 resource "aws_iam_role" "api_gateway_sfn_role" {
