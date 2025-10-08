@@ -85,8 +85,8 @@ resource "aws_apigatewayv2_integration" "this" {
   request_templates  = var.enable_lambda_proxy ? {
     "application/json" = <<-EOT
     {
-      "input": "$util.escapeJavaScript($input.json('$'))",
-      "stateMachineArn": "${one(module.step_function[*].state_machine_arn)}"
+      "Input": "$util.escapeJavaScript($input.json('$'))",
+      "StateMachineArn": "${one(module.step_function[*].state_machine_arn)}"
     }
     EOT
   } : {}
