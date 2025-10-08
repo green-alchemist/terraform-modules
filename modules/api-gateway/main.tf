@@ -75,7 +75,7 @@ resource "aws_apigatewayv2_integration" "this" {
   integration_method  = var.enable_lambda_proxy ? null : var.integration_method
   integration_uri     = var.enable_lambda_proxy ? null : var.integration_uri
 
-  connection_type        = var.enable_lambda_proxy ? "INTERNET" : (var.integration_type == "HTTP_PROXY" ? "VPC_LINK" : "INTERNET")
+  connection_type        = var.enable_lambda_proxy ? null : "VPC_LINK"
   connection_id          = var.enable_lambda_proxy ? null : (var.integration_type == "HTTP_PROXY" ? one(aws_apigatewayv2_vpc_link.this[*].id) : null)
   payload_format_version = var.enable_lambda_proxy ? "1.0" : "2.0"
   timeout_milliseconds   = var.enable_lambda_proxy ? 30000 : var.integration_timeout_millis
@@ -83,7 +83,6 @@ resource "aws_apigatewayv2_integration" "this" {
   credentials_arn = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
 
   request_templates = var.enable_lambda_proxy ? {
-    # This template will be used for all requests
     "application/json" = <<-EOF
     {
       "input": "$util.escapeJavaScript($input.json('$'))",
