@@ -82,17 +82,10 @@ resource "aws_apigatewayv2_integration" "this" {
   timeout_milliseconds   = var.enable_lambda_proxy ? 29000 : var.integration_timeout_millis
   credentials_arn        = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
 
-  # request_parameters = var.enable_lambda_proxy ? {
-  #   "Input"           = "$request.body"
-  #   "StateMachineArn" = one(module.step_function[*].state_machine_arn)
-  # } : {}
-  # Use request_templates to send the full request context to the Step Function
-  request_templates = {
-    "application/json" = jsonencode({
-      "input"            = "$util.escapeJavaScript($input.json('$'))",
-      "stateMachineArn"  = one(module.step_function[*].state_machine_arn)
-    })
-  }
+  request_parameters = var.enable_lambda_proxy ? {
+    "Input"           = "$context.request.body"
+    "StateMachineArn" = one(module.step_function[*].state_machine_arn)
+  } : {}
 }
 
 # Creates routes based on route_keys (e.g., "ANY /{proxy+} for passthrough)
