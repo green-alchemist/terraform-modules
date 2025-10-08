@@ -89,13 +89,10 @@ resource "aws_apigatewayv2_integration" "this" {
   passthrough_behavior   = "NEVER" # This ensures our template is ALWAYS used
 
   request_templates = {
-    // This template manually constructs the API Gateway event payload
-    "application/json" = <<-EOT
-    {
-      "input": "$util.escapeJavaScript($input.json('$'))",
-      "stateMachineArn": "${one(module.step_function[*].state_machine_arn)}"
-    }
-    EOT
+    "application/json" = jsonencode({
+      "input"            = "$util.escapeJavaScript($input.json('$'))",
+      "stateMachineArn"  = one(module.step_function[*].state_machine_arn)
+    })
   }
 }
 
