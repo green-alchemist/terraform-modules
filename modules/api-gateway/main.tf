@@ -97,7 +97,7 @@ resource "aws_apigatewayv2_integration" "this" {
     EOF
   } : null
 
-  passthrough_behavior = var.enable_lambda_proxy ? "WHEN_NO_TEMPLATES" : null
+  passthrough_behavior = var.enable_lambda_proxy ? "WHEN_NO_MATCH" : null
   depends_on           = [aws_iam_role_policy.api_gateway_sfn_policy]
 }
 # Creates routes based on route_keys (e.g., "ANY /{proxy+} for passthrough)
