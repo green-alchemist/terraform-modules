@@ -86,11 +86,8 @@ resource "aws_apigatewayv2_integration" "this" {
     "integration.request.header.X-Amz-Target" = "'AWSStepFunctions.StartSyncExecution'"
     "integration.request.header.Content-Type" = "'application/x-amz-json-1.0'"
     # Correctly construct the JSON body as a string, allowing VTL to be evaluated at runtime
-    "integration.request.body" = <<EOF
-{
     "input": "$util.escapeJavaScript($input.json('$'))",
     "stateMachineArn": "${one(module.step_function[*].state_machine_arn)}"
-}
 EOF
   } : null
 
