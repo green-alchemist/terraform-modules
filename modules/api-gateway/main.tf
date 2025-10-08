@@ -72,7 +72,7 @@ resource "aws_apigatewayv2_integration" "this" {
   api_id              = aws_apigatewayv2_api.this.id
   integration_type    = var.enable_lambda_proxy ? "AWS_PROXY" : var.integration_type
   integration_subtype = var.enable_lambda_proxy ? "StepFunctions-StartSyncExecution" : null
-  integration_method  = var.enable_lambda_proxy ? "POST" : var.integration_method
+  integration_method  = var.enable_lambda_proxy ? null : var.integration_method
   integration_uri     = var.enable_lambda_proxy ? null : var.integration_uri
 
   connection_type        = var.enable_lambda_proxy ? "INTERNET" : (var.integration_type == "HTTP_PROXY" ? "VPC_LINK" : "INTERNET")
