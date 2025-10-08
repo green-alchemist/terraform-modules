@@ -72,11 +72,7 @@ resource "aws_sfn_state_machine" "this" {
     States = {
       "PreserveOriginalInput" : {
         "Type" : "Pass",
-        // 1. Use Intrinsic Functions to parse the nested JSON string
-        "Parameters" : {
-          "original_request.$" : "States.StringToJson($.Input)"
-        },
-        "ResultPath" : "$.preserved", // Store it in a new object
+        "ResultPath" : "$.original_input",
         "Next" : "CheckIfHealthy"
       },
       CheckIfHealthy = {
@@ -110,12 +106,14 @@ resource "aws_sfn_state_machine" "this" {
           "FunctionName" = var.lambda_function_arn,
           "Payload"      = { "action" = "scaleUp" }
         },
-        ResultPath = null,
+        // THIS IS THE FIX: Place the task's result in its own field,
+        // instead of letting it replace the entire state.
+        ResultPath = "$.scale_up_result",
         Next       = "Wait"
       },
       Wait = {
         Type    = "Wait",
-        Seconds = 90,
+        Seconds = 30, // You can increase this if you find it's not long enough
         Next    = "PollHealth"
       },
       PollHealth = {
@@ -149,8 +147,7 @@ resource "aws_sfn_state_machine" "this" {
           "FunctionName" = var.lambda_function_arn,
           "Payload" = {
             "action" : "proxy",
-            // 2. Reference the correctly parsed object
-            "original_request.$" : "$.preserved.original_request",
+            "original_request.$" : "$.original_input",
             "target.$" : "$.health_status.body"
           }
         },
