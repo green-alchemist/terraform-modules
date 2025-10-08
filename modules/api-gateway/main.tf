@@ -87,7 +87,7 @@ resource "aws_apigatewayv2_integration" "this" {
     "stateMachineArn" = module.step_function[0].state_machine_arn
   } : {}
   passthrough_behavior = var.enable_lambda_proxy ? null : (var.integration_type == "AWS" ? "WHEN_NO_TEMPLATES" : null)
-  depends_on = [aws_iam_role_policy.api_gateway_sfn_policy]
+  depends_on           = [aws_iam_role_policy.api_gateway_sfn_policy]
 }
 # Creates routes based on route_keys (e.g., "ANY /{proxy+} for passthrough)
 resource "aws_apigatewayv2_route" "this" {
