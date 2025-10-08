@@ -89,25 +89,6 @@ resource "aws_apigatewayv2_integration" "this" {
 
   depends_on = [aws_iam_role_policy.api_gateway_sfn_policy]
 }
-# resource "aws_apigatewayv2_integration" "this" {
-#   api_id = aws_apigatewayv2_api.this.id
-
-#   integration_type    = var.enable_lambda_proxy ? "AWS_PROXY" : var.integration_type
-#   integration_subtype = var.enable_lambda_proxy ? "StepFunctions-StartSyncExecution" : null
-#   credentials_arn     = aws_iam_role.api_gateway_sfn_role[0].arn
-
-#   # Correctly form the integration URI for Step Functions
-#   integration_uri = var.enable_lambda_proxy ? null : "arn:${data.aws_partition.current.partition}:apigateway:${data.aws_region.current.name}:states:action/StartSyncExecution"
-
-#   payload_format_version = "1.0"
-#   timeout_milliseconds   = 29000 # Max for API GW
-
-#   # This request template is crucial for passing the API Gateway event to the Step Function
-#   request_parameters = {
-#     "Input"           = "$request.body"
-#     "StateMachineArn" = one(module.step_function[*].state_machine_arn)
-#   }
-# }
 
 # Creates routes based on route_keys (e.g., "ANY /{proxy+} for passthrough)
 resource "aws_apigatewayv2_route" "this" {

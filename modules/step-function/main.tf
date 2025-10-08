@@ -71,9 +71,12 @@ resource "aws_sfn_state_machine" "this" {
     StartAt = "CheckIfHealthy",
     States = {
       CheckIfHealthy = {
-        Type       = "Task",
-        Resource   = var.lambda_function_arn,
-        Parameters = { "action" = "checkHealth" },
+        Type     = "Task",
+        Resource = "arn:aws:states:::lambda:invoke",
+        Parameters = {
+          "FunctionName" = var.lambda_function_arn,
+          "Payload"      = { "action" = "checkHealth" }
+        },
         ResultPath = "$.health_status",
         Next       = "IsAlreadyHealthy"
       },
@@ -89,10 +92,13 @@ resource "aws_sfn_state_machine" "this" {
         Default = "ScaleUpEcsTask"
       },
       ScaleUpEcsTask = {
-        Type       = "Task",
-        Resource   = var.lambda_function_arn,
-        Parameters = { "action" = "scaleUp" },
-        Next       = "Wait"
+        Type     = "Task",
+        Resource = "arn:aws:states:::lambda:invoke",
+        Parameters = {
+          "FunctionName" = var.lambda_function_arn,
+          "Payload"      = { "action" = "scaleUp" }
+        },
+        Next = "Wait"
       },
       Wait = {
         Type    = "Wait",
@@ -100,9 +106,12 @@ resource "aws_sfn_state_machine" "this" {
         Next    = "PollHealth"
       },
       PollHealth = {
-        Type       = "Task",
-        Resource   = var.lambda_function_arn,
-        Parameters = { "action" = "checkHealth" },
+        Type     = "Task",
+        Resource = "arn:aws:states:::lambda:invoke",
+        Parameters = {
+          "FunctionName" = var.lambda_function_arn,
+          "Payload"      = { "action" = "checkHealth" }
+        },
         ResultPath = "$.health_status",
         Next       = "IsTaskHealthyNow"
       },
@@ -119,11 +128,14 @@ resource "aws_sfn_state_machine" "this" {
       },
       ProxyRequest = {
         Type     = "Task",
-        Resource = var.lambda_function_arn,
+        Resource = "arn:aws:states:::lambda:invoke",
         Parameters = {
-          "action" : "proxy",
-          "original_request.$" : "$",
-          "target.$" : "$.health_status.body"
+          "FunctionName" = var.lambda_function_arn,
+          "Payload" = {
+            "action" : "proxy",
+            "original_request.$" : "$",
+            "target.$" : "$.health_status.body"
+          }
         },
         End = true
       }
@@ -132,4 +144,3 @@ resource "aws_sfn_state_machine" "this" {
 
   depends_on = [aws_iam_role_policy.sfn_policy]
 }
-
