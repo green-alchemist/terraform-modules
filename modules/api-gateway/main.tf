@@ -82,11 +82,17 @@ resource "aws_apigatewayv2_integration" "this" {
 
   credentials_arn = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
 
-  request_parameters = var.enable_lambda_proxy ? {
-    "stateMachineArn" = module.step_function[0].state_machine_arn
-    "Input"           = "$request.body"
-    "name"            = "'StrapiScaleUpExecution'" # Optional execution name
-  } : {}
+ request_parameters = var.enable_lambda_proxy ? {
+    "integration.request.header.X-Amz-Target" = "'AWSStepFunctions.StartSyncExecution'"
+    "integration.request.header.Content-Type" = "'application/x-amz-json-1.0'"
+    # Correctly construct the JSON body as a string, allowing VTL to be evaluated at runtime
+    "integration.request.body" = <<EOF
+{
+    "input": "$util.escapeJavaScript($input.json('$'))",
+    "stateMachineArn": "${one(module.step_function[*].state_machine_arn)}"
+}
+EOF
+  } : null
 
   depends_on = [aws_iam_role_policy.api_gateway_sfn_policy]
 }
