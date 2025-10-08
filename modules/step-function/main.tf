@@ -111,7 +111,7 @@ resource "aws_sfn_state_machine" "this" {
       },
       Wait = {
         Type    = "Wait",
-        Seconds = 60,
+        Seconds = 120,
         Next    = "PollHealth"
       },
       PollHealth = {
