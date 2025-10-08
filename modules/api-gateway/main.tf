@@ -76,7 +76,7 @@ resource "aws_apigatewayv2_integration" "this" {
   integration_uri     = var.enable_lambda_proxy ? null : var.integration_uri
 
   connection_type        = var.enable_lambda_proxy ? null : "VPC_LINK"
-  connection_id          = var.enable_lambda_proxy ? null : (var.integration_type == "HTTP_PROXY" ? one(aws_apigatewayv2_vpc_link.this[*].id) : null)
+  connection_id          = var.enable_lambda_proxy ? null : (var.integration_type == "HTTP_PROXY" ? aws_apigatewayv2_vpc_link.this[0].id : null)
   payload_format_version = var.enable_lambda_proxy ? "1.0" : "2.0"
   timeout_milliseconds   = var.enable_lambda_proxy ? 30000 : var.integration_timeout_millis
 
