@@ -68,8 +68,14 @@ resource "aws_sfn_state_machine" "this" {
 
   definition = jsonencode({
     Comment = "Orchestrates the scale-up, health check, and proxying for a serverless ECS task",
-    StartAt = "CheckIfHealthy",
+    StartAt = "PreserveOriginalInput", // <-- 1. START HERE
     States = {
+      // 2. This new state copies the initial input into a preserved field
+      "PreserveOriginalInput" : {
+        "Type" : "Pass",
+        "ResultPath" : "$.original_input",
+        "Next" : "CheckIfHealthy"
+      },
       CheckIfHealthy = {
         Type     = "Task",
         Resource = "arn:aws:states:::lambda:invoke",
@@ -77,7 +83,6 @@ resource "aws_sfn_state_machine" "this" {
           "FunctionName" = var.lambda_function_arn,
           "Payload"      = { "action" = "checkHealth" }
         },
-        // ADD THIS BLOCK to extract only the payload's body
         ResultSelector = {
           "body.$" = "$.Payload.body"
         },
@@ -88,7 +93,6 @@ resource "aws_sfn_state_machine" "this" {
         Type = "Choice",
         Choices = [
           {
-            // UPDATE THE PATH to be simpler
             Variable     = "$.health_status.body.status",
             StringEquals = "READY",
             Next         = "ProxyRequest"
@@ -103,11 +107,12 @@ resource "aws_sfn_state_machine" "this" {
           "FunctionName" = var.lambda_function_arn,
           "Payload"      = { "action" = "scaleUp" }
         },
-        Next = "Wait"
+        ResultPath = null, // <-- 3. Prevent this task from overwriting the state
+        Next       = "Wait"
       },
       Wait = {
         Type    = "Wait",
-        Seconds = 30,
+        Seconds = 90,
         Next    = "PollHealth"
       },
       PollHealth = {
@@ -117,7 +122,6 @@ resource "aws_sfn_state_machine" "this" {
           "FunctionName" = var.lambda_function_arn,
           "Payload"      = { "action" = "checkHealth" }
         },
-        // ADD THIS BLOCK here as well
         ResultSelector = {
           "body.$" = "$.Payload.body"
         },
@@ -128,7 +132,6 @@ resource "aws_sfn_state_machine" "this" {
         Type = "Choice",
         Choices = [
           {
-            // UPDATE THE PATH here as well
             Variable     = "$.health_status.body.status",
             StringEquals = "READY",
             Next         = "ProxyRequest"
@@ -143,7 +146,7 @@ resource "aws_sfn_state_machine" "this" {
           "FunctionName" = var.lambda_function_arn,
           "Payload" = {
             "action" : "proxy",
-            "original_request.$" : "$",
+            "original_request.$" : "$.original_input",
             "target.$" : "$.health_status.body"
           }
         },
