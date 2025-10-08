@@ -78,12 +78,24 @@ resource "aws_apigatewayv2_integration" "this" {
   connection_type     = var.enable_lambda_proxy ? null : "VPC_LINK"
   connection_id       = var.enable_lambda_proxy ? null : (var.integration_type == "HTTP_PROXY" ? aws_apigatewayv2_vpc_link.this[0].id : null)
 
-  payload_format_version = var.enable_lambda_proxy ? "1.0" : "2.0"
+  payload_format_version = var.enable_lambda_proxy ? "2.0" : "1.0"
   timeout_milliseconds   = var.enable_lambda_proxy ? null : var.integration_timeout_millis
   credentials_arn        = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
 
   request_parameters = var.enable_lambda_proxy ? {
-    "Input"           = "$context.request.body",
+    "Input"           = <<EOT
+    {
+      "body": "$request.body",
+      "rawPath": "$context.http.path",
+      "rawQueryString": "$context.http.querystring",
+      "requestContext": {
+          "http": {
+              "method": "$context.http.method"
+          }
+      },
+      "isBase64Encoded": false 
+      }
+    EOT
     "StateMachineArn" = one(module.step_function[*].state_machine_arn)
   } : {}
 }
