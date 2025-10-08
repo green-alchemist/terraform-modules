@@ -116,11 +116,9 @@ resource "aws_apigatewayv2_integration" "this" {
   timeout_milliseconds   = 29000 # Max for API GW
 
   # This request template is crucial for passing the API Gateway event to the Step Function
-  request_templates = {
-    "application/json" = jsonencode({
-      "Input"            = "$util.escapeJavaScript($input.json('$'))",
-      "StateMachineArn"  = module.step_function[0].state_machine_arn
-    })
+  request_parameters = {
+    "Input"           = "$request.body"
+    "StateMachineArn" = one(module.step_function[*].state_machine_arn)
   }
 }
 
