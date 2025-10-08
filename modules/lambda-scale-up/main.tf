@@ -240,46 +240,6 @@ export const handler = async (event, context) => {
                     timeout: (context.getRemainingTimeInMillis() - 1000)
                 });
                 return response;
-                const originalRequest = event.original_request;
-                const targetInfo = event.target;
-
-                const requestPath = originalRequest.rawPath || '/';
-                const queryString = originalRequest.rawQueryString ? `?$${originalRequest.rawQueryString}` : '';
-                const fullPath = `$${requestPath}$${queryString}`;
-                
-                const httpMethod = originalRequest.requestContext.http.method;
-                const headers = originalRequest.headers || {};
-                const body = originalRequest.body;
-                const isBase64 = originalRequest.isBase64Encoded || false;
-                
-                let requestBody = body;
-                if (body && isBase64) {
-                    requestBody = Buffer.from(body, 'base64').toString('utf-8');
-                }
-
-                const cleanHeaders = Object.entries(headers).reduce((acc, [key, value]) => {
-                    const lowerKey = key.toLowerCase();
-                    if (!['host', 'x-forwarded-for', 'x-forwarded-port', 'x-forwarded-proto', 'x-amzn-trace-id', 'x-amz-cf-id'].includes(lowerKey)) {
-                        acc[key] = value;
-                    }
-                    return acc;
-                }, {});
-
-                cleanHeaders['Host'] = targetInfo.ip;
-                if (requestBody) {
-                    cleanHeaders['Content-Length'] = Buffer.byteLength(requestBody);
-                }
-
-                const response = await makeHttpRequest({
-                    hostname: targetInfo.ip,
-                    port: targetInfo.port,
-                    path: fullPath,
-                    method: httpMethod,
-                    headers: cleanHeaders,
-                    body: requestBody,
-                    timeout: (context.getRemainingTimeInMillis() - 1000)
-                });
-                return response; // Return the full HTTP response object
 
             default:
                 throw new Error(`Unknown action specified: $${event.action}`);
