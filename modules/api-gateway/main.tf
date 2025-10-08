@@ -83,7 +83,10 @@ resource "aws_apigatewayv2_integration" "this" {
   credentials_arn        = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
 
   request_parameters  = var.enable_lambda_proxy ? {
-    "Input"           = "{\\\"rawPath\\\":\\\"$context.http.path\\\",\\\"rawQueryString\\\":\\\"$context.http.querystring\\\",\\\"requestContext\\\":{\\\"http\\\":{\\\"method\\\":\\\"$context.http.method\\\"}},\\\"body\\\":\\\"$util.escapeJavaScript($request.body)\\\",\\\"isBase64Encoded\\\":false}",
+    "Input.path"    = "$context.http.path",
+    "Input.method"  = "$context.http.method",
+    "Input.body"    = "$request.body",
+    # Note: Passing all headers is complex here, so we focus on the essentials for now.
     "StateMachineArn" = one(module.step_function[*].state_machine_arn)
   } : {}
 }
