@@ -77,6 +77,10 @@ resource "aws_sfn_state_machine" "this" {
           "FunctionName" = var.lambda_function_arn,
           "Payload"      = { "action" = "checkHealth" }
         },
+        // ADD THIS BLOCK to extract only the payload's body
+        ResultSelector = {
+          "body.$" = "$.Payload.body"
+        },
         ResultPath = "$.health_status",
         Next       = "IsAlreadyHealthy"
       },
@@ -84,6 +88,7 @@ resource "aws_sfn_state_machine" "this" {
         Type = "Choice",
         Choices = [
           {
+            // UPDATE THE PATH to be simpler
             Variable     = "$.health_status.body.status",
             StringEquals = "READY",
             Next         = "ProxyRequest"
@@ -112,6 +117,10 @@ resource "aws_sfn_state_machine" "this" {
           "FunctionName" = var.lambda_function_arn,
           "Payload"      = { "action" = "checkHealth" }
         },
+        // ADD THIS BLOCK here as well
+        ResultSelector = {
+          "body.$" = "$.Payload.body"
+        },
         ResultPath = "$.health_status",
         Next       = "IsTaskHealthyNow"
       },
@@ -119,12 +128,13 @@ resource "aws_sfn_state_machine" "this" {
         Type = "Choice",
         Choices = [
           {
+            // UPDATE THE PATH here as well
             Variable     = "$.health_status.body.status",
             StringEquals = "READY",
             Next         = "ProxyRequest"
           }
         ],
-        Default = "Wait" # If still not ready, loop back and wait again
+        Default = "Wait"
       },
       ProxyRequest = {
         Type     = "Task",
