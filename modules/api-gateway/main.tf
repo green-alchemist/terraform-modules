@@ -82,10 +82,21 @@ resource "aws_apigatewayv2_integration" "this" {
   timeout_milliseconds   = var.enable_lambda_proxy ? 29000 : var.integration_timeout_millis
   credentials_arn        = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
 
-  request_parameters = var.enable_lambda_proxy ? {
-    "Input"           = "$context.request.body"
-    "StateMachineArn" = one(module.step_function[*].state_machine_arn)
-  } : {}
+  # request_parameters = var.enable_lambda_proxy ? {
+  #   "Input"           = "$context.request.body"
+  #   "StateMachineArn" = one(module.step_function[*].state_machine_arn)
+  # } : {}
+  passthrough_behavior   = "NEVER" # This ensures our template is ALWAYS used
+
+  request_templates = {
+    // This template manually constructs the API Gateway event payload
+    "application/json" = <<-EOT
+    {
+      "input": "$util.escapeJavaScript($input.json('$'))",
+      "stateMachineArn": "${one(module.step_function[*].state_machine_arn)}"
+    }
+    EOT
+  }
 }
 
 # Creates routes based on route_keys (e.g., "ANY /{proxy+} for passthrough)
