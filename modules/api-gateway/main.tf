@@ -84,7 +84,7 @@ resource "aws_apigatewayv2_integration" "this" {
 
   request_parameters = var.enable_lambda_proxy ? {
     "Input"                                   = "$util.escapeJavaScript($input.json('$'))"
-    "stateMachineArn"                         = "${one(module.step_function[*].state_machine_arn)}"
+    "StateMachineArn"                         = "${one(module.step_function[*].state_machine_arn)}"
   } : null
 
   depends_on = [aws_iam_role_policy.api_gateway_sfn_policy]
