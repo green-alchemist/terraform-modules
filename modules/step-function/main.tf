@@ -61,7 +61,7 @@ resource "aws_sfn_state_machine" "this" {
   tags     = var.tags
 
   logging_configuration {
-    log_destination        = var.enable_logging ? one(aws_cloudwatch_log_group.sfn_log_group[*].arn) : null
+    log_destination        = var.enable_logging ? aws_cloudwatch_log_group.sfn_log_group[0].arn : null
     include_execution_data = var.include_execution_data
     level                  = var.log_level
   }
