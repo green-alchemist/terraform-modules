@@ -180,8 +180,8 @@ EOF
       permissions = [{ action = "states:DescribeExecution", resource = "*" }]
       environment = {}                                               # No env vars needed
       vpc_config = {
-        subnet_ids         = var.subnet_ids
-        security_group_ids = var.lambda_security_group_ids
+        subnet_ids         = []
+        security_group_ids = []
       }
     },
     {
@@ -250,8 +250,8 @@ EOF
         API_GATEWAY_URL = aws_apigatewayv2_api.this.api_endpoint
       }
       vpc_config = {
-        subnet_ids         = var.subnet_ids
-        security_group_ids = var.lambda_security_group_ids
+        subnet_ids         = []
+        security_group_ids = []
       }
     }
   ]
