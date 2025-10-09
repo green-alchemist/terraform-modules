@@ -362,36 +362,19 @@ resource "aws_apigatewayv2_integration" "sfn_start" {
   timeout_milliseconds   = var.enable_lambda_proxy ? null : var.integration_timeout_millis
   credentials_arn        = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
 
-
-  request_templates = var.enable_lambda_proxy ? {
-    "application/json" = <<-EOF
-{
-  "stateMachineArn": "$${module.step_function[0].state_machine_arn}",
-  "input": "$util.escapeJavaScript($input.json('$'))",
-  "name": "$context.requestId"
-}
-EOF
-  } : {}
-
   request_parameters = var.enable_lambda_proxy ? {
     "StateMachineArn" = module.step_function[0].state_machine_arn
-    "Input"           = "$request.body"
-    "Name"            = "$context.requestId"
+    "Input" = jsonencode({
+      action          = "proxy"
+      requestContext  = "$context.requestContext"
+      rawPath         = "$context.path"
+      rawQueryString  = "$context.queryStringParameters"
+      body            = "$request.body"
+      headers         = "$request.headers"
+      isBase64Encoded = "$request.isBase64Encoded"
+    })
+    "Name" = "$context.requestId"
   } : {}
-  # request_parameters = var.enable_lambda_proxy ? {
-  #   "Input" = jsonencode({
-  #     "input" = { # Pass request details for proxy
-  #       "requestContext"  = "$context.requestContext",
-  #       "rawPath"         = "$context.path",
-  #       "rawQueryString"  = "$context.queryStringParameters",
-  #       "body"            = "$request.body",
-  #       "headers"         = "$request.headers",
-  #       "isBase64Encoded" = "$request.isBase64Encoded"
-  #     }
-  #   }),
-  #   "StateMachineArn" = module.step_function[0].state_machine_arn,
-  #   "Name"            = "$context.requestId"
-  # } : {}
 }
 
 resource "aws_apigatewayv2_route" "proxy_any" {
