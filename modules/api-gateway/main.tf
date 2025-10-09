@@ -140,7 +140,7 @@ def handler(event, context):
 #   lambda_code               = local.lambda_code
 # }
 
-module "lambda_wake_proxy" {
+module "lambdas" {
   source = "git@github.com:green-alchemist/terraform-modules.git//modules/lambda"
   count  = var.enable_lambda_proxy ? 1 : 0
 
@@ -194,17 +194,116 @@ EOF
       memory_size = 128
       permissions = [{ action = "states:DescribeExecution", resource = "*" }]
       environment = {}                                               # No env vars needed
-      vpc_config  = { subnet_ids = null, security_group_ids = null } # No VPC for status-poller
+      vpc_config = {
+        subnet_ids         = var.subnet_ids
+        security_group_ids = var.lambda_security_group_ids
+      }
+    },
+    {
+      name = "strapi-loader"
+      code = <<-EOF
+import json
+
+def handler(event, context):
+    return {
+        "statusCode": 200,
+        "headers": {"Content-Type": "text/html"},
+        "body": f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Loading Strapi Admin</title>
+    <style>
+        body {{ display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: Arial; }}
+        .spinner {{ font-size: 24px; }}
+    </style>
+</head>
+<body>
+    <div class="spinner">Loading Strapi Admin...</div>
+    <script>
+        async function fetchWithWake(url) {{
+            try {{
+                let response = await fetch(url);
+                if (response.status === 202) {{
+                    const {{ executionArn, pollUrl }} = await response.json();
+                    console.log(`ECS waking up, polling $${pollUrl}...`);
+                    while (true) {{
+                        const statusRes = await fetch(`$${process.env.API_GATEWAY_URL}$${pollUrl}`);
+                        const {{ status, output }} = await statusRes.json();
+                        if (status === 'SUCCEEDED') {{
+                            console.log('ECS ready, redirecting to $${event['rawPath']}');
+                            window.location.href = url; // Redirect to original Strapi path
+                            return;
+                        }}
+                        if (['FAILED', 'TIMED_OUT', 'ABORTED'].includes(status)) {{
+                            throw new Error(`Step Functions failed: $${status}, $${output}`);
+                        }}
+                        await new Promise(resolve => setTimeout(resolve, 5000));
+                    }}
+                }} else {{
+                    window.location.href = url; // Already warm, redirect
+                }}
+            }} catch (error) {{
+                console.error('Error:', error);
+                document.body.innerHTML = `<div>Error: $${error.message}</div>`;
+            }}
+        }}
+        fetchWithWake('$${event['rawPath'] || '/admin'}');
+    </script>
+</body>
+</html>
+"""
+    }
+EOF
+      timeout = 10
+      memory_size = 128
+      permissions = [
+        { action = "logs:CreateLogStream", resource = "arn:aws:logs:*:*:*" },
+        { action = "logs:PutLogEvents", resource = "arn:aws:logs:*:*:*" }
+      ]
+      environment = {
+        API_GATEWAY_URL = aws_apigatewayv2_api.this.api_endpoint
+      }
+      vpc_config = {
+        subnet_ids         = var.subnet_ids
+        security_group_ids = var.lambda_security_group_ids
+      }
     }
   ]
 }
+
+# Ensure API Gateway route for strapi-loader
+resource "aws_lambda_permission" "loader_apigw" {
+  statement_id  = "AllowExecutionFromAPIGatewayLoader"
+  action        = "lambda:InvokeFunction"
+  function_name = module.lambdas[0].lambda_function_names["strapi-loader"]
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*"
+}
+
+resource "aws_apigatewayv2_integration" "loader" {
+  api_id             = aws_apigatewayv2_api.this.id
+  integration_type   = "AWS_PROXY"
+  integration_uri    = module.lambdas[0].lambda_invoke_arns["strapi-loader"]
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "loader_admin" {
+  api_id    = aws_apigatewayv2_api.this.id
+  route_key = "GET /admin/{proxy+}"
+  target    = "integrations/${aws_apigatewayv2_integration.loader.id}"
+}
+
+
+
+
 
 module "step_function" {
   count  = var.enable_lambda_proxy ? 1 : 0
   source = "git@github.com:green-alchemist/terraform-modules.git//modules/step-function"
 
   state_machine_name  = "${var.name}-orchestrator"
-  lambda_function_arn = module.lambda_wake_proxy[0].lambda_arns["status-poller"]
+  lambda_function_arn = module.lambdas[0].lambda_arns["status-poller"]
   tags                = var.tags
   enable_logging      = true
 }
@@ -319,7 +418,7 @@ resource "aws_apigatewayv2_integration_response" "start_202" {
 resource "aws_apigatewayv2_integration" "sfn_status" {
   api_id                 = aws_apigatewayv2_api.this.id
   integration_type       = "AWS_PROXY"
-  integration_uri        = module.lambda_wake_proxy[0].lambda_invoke_arns["status-poller"]
+  integration_uri        = module.lambdas[0].lambda_invoke_arns["status-poller"]
   payload_format_version = "2.0"
 }
 
@@ -388,7 +487,7 @@ resource "aws_lambda_permission" "apigw" {
   count         = var.enable_lambda_proxy ? 1 : 0
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
-  function_name = module.lambda_wake_proxy[0].lambda_function_names["status-poller"]
+  function_name = module.lambdas[0].lambda_function_names["status-poller"]
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*"
 }
