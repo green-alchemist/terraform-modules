@@ -68,16 +68,31 @@ resource "aws_sfn_state_machine" "this" {
 
   definition = jsonencode({
     Comment = "Orchestrates the scale-up, health check, and proxying for a serverless ECS task",
-    StartAt = "PreserveOriginalInput",
+    StartAt = "PrepareProxyInput",
     States = {
-      "PreserveOriginalInput" : {
+      "PrepareProxyInput" : {
         "Type" : "Pass",
         "Parameters" : {
-          "original_request.$" : "States.StringToJson($.input)"
+          // Parse the simple input from API Gateway
+          "request_details.$" : "States.StringToJson($)",
+          // Reconstruct the 'original_request' object that the Lambda expects
+          "original_request" : {
+            "rawPath.$" : "$.path",
+            "rawQueryString.$" : "$.queryString",
+            "requestContext" : {
+              "http" : {
+                "method.$" : "$.httpMethod"
+              }
+            },
+            "body" : null,
+            "headers" : {},
+            "isBase64Encoded" : false
+          }
         },
         "ResultPath" : "$.preserved",
         "Next" : "CheckIfHealthy"
       },
+      // ... the rest of your state machine remains the same
       CheckIfHealthy = {
         Type           = "Task",
         Resource       = "arn:aws:states:::lambda:invoke",
@@ -117,15 +132,9 @@ resource "aws_sfn_state_machine" "this" {
         Resource = "arn:aws:states:::lambda:invoke",
         Parameters = {
           "FunctionName" = var.lambda_function_arn,
-          // Construct a payload that the Lambda proxy can easily understand
           "Payload" = {
             "action" : "proxy",
-            "requestContext.$" : "$.preserved.original_request.requestContext",
-            "rawPath.$" : "$.preserved.original_request.rawPath",
-            "body.$" : "$.preserved.original_request.body",
-            "headers.$" : "$.preserved.original_request.headers",
-            "isBase64Encoded.$" : "$.preserved.original_request.isBase64Encoded",
-            "rawQueryString.$" : "$.preserved.original_request.rawQueryString",
+            "original_request.$" : "$.preserved.original_request",
             "target.$" : "$.health_status.body"
           }
         },
