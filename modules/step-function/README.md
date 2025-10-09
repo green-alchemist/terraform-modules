@@ -37,3 +37,4 @@ No modules.
 | Name | Description |
 |------|-------------|
 | <a name="output_state_machine_arn"></a> [state\_machine\_arn](#output\_state\_machine\_arn) | The ARN of the Step Function state machine. |
+| <a name="output_state_machine_name"></a> [state\_machine\_name](#output\_state\_machine\_name) | The name of the Step Function state machine. |
