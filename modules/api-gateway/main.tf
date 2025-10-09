@@ -260,7 +260,7 @@ EOF
 # Ensure API Gateway route for strapi-loader
 resource "aws_lambda_permission" "loader_apigw" {
   statement_id  = "AllowExecutionFromAPIGatewayLoader"
-  Action        = "lambda:InvokeFunction"
+  action        = "lambda:InvokeFunction"
   function_name = module.lambdas[0].lambda_function_names["strapi-loader"]
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*"
