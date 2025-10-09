@@ -414,14 +414,14 @@ resource "aws_apigatewayv2_route" "status_get" {
   target    = "integrations/${aws_apigatewayv2_integration.sfn_status.id}"
 }
 
-resource "aws_apigatewayv2_integration_response" "status_200" {
-  api_id                   = aws_apigatewayv2_api.this.id
-  integration_id           = aws_apigatewayv2_integration.sfn_status.id
-  integration_response_key = "/200/"
-  response_templates = {
-    "application/json" = "{\"status\": \"$input.json('$.status')\", \"output\": \"$util.escapeJavaScript($input.json('$.output'))\"}"
-  }
-}
+# resource "aws_apigatewayv2_integration_response" "status_200" {
+#   api_id                   = aws_apigatewayv2_api.this.id
+#   integration_id           = aws_apigatewayv2_integration.sfn_status.id
+#   integration_response_key = "/200/"
+#   response_templates = {
+#     "application/json" = "{\"status\": \"$input.json('$.status')\", \"output\": \"$util.escapeJavaScript($input.json('$.output'))\"}"
+#   }
+# }
 
 
 
@@ -469,7 +469,7 @@ resource "aws_apigatewayv2_integration_response" "status_200" {
 # }
 
 # Lambda permission (internal, conditional)
-resource "aws_lambda_permission" "apigw" {
+resource "aws_lambda_permission" "status_apigw" {
   count         = var.enable_lambda_proxy ? 1 : 0
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
