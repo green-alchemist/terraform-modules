@@ -151,114 +151,110 @@ module "lambdas" {
         CLOUD_MAP_SERVICE_ID      = var.cloud_map_service_id
         LOG_LEVEL                 = "DEBUG"
       }
-      
-      # vpc_config = {
-      #   subnet_ids         = var.subnet_ids
-      #   security_group_ids = var.lambda_security_group_ids
-      # }
+
+      vpc_config = {
+        subnet_ids         = var.subnet_ids
+        security_group_ids = var.vpc_link_security_group_ids
+      }
+    },
+    {
+      name        = "status-poller"
+      code        = <<-EOF
+    import json
+    import boto3
+    def handler(event, context):
+        sfn_client = boto3.client('stepfunctions')
+        execution_id = event['pathParameters']['executionId']
+        execution_arn = f"arn:aws:states:$${event['requestContext']['region']}:$${event['requestContext']['accountId']}:execution:$${event['requestContext']['stage']}:$${execution_id}"
+        try:
+            resp = sfn_client.describe_execution(executionArn=execution_arn)
+            return {
+                "statusCode": 200,
+                "headers": {"Content-Type": "application/json"},
+                "body": json.dumps({"status": resp['status'], "output": resp.get('output', '')})
+            }
+        except Exception as e:
+            return {"statusCode": 400, "body": json.dumps({"error": str(e)})}
+    EOF
+      timeout     = 10
+      memory_size = 128
+      permissions = [{ Action = "states:DescribeExecution", Resource = "*" }]
+      environment = {} # No env vars needed
       vpc_config = {
         subnet_ids         = []
         security_group_ids = []
       }
     },
-    #     {
-    #       name        = "status-poller"
-    #       code        = <<-EOF
-    # import json
-    # import boto3
-    # def handler(event, context):
-    #     sfn_client = boto3.client('stepfunctions')
-    #     execution_id = event['pathParameters']['executionId']
-    #     execution_arn = f"arn:aws:states:$${event['requestContext']['region']}:$${event['requestContext']['accountId']}:execution:$${event['requestContext']['stage']}:$${execution_id}"
-    #     try:
-    #         resp = sfn_client.describe_execution(executionArn=execution_arn)
-    #         return {
-    #             "statusCode": 200,
-    #             "headers": {"Content-Type": "application/json"},
-    #             "body": json.dumps({"status": resp['status'], "output": resp.get('output', '')})
-    #         }
-    #     except Exception as e:
-    #         return {"statusCode": 400, "body": json.dumps({"error": str(e)})}
-    # EOF
-    #       timeout     = 10
-    #       memory_size = 128
-    #       permissions = [{ Action = "states:DescribeExecution", Resource = "*" }]
-    #       environment = {} # No env vars needed
-    #       vpc_config = {
-    #         subnet_ids         = []
-    #         security_group_ids = []
-    #       }
-    #     },
-    #     {
-    #       name        = "strapi-loader"
-    #       code        = <<-EOF
-    # import json
+    {
+      name        = "strapi-loader"
+      code        = <<-EOF
+    import json
 
-    # def handler(event, context):
-    #     return {
-    #         "statusCode": 200,
-    #         "headers": {"Content-Type": "text/html"},
-    #         "body": f"""
-    # <!DOCTYPE html>
-    # <html>
-    # <head>
-    #     <title>Loading Strapi Admin</title>
-    #     <style>
-    #         body {{ display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: Arial; }}
-    #         .spinner {{ font-size: 24px; }}
-    #     </style>
-    # </head>
-    # <body>
-    #     <div class="spinner">Loading Strapi Admin...</div>
-    #     <script>
-    #         async function fetchWithWake(url) {{
-    #             try {{
-    #                 let response = await fetch(url);
-    #                 if (response.status === 202) {{
-    #                     const {{ executionArn, pollUrl }} = await response.json();
-    #                     console.log(`ECS waking up, polling $${pollUrl}...`);
-    #                     while (true) {{
-    #                         const statusRes = await fetch(`$${process.env.API_GATEWAY_URL}$${pollUrl}`);
-    #                         const {{ status, output }} = await statusRes.json();
-    #                         if (status === 'SUCCEEDED') {{
-    #                             console.log('ECS ready, redirecting to $${event['rawPath']}');
-    #                             window.location.href = url; // Redirect to original Strapi path
-    #                             return;
-    #                         }}
-    #                         if (['FAILED', 'TIMED_OUT', 'ABORTED'].includes(status)) {{
-    #                             throw new Error(`Step Functions failed: $${status}, $${output}`);
-    #                         }}
-    #                         await new Promise(resolve => setTimeout(resolve, 5000));
-    #                     }}
-    #                 }} else {{
-    #                     window.location.href = url; // Already warm, redirect
-    #                 }}
-    #             }} catch (error) {{
-    #                 console.error('Error:', error);
-    #                 document.body.innerHTML = `<div>Error: $${error.message}</div>`;
-    #             }}
-    #         }}
-    #         fetchWithWake('$${event['rawPath'] || '/admin'}');
-    #     </script>
-    # </body>
-    # </html>
-    # """
-    #     }
-    # EOF
-    #       timeout     = 10
-    #       memory_size = 128
-    #       permissions = [
-    #         { Action = "logs:CreateLogStream", Resource = "arn:aws:logs:*:*:*" },
-    #         { Action = "logs:PutLogEvents", Resource = "arn:aws:logs:*:*:*" }
-    #       ]
-    #       environment = {
-    #         API_GATEWAY_URL = aws_apigatewayv2_api.this.api_endpoint
-    #       }
-    #       vpc_config = {
-    #         subnet_ids         = []
-    #         security_group_ids = []
-    #       }
-    #     }
+    def handler(event, context):
+        return {
+            "statusCode": 200,
+            "headers": {"Content-Type": "text/html"},
+            "body": f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Loading Strapi Admin</title>
+        <style>
+            body {{ display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: Arial; }}
+            .spinner {{ font-size: 24px; }}
+        </style>
+    </head>
+    <body>
+        <div class="spinner">Loading Strapi Admin...</div>
+        <script>
+            async function fetchWithWake(url) {{
+                try {{
+                    let response = await fetch(url);
+                    if (response.status === 202) {{
+                        const {{ executionArn, pollUrl }} = await response.json();
+                        console.log(`ECS waking up, polling $${pollUrl}...`);
+                        while (true) {{
+                            const statusRes = await fetch(`$${process.env.API_GATEWAY_URL}$${pollUrl}`);
+                            const {{ status, output }} = await statusRes.json();
+                            if (status === 'SUCCEEDED') {{
+                                console.log('ECS ready, redirecting to $${event['rawPath']}');
+                                window.location.href = url; // Redirect to original Strapi path
+                                return;
+                            }}
+                            if (['FAILED', 'TIMED_OUT', 'ABORTED'].includes(status)) {{
+                                throw new Error(`Step Functions failed: $${status}, $${output}`);
+                            }}
+                            await new Promise(resolve => setTimeout(resolve, 5000));
+                        }}
+                    }} else {{
+                        window.location.href = url; // Already warm, redirect
+                    }}
+                }} catch (error) {{
+                    console.error('Error:', error);
+                    document.body.innerHTML = `<div>Error: $${error.message}</div>`;
+                }}
+            }}
+            fetchWithWake('$${event['rawPath'] || '/admin'}');
+        </script>
+    </body>
+    </html>
+    """
+        }
+    EOF
+      timeout     = 10
+      memory_size = 128
+      permissions = [
+        { Action = "logs:CreateLogStream", Resource = "arn:aws:logs:*:*:*" },
+        { Action = "logs:PutLogEvents", Resource = "arn:aws:logs:*:*:*" }
+      ]
+      environment = {
+        API_GATEWAY_URL = aws_apigatewayv2_api.this.api_endpoint
+      }
+      vpc_config = {
+        subnet_ids         = []
+        security_group_ids = []
+      }
+    }
   ]
 }
 
