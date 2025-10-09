@@ -17,28 +17,22 @@ No modules.
 
 | Name | Type |
 |------|------|
-| [aws_iam_role.lambda](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
-| [aws_iam_role_policy.lambda_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
-| [aws_lambda_function.wake_proxy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_function) | resource |
+| [aws_iam_role.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
+| [aws_iam_role_policy.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
+| [aws_lambda_function.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_function) | resource |
 | [archive_file.lambda_zip](https://registry.terraform.io/providers/hashicorp/archive/latest/docs/data-sources/file) | data source |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_cloud_map_service_id"></a> [cloud\_map\_service\_id](#input\_cloud\_map\_service\_id) | The Cloud Map service ID for listing instances. | `string` | n/a | yes |
-| <a name="input_cluster_name"></a> [cluster\_name](#input\_cluster\_name) | ECS cluster name. | `string` | n/a | yes |
-| <a name="input_lambda_code"></a> [lambda\_code](#input\_lambda\_code) | Python code for the Lambda handler | `string` | `""` | no |
-| <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | List of security group IDs for the Lambda VPC config | `list(string)` | n/a | yes |
-| <a name="input_service_connect_namespace"></a> [service\_connect\_namespace](#input\_service\_connect\_namespace) | Cloud Map namespace for Service Connect. | `string` | n/a | yes |
-| <a name="input_service_name"></a> [service\_name](#input\_service\_name) | ECS service name. | `string` | n/a | yes |
-| <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | List of subnet IDs for the Lambda VPC config | `list(string)` | n/a | yes |
-| <a name="input_target_port"></a> [target\_port](#input\_target\_port) | ECS port number. | `number` | n/a | yes |
+| <a name="input_lambda_configs"></a> [lambda\_configs](#input\_lambda\_configs) | List of Lambda configurations (name, code, timeout, memory, permissions, env vars, VPC) | <pre>list(object({<br/>    name        = string<br/>    code        = string<br/>    timeout     = number<br/>    memory_size = number<br/>    permissions = list(object({<br/>      action   = string<br/>      resource = string<br/>    }))<br/>    environment = map(string)<br/>    vpc_config = object({<br/>      subnet_ids         = list(string)<br/>      security_group_ids = list(string)<br/>    })<br/>  }))</pre> | `[]` | no |
+| <a name="input_lambda_name"></a> [lambda\_name](#input\_lambda\_name) | Lambda name. | `string` | n/a | yes |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| <a name="output_lambda_arn"></a> [lambda\_arn](#output\_lambda\_arn) | The ARN of the Lambda function. |
-| <a name="output_lambda_function_name"></a> [lambda\_function\_name](#output\_lambda\_function\_name) | The name of the Lambda function. |
-| <a name="output_lambda_invoke_arn"></a> [lambda\_invoke\_arn](#output\_lambda\_invoke\_arn) | The invoke ARN of the Lambda function. |
+| <a name="output_lambda_arns"></a> [lambda\_arns](#output\_lambda\_arns) | Map of Lambda ARNs, keyed by Lambda configuration name. |
+| <a name="output_lambda_function_names"></a> [lambda\_function\_names](#output\_lambda\_function\_names) | Map of Lambda function names, keyed by Lambda configuration name. |
+| <a name="output_lambda_invoke_arns"></a> [lambda\_invoke\_arns](#output\_lambda\_invoke\_arns) | Map of Lambda invoke ARNs, keyed by Lambda configuration name. |

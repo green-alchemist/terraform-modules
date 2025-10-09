@@ -126,18 +126,77 @@ def handler(event, context):
 }
 
 # Conditional nested Lambda proxy module
-module "lambda_wake_proxy" {
-  count = var.enable_lambda_proxy ? 1 : 0
+# module "lambda_wake_proxy" {
+#   count = var.enable_lambda_proxy ? 1 : 0
 
-  source                    = "git@github.com:green-alchemist/terraform-modules.git//modules/lambda-wake-proxy"
-  cluster_name              = var.cluster_name
-  service_name              = var.service_name
-  service_connect_namespace = var.service_connect_namespace
-  cloud_map_service_id      = var.cloud_map_service_id
-  target_port               = var.target_port
-  subnet_ids                = var.subnet_ids
-  security_group_ids        = var.vpc_link_security_group_ids
-  lambda_code               = local.lambda_code
+#   source                    = "git@github.com:green-alchemist/terraform-modules.git//modules/lambda-wake-proxy"
+#   cluster_name              = var.cluster_name
+#   service_name              = var.service_name
+#   service_connect_namespace = var.service_connect_namespace
+#   cloud_map_service_id      = var.cloud_map_service_id
+#   target_port               = var.target_port
+#   subnet_ids                = var.subnet_ids
+#   security_group_ids        = var.vpc_link_security_group_ids
+#   lambda_code               = local.lambda_code
+# }
+
+module "lambda_wake_proxy" {
+  source = "git@github.com:green-alchemist/terraform-modules.git//modules/lambda"
+  count  = var.enable_lambda_proxy ? 1 : 0
+
+  lambda_name = var.service_name
+  lambda_configs = [
+    {
+      name        = "wake-proxy"
+      code        = file("${path.module}/lambda_wake_proxy.py") # Your existing Python code from previous response
+      timeout     = 120
+      memory_size = 256
+      permissions = [
+        { action = "ecs:UpdateService", resource = "*" },
+        { action = "ecs:DescribeServices", resource = "*" },
+        { action = "servicediscovery:ListInstances", resource = "*" },
+        { action = "servicediscovery:GetInstancesHealthStatus", resource = "*" }
+      ]
+      environment = {
+        ECS_CLUSTER               = var.cluster_name
+        ECS_SERVICE               = var.service_name
+        TARGET_SERVICE_NAME       = var.service_name
+        SERVICE_CONNECT_NAMESPACE = var.service_connect_namespace
+        TARGET_PORT               = var.target_port
+        CLOUD_MAP_SERVICE_ID      = var.cloud_map_service_id
+        LOG_LEVEL                 = "DEBUG"
+      }
+      vpc_config = {
+        subnet_ids         = var.subnet_ids
+        security_group_ids = var.lambda_security_group_ids
+      }
+    },
+    {
+      name        = "status-poller"
+      code        = <<-EOF
+import json
+import boto3
+def handler(event, context):
+    sfn_client = boto3.client('stepfunctions')
+    execution_id = event['pathParameters']['executionId']
+    execution_arn = f"arn:aws:states:$${event['requestContext']['region']}:$${event['requestContext']['accountId']}:execution:$${event['requestContext']['stage']}:$${execution_id}"
+    try:
+        resp = sfn_client.describe_execution(executionArn=execution_arn)
+        return {
+            "statusCode": 200,
+            "headers": {"Content-Type": "application/json"},
+            "body": json.dumps({"status": resp['status'], "output": resp.get('output', '')})
+        }
+    except Exception as e:
+        return {"statusCode": 400, "body": json.dumps({"error": str(e)})}
+EOF
+      timeout     = 10
+      memory_size = 128
+      permissions = [{ action = "states:DescribeExecution", resource = "*" }]
+      environment = {}                                               # No env vars needed
+      vpc_config  = { subnet_ids = null, security_group_ids = null } # No VPC for status-poller
+    }
+  ]
 }
 
 module "step_function" {
@@ -145,7 +204,7 @@ module "step_function" {
   source = "git@github.com:green-alchemist/terraform-modules.git//modules/step-function"
 
   state_machine_name  = "${var.name}-orchestrator"
-  lambda_function_arn = module.lambda_wake_proxy[0].lambda_arn
+  lambda_function_arn = module.lambda_wake_proxy[0].lambda_arns["status-poller"]
   tags                = var.tags
   enable_logging      = true
 }
@@ -215,18 +274,13 @@ resource "aws_apigatewayv2_integration" "sfn_start" {
 
 
   request_templates = {
-    "application/json" = jsonencode({
-      "input" = jsonencode({
-        "requestContext"  = "$context.requestContext",
-        "rawPath"         = "$context.path",
-        "rawQueryString"  = "$context.queryStringParameters",
-        "body"            = "$request.body",
-        "headers"         = "$request.headers",
-        "isBase64Encoded" = "$request.isBase64Encoded"
-      }),
-      "stateMachineArn" = module.step_function[0].state_machine_arn,
-      "name"            = "$context.requestId"
-    })
+    "application/json" = <<EOF
+{
+  "stateMachineArn": "${module.step_function[0].state_machine_arn}",
+  "input": "$util.escapeJavaScript($input.json('$'))",
+  "name": "$context.requestId"
+}
+EOF
   }
   # request_parameters = var.enable_lambda_proxy ? {
   #   "Input" = jsonencode({
@@ -264,15 +318,8 @@ resource "aws_apigatewayv2_integration_response" "start_202" {
 resource "aws_apigatewayv2_integration" "sfn_status" {
   api_id                 = aws_apigatewayv2_api.this.id
   integration_type       = "AWS_PROXY"
-  integration_subtype    = "StepFunctions-DescribeExecution"
-  credentials_arn        = aws_iam_role.api_gateway_sfn_role[0].arn
-  payload_format_version = "1.0"
-
-  request_templates = {
-    "application/json" = jsonencode({
-      "executionArn" = "arn:${data.aws_partition.current.partition}:states:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:execution:${module.step_function[0].state_machine_name}:$method.request.path.executionId"
-    })
-  }
+  integration_uri        = module.lambda_wake_proxy[0].lambda_invoke_arns["status-poller"]
+  payload_format_version = "2.0"
 }
 
 resource "aws_apigatewayv2_route" "status_get" {
@@ -340,7 +387,7 @@ resource "aws_lambda_permission" "apigw" {
   count         = var.enable_lambda_proxy ? 1 : 0
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
-  function_name = module.lambda_wake_proxy[0].lambda_function_name
+  function_name = module.lambda_wake_proxy[0].lambda_function_names["status-poller"]
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*"
 }

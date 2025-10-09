@@ -12,7 +12,7 @@ No requirements.
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_lambda_wake_proxy"></a> [lambda\_wake\_proxy](#module\_lambda\_wake\_proxy) | git@github.com:green-alchemist/terraform-modules.git//modules/lambda-wake-proxy | n/a |
+| <a name="module_lambda_wake_proxy"></a> [lambda\_wake\_proxy](#module\_lambda\_wake\_proxy) | git@github.com:green-alchemist/terraform-modules.git//modules/lambda | n/a |
 | <a name="module_step_function"></a> [step\_function](#module\_step\_function) | git@github.com:green-alchemist/terraform-modules.git//modules/step-function | n/a |
 
 ## Resources
