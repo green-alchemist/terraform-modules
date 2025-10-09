@@ -19,7 +19,7 @@ Below is a list of the modules available in this repository. For detailed inform
 * [`fargate`](./modules/fargate/README.md)
 * [`internet-gateway`](./modules/internet-gateway/README.md)
 * [`lambda-proxy`](./modules/lambda-proxy/README.md)
-* [`lambda-scale-up`](./modules/lambda-scale-up/README.md)
+* [`lambda-wake-proxy`](./modules/lambda-wake-proxy/README.md)
 * [`nat-gateway`](./modules/nat-gateway/README.md)
 * [`remote-state`](./modules/remote-state/README.md)
 * [`route-tables`](./modules/route-tables/README.md)

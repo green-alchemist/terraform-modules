@@ -11,7 +11,7 @@
 * [fargate](./fargate/README.md)
 * [internet-gateway](./internet-gateway/README.md)
 * [lambda-proxy](./lambda-proxy/README.md)
-* [lambda-scale-up](./lambda-scale-up/README.md)
+* [lambda-wake-proxy](./lambda-wake-proxy/README.md)
 * [nat-gateway](./nat-gateway/README.md)
 * [remote-state](./remote-state/README.md)
 * [route-tables](./route-tables/README.md)

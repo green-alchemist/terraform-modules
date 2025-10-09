@@ -57,7 +57,6 @@ resource "aws_cloudwatch_log_group" "sfn_log_group" {
 resource "aws_sfn_state_machine" "this" {
   name     = var.state_machine_name
   role_arn = aws_iam_role.sfn_role.arn
-  type     = "EXPRESS"
   tags     = var.tags
 
   logging_configuration {
@@ -66,66 +65,43 @@ resource "aws_sfn_state_machine" "this" {
     level                  = var.log_level
   }
 
+  type = "STANDARD" # For async executions >30s
+
   definition = jsonencode({
-    Comment = "Orchestrates the scale-up, health check, and proxying for a serverless ECS task",
-    StartAt = "PrepareProxyInput",
+    Comment = "Orchestrates wake and proxy for ECS",
+    StartAt = "CheckIfHealthy",
     States = {
-      "PrepareProxyInput" : {
-        "Type" : "Pass",
-        "Parameters" : {
-          // Parse the simple input from API Gateway
-          "request_details.$" : "States.StringToJson($)",
-          // Reconstruct the 'original_request' object that the Lambda expects
-          "original_request" : {
-            "rawPath.$" : "$.path",
-            "rawQueryString.$" : "$.queryString",
-            "requestContext" : {
-              "http" : {
-                "method.$" : "$.httpMethod"
-              }
-            },
-            "body" : null,
-            "headers" : {},
-            "isBase64Encoded" : false
-          }
-        },
-        "ResultPath" : "$.preserved",
-        "Next" : "CheckIfHealthy"
-      },
-      // ... the rest of your state machine remains the same
       CheckIfHealthy = {
-        Type           = "Task",
-        Resource       = "arn:aws:states:::lambda:invoke",
-        Parameters     = { "FunctionName" = var.lambda_function_arn, "Payload" = { "action" = "checkHealth" } },
-        ResultSelector = { "body.$" = "$.Payload.body" },
-        ResultPath     = "$.health_status",
-        Next           = "IsAlreadyHealthy"
+        Type       = "Task",
+        Resource   = "arn:aws:states:::lambda:invoke",
+        Parameters = { "Payload.$" = "$.input", "FunctionName" = var.lambda_function_arn }, # Pass input for proxy later
+        ResultPath = "$.health_status",
+        Next       = "IsAlreadyHealthy"
       },
       IsAlreadyHealthy = {
         Type    = "Choice",
-        Choices = [{ "Variable" = "$.health_status.body.status", "StringEquals" = "READY", "Next" = "ProxyRequest" }],
+        Choices = [{ Variable = "$.health_status.body.status", StringEquals = "READY", Next = "ProxyRequest" }],
         Default = "ScaleUpEcsTask"
       },
       ScaleUpEcsTask = {
         Type       = "Task",
         Resource   = "arn:aws:states:::lambda:invoke",
-        Parameters = { "FunctionName" = var.lambda_function_arn, "Payload" = { "action" = "scaleUp" } },
+        Parameters = { "Payload" = { "action" = "scaleUp" }, "FunctionName" = var.lambda_function_arn },
         ResultPath = "$.scale_up_result",
-        Next       = "Wait"
+        Next       = "PollHealth" # Skip initial wait, poll with backoff in Lambda
       },
-      Wait = { "Type" = "Wait", "Seconds" = 30, "Next" = "PollHealth" },
       PollHealth = {
-        Type           = "Task",
-        Resource       = "arn:aws:states:::lambda:invoke",
-        Parameters     = { "FunctionName" = var.lambda_function_arn, "Payload" = { "action" = "checkHealth" } },
-        ResultSelector = { "body.$" = "$.Payload.body" },
-        ResultPath     = "$.health_status",
-        Next           = "IsTaskHealthyNow"
+        Type       = "Task",
+        Resource   = "arn:aws:states:::lambda:invoke",
+        Parameters = { "Payload" = { "action" = "checkHealth" }, "FunctionName" = var.lambda_function_arn },
+        ResultPath = "$.health_status",
+        Retry      = [{ ErrorEquals = ["States.ALL"], IntervalSeconds = 10, MaxAttempts = 9, BackoffRate = 1.5 }],
+        Next       = "IsTaskHealthyNow"
       },
       IsTaskHealthyNow = {
         Type    = "Choice",
-        Choices = [{ "Variable" = "$.health_status.body.status", "StringEquals" = "READY", "Next" = "ProxyRequest" }],
-        Default = "Wait"
+        Choices = [{ Variable = "$.health_status.body.status", StringEquals = "READY", Next = "ProxyRequest" }],
+        Default = "PollHealth" # Loop with retry
       },
       ProxyRequest = {
         Type     = "Task",
@@ -133,12 +109,18 @@ resource "aws_sfn_state_machine" "this" {
         Parameters = {
           "FunctionName" = var.lambda_function_arn,
           "Payload" = {
-            "action" : "proxy",
-            "original_request.$" : "$.preserved.original_request",
-            "target.$" : "$.health_status.body"
+            "action"            = "proxy",
+            "requestContext.$"  = "$.input.requestContext",
+            "rawPath.$"         = "$.input.rawPath",
+            "rawQueryString.$"  = "$.input.rawQueryString",
+            "body.$"            = "$.input.body",
+            "headers.$"         = "$.input.headers",
+            "isBase64Encoded.$" = "$.input.isBase64Encoded",
+            "target.$"          = "$.health_status.body"
           }
         },
-        End = true
+        ResultPath = "$.proxy_result",
+        End        = true
       }
     }
   })

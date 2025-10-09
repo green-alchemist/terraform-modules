@@ -1,11 +1,134 @@
 data "aws_partition" "current" {}
 data "aws_region" "current" {}
+locals {
+  lambda_code = <<-EOF
+import json
+import logging
+import os
+import time
+import boto3
+from botocore.exceptions import ClientError
+import requests  # For proxy HTTP
+
+# Setup logging
+LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+logging.basicConfig(level=LOG_LEVEL)
+logger = logging.getLogger(__name__)
+
+ecs_client = boto3.client('ecs')
+sd_client = boto3.client('servicediscovery')
+
+def scale_up_ecs_service(cluster, service, request_id):
+    try:
+        desc = ecs_client.describe_services(cluster=cluster, services=[service])
+        desired_count = desc['services'][0]['desiredCount']
+        if desired_count == 0:
+            logger.info(f"No tasks running, scaling up to 1 - request_id: {request_id}")
+            ecs_client.update_service(cluster=cluster, service=service, desiredCount=1)
+        else:
+            logger.debug(f"Tasks already running: {desired_count} - request_id: {request_id}")
+        return {'status': 'OK', 'message': 'Scale-up initiated'}
+    except ClientError as e:
+        logger.error(f"Failed to scale up: {e} - request_id: {request_id}")
+        raise
+
+def get_healthy_instance(service_id, request_id, max_attempts=12, delay=10):
+    try:
+        for attempt in range(1, max_attempts + 1):
+            list_resp = sd_client.list_instances(ServiceId=service_id)
+            instances = list_resp.get('Instances', [])
+            logger.debug(f"Listed {len(instances)} instances - attempt: {attempt}, request_id: {request_id}")
+
+            if not instances:
+                time.sleep(delay)
+                continue
+
+            health_resp = sd_client.get_instances_health_status(
+                ServiceId=service_id,
+                Instances=[inst['Id'] for inst in instances]
+            )
+            health_map = health_resp.get('Status', {})
+            healthy = [inst for inst in instances if health_map.get(inst['Id']) == 'HEALTHY']
+
+            if healthy:
+                inst = healthy[0]
+                ip = inst['Attributes']['AWS_INSTANCE_IPV4']
+                port = int(inst['Attributes'].get('AWS_INSTANCE_PORT', os.environ['TARGET_PORT']))
+                logger.info(f"Healthy instance found: {ip.rsplit('.', 1)[0]}.xxx:{port} - request_id: {request_id}")
+                return {'status': 'READY', 'ip': ip, 'port': port}
+            
+            logger.debug(f"No healthy instances yet - attempt: {attempt}, request_id: {request_id}")
+            time.sleep(delay)
+        
+        return {'status': 'PENDING'}
+    except ClientError as e:
+        logger.error(f"Failed to get healthy instance: {e} - request_id: {request_id}")
+        raise
+
+def proxy_request(event, request_id):
+    try:
+        req_ctx = event['requestContext']
+        path = event['rawPath']
+        query = event['rawQueryString']
+        body = event.get('body')
+        headers = event.get('headers', {})
+        is_base64 = event.get('isBase64Encoded', False)
+        target = event['target']
+
+        full_path = f"{path}?{query}" if query else path
+        method = req_ctx['http']['method']
+
+        # Clean headers
+        clean_headers = {k: v for k, v in headers.items() if k.lower() not in ['host', 'x-forwarded-for', 'x-forwarded-port', 'x-forwarded-proto', 'x-amzn-trace-id', 'x-amz-cf-id']}
+        clean_headers['Host'] = target['ip']
+
+        req_body = None
+        if body:
+            req_body = base64.b64decode(body) if is_base64 else body.encode('utf-8')
+            clean_headers['Content-Length'] = str(len(req_body))
+
+        logger.debug(f"Proxying {method} to {target['ip']}:{target['port']}{full_path} - request_id: {request_id}")
+
+        resp = requests.request(
+            method=method,
+            url=f"http://{target['ip']}:{target['port']}{full_path}",
+            headers=clean_headers,
+            data=req_body,
+            timeout=110  # Slightly less than Lambda timeout
+        )
+        return {
+            'statusCode': resp.status_code,
+            'headers': dict(resp.headers),
+            'body': resp.text
+        }
+    except Exception as e:
+        logger.error(f"Proxy failed: {e} - request_id: {request_id}")
+        raise
+
+def handler(event, context):
+    request_id = context.aws_request_id
+    action = event.get('action')
+    logger.info(f"Invoked with action: {action} - request_id: {request_id}")
+
+    if action == 'scaleUp':
+        return scale_up_ecs_service(os.environ['ECS_CLUSTER'], os.environ['ECS_SERVICE'], request_id)
+    
+    elif action == 'checkHealth':
+        return {'body': get_healthy_instance(os.environ['CLOUD_MAP_SERVICE_ID'], request_id)}
+    
+    elif action == 'proxy':
+        return proxy_request(event, request_id)
+    
+    else:
+        raise ValueError(f"Unknown action: {action}")
+  EOF
+}
 
 # Conditional nested Lambda proxy module
-module "lambda_scale_up" {
+module "lambda_wake_proxy" {
   count = var.enable_lambda_proxy ? 1 : 0
 
-  source                    = "git@github.com:green-alchemist/terraform-modules.git//modules/lambda-scale-up"
+  source                    = "git@github.com:green-alchemist/terraform-modules.git//modules/lambda-wake-proxy"
   cluster_name              = var.cluster_name
   service_name              = var.service_name
   service_connect_namespace = var.service_connect_namespace
@@ -13,6 +136,7 @@ module "lambda_scale_up" {
   target_port               = var.target_port
   subnet_ids                = var.subnet_ids
   security_group_ids        = var.vpc_link_security_group_ids
+  lambda_code               = locals.lambda_code
 }
 
 module "step_function" {
@@ -20,7 +144,7 @@ module "step_function" {
   source = "git@github.com:green-alchemist/terraform-modules.git//modules/step-function"
 
   state_machine_name  = "${var.name}-orchestrator"
-  lambda_function_arn = module.lambda_scale_up[0].lambda_arn
+  lambda_function_arn = module.lambda_wake_proxy[0].lambda_arn
   tags                = var.tags
   enable_logging      = true
 }
@@ -45,11 +169,11 @@ resource "aws_iam_role_policy" "api_gateway_sfn_policy" {
   role  = aws_iam_role.api_gateway_sfn_role[0].id
   policy = jsonencode({
     Version = "2012-10-17",
-    Statement = [{
-      Action   = "states:StartSyncExecution",
-      Effect   = "Allow",
-      Resource = module.step_function[0].state_machine_arn
-    }]
+    Statement = [
+      { Action = "states:StartSyncExecution", Effect = "Allow", Resource = module.step_function[0].state_machine_arn },
+      { Action = "states:StartExecution", Effect = "Allow", Resource = module.step_function[0].state_machine_arn },
+      { Action = "states:DescribeExecution", Effect = "Allow", Resource = "*" }
+    ]
   })
 }
 
@@ -68,13 +192,19 @@ resource "aws_apigatewayv2_api" "this" {
   protocol_type = "HTTP"
 }
 
-# Creates the integration that connects the API to the backend (conditional on mode)
-resource "aws_apigatewayv2_integration" "this" {
+
+
+
+
+
+
+# Integration for async start
+resource "aws_apigatewayv2_integration" "sfn_start" {
   api_id              = aws_apigatewayv2_api.this.id
-  integration_type    = var.enable_lambda_proxy ? "AWS_PROXY" : var.integration_type
+  integration_type    = var.enable_lambda_proxy ? "AWS" : var.integration_type
   integration_subtype = var.enable_lambda_proxy ? "StepFunctions-StartSyncExecution" : null
   integration_method  = var.enable_lambda_proxy ? null : var.integration_method
-  integration_uri     = var.enable_lambda_proxy ? null : var.integration_uri
+  integration_uri     = var.enable_lambda_proxy ? "arn:aws:apigateway:${data.aws_region.current.name}:states:action/StartExecution" : var.integration_uri
   connection_type     = var.enable_lambda_proxy ? null : "VPC_LINK"
   connection_id       = var.enable_lambda_proxy ? null : (var.integration_type == "HTTP_PROXY" ? aws_apigatewayv2_vpc_link.this[0].id : null)
 
@@ -83,33 +213,116 @@ resource "aws_apigatewayv2_integration" "this" {
   credentials_arn        = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
 
   request_parameters = var.enable_lambda_proxy ? {
-    "Input"           = jsonencode({
-      "body"             = "$request.body",
-      "headers"          = "$request.headers",
-      "httpMethod"       = "$context.http.method",
-      "path"             = "$context.http.path",
-      "queryString"      = "$context.http.querystring"
-    })
-    "StateMachineArn" = one(module.step_function[*].state_machine_arn)
+    "Input" = jsonencode({
+      "input" = { # Pass request details for proxy
+        "requestContext"  = "$context.requestContext",
+        "rawPath"         = "$context.path",
+        "rawQueryString"  = "$context.queryStringParameters",
+        "body"            = "$request.body",
+        "headers"         = "$request.headers",
+        "isBase64Encoded" = "$request.isBase64Encoded"
+      }
+    }),
+    "StateMachineArn" = module.step_function[0].state_machine_arn,
+    "Name"            = "$context.requestId"
   } : {}
 }
 
-# Creates routes based on route_keys (e.g., "ANY /{proxy+} for passthrough)
-resource "aws_apigatewayv2_route" "this" {
-  for_each = toset(var.route_keys)
-
-  api_id             = aws_apigatewayv2_api.this.id
-  route_key          = each.value
-  target             = "integrations/${aws_apigatewayv2_integration.this.id}"
-  authorization_type = "NONE"
+resource "aws_apigatewayv2_route" "proxy_any" {
+  api_id    = aws_apigatewayv2_api.this.id
+  route_key = "ANY /{proxy+}"
+  target    = "integrations/${aws_apigatewayv2_integration.sfn_start.id}"
 }
+
+# Response for 202
+resource "aws_apigatewayv2_integration_response" "start_202" {
+  api_id                   = aws_apigatewayv2_api.this.id
+  integration_id           = aws_apigatewayv2_integration.sfn_start.id
+  integration_response_key = "/200/"
+  response_templates = {
+    "application/json" = "{\"status\": \"Accepted\", \"executionArn\": \"$input.json('$.executionArn')\", \"pollUrl\": \"/status/$util.escapeJavaScript($input.json('$.executionArn').split(':').pop())\"}"
+  }
+}
+
+# Polling integration (DescribeExecution)
+resource "aws_apigatewayv2_integration" "sfn_status" {
+  api_id                 = aws_apigatewayv2_api.this.id
+  integration_type       = "AWS"
+  integration_uri        = "arn:aws:apigateway:${data.aws_region.current.name}:states:action/DescribeExecution"
+  credentials_arn        = aws_iam_role.api_gateway_sfn_role[0].arn
+  payload_format_version = "1.0"
+
+  request_parameters = {
+    "ExecutionArn" = "arn:${data.aws_partition.current.partition}:states:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:execution:${module.step_function[0].state_machine_name}:$method.request.path.executionId"
+  }
+}
+
+resource "aws_apigatewayv2_route" "status_get" {
+  api_id    = aws_apigatewayv2_api.this.id
+  route_key = "GET /status/{executionId}"
+  target    = "integrations/${aws_apigatewayv2_integration.sfn_status.id}"
+}
+
+resource "aws_apigatewayv2_integration_response" "status_200" {
+  api_id                   = aws_apigatewayv2_api.this.id
+  integration_id           = aws_apigatewayv2_integration.sfn_status.id
+  integration_response_key = "/200/"
+  response_templates = {
+    "application/json" = "{\"status\": \"$input.json('$.status')\", \"output\": \"$util.escapeJavaScript($input.json('$.output'))\"}"
+  }
+}
+
+
+
+
+
+
+
+
+
+
+# Creates the integration that connects the API to the backend (conditional on mode)
+# resource "aws_apigatewayv2_integration" "this" {
+#   api_id              = aws_apigatewayv2_api.this.id
+#   integration_type    = var.enable_lambda_proxy ? "AWS_PROXY" : var.integration_type
+#   integration_subtype = var.enable_lambda_proxy ? "StepFunctions-StartSyncExecution" : null
+#   integration_method  = var.enable_lambda_proxy ? null : var.integration_method
+#   integration_uri     = var.enable_lambda_proxy ? null : var.integration_uri
+#   connection_type     = var.enable_lambda_proxy ? null : "VPC_LINK"
+#   connection_id       = var.enable_lambda_proxy ? null : (var.integration_type == "HTTP_PROXY" ? aws_apigatewayv2_vpc_link.this[0].id : null)
+
+#   payload_format_version = var.enable_lambda_proxy ? "1.0" : "2.0"
+#   timeout_milliseconds   = var.enable_lambda_proxy ? null : var.integration_timeout_millis
+#   credentials_arn        = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
+
+#   request_parameters = var.enable_lambda_proxy ? {
+#     "Input" = jsonencode({
+#       "body"        = "$request.body",
+#       "headers"     = "$request.headers",
+#       "httpMethod"  = "$context.http.method",
+#       "path"        = "$context.http.path",
+#       "queryString" = "$context.http.querystring"
+#     })
+#     "StateMachineArn" = one(module.step_function[*].state_machine_arn)
+#   } : {}
+# }
+
+# Creates routes based on route_keys (e.g., "ANY /{proxy+} for passthrough)
+# resource "aws_apigatewayv2_route" "this" {
+#   for_each = toset(var.route_keys)
+
+#   api_id             = aws_apigatewayv2_api.this.id
+#   route_key          = each.value
+#   target             = "integrations/${aws_apigatewayv2_integration.this.id}"
+#   authorization_type = "NONE"
+# }
 
 # Lambda permission (internal, conditional)
 resource "aws_lambda_permission" "apigw" {
   count         = var.enable_lambda_proxy ? 1 : 0
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
-  function_name = module.lambda_scale_up[0].lambda_function_name
+  function_name = module.lambda_wake_proxy[0].lambda_function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*"
 }
