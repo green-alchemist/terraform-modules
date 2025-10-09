@@ -73,7 +73,8 @@ resource "aws_sfn_state_machine" "this" {
       "PreserveOriginalInput" : {
         "Type" : "Pass",
         "Parameters" : {
-          "original_request.$" : "States.StringToJson($)"
+          "original_request.$" : "States.StringToJson($.input)"k
+          
         },
         "ResultPath" : "$.preserved",
         "Next" : "CheckIfHealthy"
