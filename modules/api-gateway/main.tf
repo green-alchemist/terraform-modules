@@ -1,5 +1,6 @@
 data "aws_partition" "current" {}
 data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
 locals {
   lambda_code = <<-EOF
 import json
@@ -204,7 +205,7 @@ resource "aws_apigatewayv2_integration" "sfn_start" {
   integration_type    = var.enable_lambda_proxy ? "AWS" : var.integration_type
   integration_subtype = var.enable_lambda_proxy ? "StepFunctions-StartSyncExecution" : null
   integration_method  = var.enable_lambda_proxy ? null : var.integration_method
-  integration_uri     = var.enable_lambda_proxy ? "arn:aws:apigateway:${data.aws_region.current.name}:states:action/StartExecution" : var.integration_uri
+  integration_uri     = var.enable_lambda_proxy ? "arn:aws:apigateway:${data.aws_region.current.id}:states:action/StartExecution" : var.integration_uri
   connection_type     = var.enable_lambda_proxy ? null : "VPC_LINK"
   connection_id       = var.enable_lambda_proxy ? null : (var.integration_type == "HTTP_PROXY" ? aws_apigatewayv2_vpc_link.this[0].id : null)
 
@@ -248,12 +249,12 @@ resource "aws_apigatewayv2_integration_response" "start_202" {
 resource "aws_apigatewayv2_integration" "sfn_status" {
   api_id                 = aws_apigatewayv2_api.this.id
   integration_type       = "AWS"
-  integration_uri        = "arn:aws:apigateway:${data.aws_region.current.name}:states:action/DescribeExecution"
+  integration_uri        = "arn:aws:apigateway:${data.aws_region.current.id}:states:action/DescribeExecution"
   credentials_arn        = aws_iam_role.api_gateway_sfn_role[0].arn
   payload_format_version = "1.0"
 
   request_parameters = {
-    "ExecutionArn" = "arn:${data.aws_partition.current.partition}:states:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:execution:${module.step_function[0].state_machine_name}:$method.request.path.executionId"
+    "ExecutionArn" = "arn:${data.aws_partition.current.partition}:states:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:execution:${module.step_function[0].state_machine_name}:$method.request.path.executionId"
   }
 }
 
