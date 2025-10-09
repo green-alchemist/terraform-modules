@@ -46,13 +46,21 @@ resource "aws_iam_role_policy" "this" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = concat(
-      each.value.permissions,
+      [
+        for perm in each.value.permissions : {
+          Effect   = "Allow"
+          Action   = perm.Action
+          Resource = perm.Resource
+        }
+      ],
       [
         {
           Effect   = "Allow"
           Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
           Resource = "arn:aws:logs:*:*:*"
-        },
+        }
+      ],
+      length(each.value.vpc_config.subnet_ids) > 0 && length(each.value.vpc_config.security_group_ids) > 0 ? [
         {
           Effect = "Allow"
           Action = [
@@ -62,7 +70,7 @@ resource "aws_iam_role_policy" "this" {
           ]
           Resource = "*"
         }
-      ]
+      ] : []
     )
   })
 }

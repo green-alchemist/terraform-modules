@@ -2,7 +2,80 @@ data "aws_partition" "current" {}
 data "aws_region" "current" {}
 data "aws_caller_identity" "current" {}
 locals {
-  lambda_code = <<-EOF
+  strapi_loader = <<-EOF
+    import json
+
+    def handler(event, context):
+        return {
+            "statusCode": 200,
+            "headers": {"Content-Type": "text/html"},
+            "body": f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Loading Strapi Admin</title>
+        <style>
+            body {{ display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: Arial; }}
+            .spinner {{ font-size: 24px; }}
+        </style>
+    </head>
+    <body>
+        <div class="spinner">Loading Strapi Admin...</div>
+        <script>
+            async function fetchWithWake(url) {{
+                try {{
+                    let response = await fetch(url);
+                    if (response.status === 202) {{
+                        const {{ executionArn, pollUrl }} = await response.json();
+                        console.log(`ECS waking up, polling $${pollUrl}...`);
+                        while (true) {{
+                            const statusRes = await fetch(`$${process.env.API_GATEWAY_URL}$${pollUrl}`);
+                            const {{ status, output }} = await statusRes.json();
+                            if (status === 'SUCCEEDED') {{
+                                console.log('ECS ready, redirecting to $${event['rawPath']}');
+                                window.location.href = url; // Redirect to original Strapi path
+                                return;
+                            }}
+                            if (['FAILED', 'TIMED_OUT', 'ABORTED'].includes(status)) {{
+                                throw new Error(`Step Functions failed: $${status}, $${output}`);
+                            }}
+                            await new Promise(resolve => setTimeout(resolve, 5000));
+                        }}
+                    }} else {{
+                        window.location.href = url; // Already warm, redirect
+                    }}
+                }} catch (error) {{
+                    console.error('Error:', error);
+                    document.body.innerHTML = `<div>Error: $${error.message}</div>`;
+                }}
+            }}
+            fetchWithWake('$${event['rawPath'] || '/admin'}');
+        </script>
+    </body>
+    </html>
+    """
+        }
+    EOF
+
+  status_poller = <<-EOF
+    import json
+    import boto3
+    def handler(event, context):
+        sfn_client = boto3.client('stepfunctions')
+        execution_id = event['pathParameters']['executionId']
+        execution_arn = f"arn:aws:states:$${event['requestContext']['region']}:$${event['requestContext']['accountId']}:execution:$${event['requestContext']['stage']}:$${execution_id}"
+        try:
+            resp = sfn_client.describe_execution(executionArn=execution_arn)
+            return {
+                "statusCode": 200,
+                "headers": {"Content-Type": "application/json"},
+                "body": json.dumps({"status": resp['status'], "output": resp.get('output', '')})
+            }
+        except Exception as e:
+            return {"statusCode": 400, "body": json.dumps({"error": str(e)})}
+    EOF
+
+  wake_proxy = <<-EOF
 import json
 import logging
 import os
@@ -133,7 +206,7 @@ module "lambdas" {
   lambda_configs = [
     {
       name        = "wake-proxy"
-      code        = local.lambda_code
+      code        = local.wake_proxy
       timeout     = 120
       memory_size = 256
       permissions = [
@@ -159,23 +232,7 @@ module "lambdas" {
     },
     {
       name        = "status-poller"
-      code        = <<-EOF
-    import json
-    import boto3
-    def handler(event, context):
-        sfn_client = boto3.client('stepfunctions')
-        execution_id = event['pathParameters']['executionId']
-        execution_arn = f"arn:aws:states:$${event['requestContext']['region']}:$${event['requestContext']['accountId']}:execution:$${event['requestContext']['stage']}:$${execution_id}"
-        try:
-            resp = sfn_client.describe_execution(executionArn=execution_arn)
-            return {
-                "statusCode": 200,
-                "headers": {"Content-Type": "application/json"},
-                "body": json.dumps({"status": resp['status'], "output": resp.get('output', '')})
-            }
-        except Exception as e:
-            return {"statusCode": 400, "body": json.dumps({"error": str(e)})}
-    EOF
+      code        = local.status_poller
       timeout     = 10
       memory_size = 128
       permissions = [{ Effect = "Allow", Action = "states:DescribeExecution", Resource = "*" }]
@@ -187,60 +244,7 @@ module "lambdas" {
     },
     {
       name        = "strapi-loader"
-      code        = <<-EOF
-    import json
-
-    def handler(event, context):
-        return {
-            "statusCode": 200,
-            "headers": {"Content-Type": "text/html"},
-            "body": f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Loading Strapi Admin</title>
-        <style>
-            body {{ display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: Arial; }}
-            .spinner {{ font-size: 24px; }}
-        </style>
-    </head>
-    <body>
-        <div class="spinner">Loading Strapi Admin...</div>
-        <script>
-            async function fetchWithWake(url) {{
-                try {{
-                    let response = await fetch(url);
-                    if (response.status === 202) {{
-                        const {{ executionArn, pollUrl }} = await response.json();
-                        console.log(`ECS waking up, polling $${pollUrl}...`);
-                        while (true) {{
-                            const statusRes = await fetch(`$${process.env.API_GATEWAY_URL}$${pollUrl}`);
-                            const {{ status, output }} = await statusRes.json();
-                            if (status === 'SUCCEEDED') {{
-                                console.log('ECS ready, redirecting to $${event['rawPath']}');
-                                window.location.href = url; // Redirect to original Strapi path
-                                return;
-                            }}
-                            if (['FAILED', 'TIMED_OUT', 'ABORTED'].includes(status)) {{
-                                throw new Error(`Step Functions failed: $${status}, $${output}`);
-                            }}
-                            await new Promise(resolve => setTimeout(resolve, 5000));
-                        }}
-                    }} else {{
-                        window.location.href = url; // Already warm, redirect
-                    }}
-                }} catch (error) {{
-                    console.error('Error:', error);
-                    document.body.innerHTML = `<div>Error: $${error.message}</div>`;
-                }}
-            }}
-            fetchWithWake('$${event['rawPath'] || '/admin'}');
-        </script>
-    </body>
-    </html>
-    """
-        }
-    EOF
+      code        = local.strapi_loader
       timeout     = 10
       memory_size = 128
       permissions = [
