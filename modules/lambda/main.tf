@@ -17,7 +17,7 @@ resource "aws_lambda_function" "this" {
   }
 
   dynamic "vpc_config" {
-    for_each = each.value.vpc_config.subnet_ids != null && each.value.vpc_config.security_group_ids != null ? [1] : []
+    for_each = length(each.value.vpc_config.subnet_ids) > 0 && length(each.value.vpc_config.security_group_ids) > 0 ? [1] : []
     content {
       subnet_ids         = each.value.vpc_config.subnet_ids
       security_group_ids = each.value.vpc_config.security_group_ids
@@ -53,6 +53,8 @@ resource "aws_iam_role_policy" "this" {
           Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
           Resource = "arn:aws:logs:*:*:*"
         },
+      ],
+      length(each.value.vpc_config.subnet_ids) > 0 && length(each.value.vpc_config.security_group_ids) > 0 ? [
         {
           Effect = "Allow"
           Action = [
@@ -62,7 +64,7 @@ resource "aws_iam_role_policy" "this" {
           ]
           Resource = "*"
         }
-      ]
+      ] : []
     )
   })
 }

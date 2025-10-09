@@ -21,4 +21,13 @@ variable "lambda_configs" {
   }))
   description = "List of Lambda configurations (name, code, timeout, memory, permissions, env vars, VPC)"
   default     = []
+
+  validation {
+    condition = alltrue([
+      for cfg in var.lambda_configs :
+      (length(cfg.vpc_config.subnet_ids) == 0 && length(cfg.vpc_config.security_group_ids) == 0) ||
+      (length(cfg.vpc_config.subnet_ids) > 0 && length(cfg.vpc_config.security_group_ids) > 0)
+    ])
+    error_message = "Each Lambda config must have both subnet_ids and security_group_ids as non-empty lists or both as empty lists."
+  }
 }
