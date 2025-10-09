@@ -364,9 +364,9 @@ resource "aws_apigatewayv2_integration" "sfn_start" {
 
 
   request_templates = {
-    "application/json" = <<EOF
+    "application/json" = <<-EOF
 {
-  "stateMachineArn": "${module.step_function[0].state_machine_arn}",
+  "stateMachineArn": "$${module.step_function[0].state_machine_arn}",
   "input": "$util.escapeJavaScript($input.json('$'))",
   "name": "$context.requestId"
 }
