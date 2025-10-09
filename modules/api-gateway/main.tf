@@ -136,7 +136,7 @@ module "lambda_wake_proxy" {
   target_port               = var.target_port
   subnet_ids                = var.subnet_ids
   security_group_ids        = var.vpc_link_security_group_ids
-  lambda_code               = locals.lambda_code
+  lambda_code               = local.lambda_code
 }
 
 module "step_function" {

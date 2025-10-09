@@ -85,7 +85,7 @@ data "archive_file" "lambda_zip" {
 }
 
 locals {
-  lambda_code = <<-EOF
+  default_code = <<-EOF
 import http from 'http';
 import { ECSClient, UpdateServiceCommand, DescribeServicesCommand } from '@aws-sdk/client-ecs';
 import { ServiceDiscoveryClient, ListInstancesCommand, GetInstancesHealthStatusCommand } from '@aws-sdk/client-servicediscovery';
