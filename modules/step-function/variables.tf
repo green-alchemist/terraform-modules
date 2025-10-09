@@ -31,3 +31,9 @@ variable "include_execution_data" {
   type        = bool
   default     = true
 }
+
+variable "definition" {
+  type        = string
+  default     = ""
+  description = "Custom Step Function definition (JSON string). If empty, uses default definition."
+}

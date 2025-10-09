@@ -84,17 +84,17 @@ resource "aws_sfn_state_machine" "this" {
         Default = "ScaleUpEcsTask"
       },
       ScaleUpEcsTask = {
-        Type       = "Task",
-        Resource   = "arn:aws:states:::lambda:invoke",
+        Type     = "Task",
+        Resource = "arn:aws:states:::lambda:invoke",
         Parameters = {
           "Payload" = {
-            "action" = "scaleUp",
+            "action"         = "scaleUp",
             "executionArn.$" = "$$.Execution.Id"
           },
           "FunctionName" = var.lambda_function_arn
         },
         ResultPath = "$.scale_up_result",
-        End        = true  # End here to return the scale-up response
+        End        = true # End here to return the scale-up response
       },
       PollHealth = {
         Type       = "Task",

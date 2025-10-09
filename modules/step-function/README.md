@@ -25,6 +25,7 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
+| <a name="input_definition"></a> [definition](#input\_definition) | Custom Step Function definition (JSON string). If empty, uses default definition. | `string` | `""` | no |
 | <a name="input_enable_logging"></a> [enable\_logging](#input\_enable\_logging) | Set to true to enable CloudWatch logging for the state machine. | `bool` | `true` | no |
 | <a name="input_include_execution_data"></a> [include\_execution\_data](#input\_include\_execution\_data) | Determines whether execution data is included in your log. When set to false, data is excluded. | `bool` | `true` | no |
 | <a name="input_lambda_function_arn"></a> [lambda\_function\_arn](#input\_lambda\_function\_arn) | ARN of the Lambda function to be invoked by the state machine. | `string` | n/a | yes |
