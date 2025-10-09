@@ -137,10 +137,10 @@ module "lambdas" {
       timeout     = 120
       memory_size = 256
       permissions = [
-        { action = "ecs:UpdateService", resource = "*" },
-        { action = "ecs:DescribeServices", resource = "*" },
-        { action = "servicediscovery:ListInstances", resource = "*" },
-        { action = "servicediscovery:GetInstancesHealthStatus", resource = "*" }
+        { Action = "ecs:UpdateService", resource = "*" },
+        { Action = "ecs:DescribeServices", resource = "*" },
+        { Action = "servicediscovery:ListInstances", resource = "*" },
+        { Action = "servicediscovery:GetInstancesHealthStatus", resource = "*" }
       ]
       environment = {
         ECS_CLUSTER               = var.cluster_name
@@ -177,7 +177,7 @@ def handler(event, context):
 EOF
       timeout     = 10
       memory_size = 128
-      permissions = [{ action = "states:DescribeExecution", resource = "*" }]
+      permissions = [{ Action = "states:DescribeExecution", resource = "*" }]
       environment = {}                                               # No env vars needed
       vpc_config = {
         subnet_ids         = []
@@ -243,8 +243,8 @@ EOF
       timeout = 10
       memory_size = 128
       permissions = [
-        { action = "logs:CreateLogStream", resource = "arn:aws:logs:*:*:*" },
-        { action = "logs:PutLogEvents", resource = "arn:aws:logs:*:*:*" }
+        { Action = "logs:CreateLogStream", resource = "arn:aws:logs:*:*:*" },
+        { Action = "logs:PutLogEvents", resource = "arn:aws:logs:*:*:*" }
       ]
       environment = {
         API_GATEWAY_URL = aws_apigatewayv2_api.this.api_endpoint
@@ -260,7 +260,7 @@ EOF
 # Ensure API Gateway route for strapi-loader
 resource "aws_lambda_permission" "loader_apigw" {
   statement_id  = "AllowExecutionFromAPIGatewayLoader"
-  action        = "lambda:InvokeFunction"
+  Action        = "lambda:InvokeFunction"
   function_name = module.lambdas[0].lambda_function_names["strapi-loader"]
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*"
