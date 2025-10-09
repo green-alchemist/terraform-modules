@@ -54,7 +54,7 @@ resource "aws_iam_role_policy" "this" {
           Resource = "arn:aws:logs:*:*:*"
         },
       ],
-      length(each.value.vpc_config.subnet_ids) > 0 && length(each.value.vpc_config.security_group_ids) > 0 ? [
+      [
         {
           Effect = "Allow"
           Action = [
@@ -64,7 +64,7 @@ resource "aws_iam_role_policy" "this" {
           ]
           Resource = "*"
         }
-      ] : []
+      ]
     )
   })
 }
