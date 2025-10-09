@@ -197,25 +197,20 @@ export const handler = async (event, context) => {
                 }
 
             case 'proxy':
-                const originalRequest = event.original_request;
-                const targetInfo = event.target;
+                const {
+                    requestContext,
+                    rawPath,
+                    body,
+                    headers,
+                    isBase64Encoded,
+                    rawQueryString,
+                    target: targetInfo
+                } = event;
 
-                // --- THIS IS THE NEW LOGGING LINE ---
-                log('DEBUG', 'Proxy action received original_request', { requestId, originalRequest });
-
-                const requestPath = originalRequest.rawPath || '/';
-                const queryString = originalRequest.rawQueryString ? `?$${originalRequest.rawQueryString}` : '';
-                const fullPath = `$${requestPath}$${queryString}`;
+                log('DEBUG', 'Proxy action received request details', { requestId });
                 
-                const httpMethod = originalRequest.requestContext.http.method;
-                const headers = originalRequest.headers || {};
-                const body = originalRequest.body;
-                const isBase64 = originalRequest.isBase64Encoded || false;
-                
-                let requestBody = body;
-                if (body && isBase64) {
-                    requestBody = Buffer.from(body, 'base64').toString('utf-8');
-                }
+                const pathWithQuery = rawQueryString ? `\$${rawPath}?\$${rawQueryString}` : rawPath;
+                const httpMethod = requestContext.http.method;
 
                 const cleanHeaders = Object.entries(headers).reduce((acc, [key, value]) => {
                     const lowerKey = key.toLowerCase();
@@ -226,6 +221,16 @@ export const handler = async (event, context) => {
                 }, {});
 
                 cleanHeaders['Host'] = targetInfo.ip;
+                
+                let requestBody = body;
+                if (body && isBase64Encoded) {
+                    requestBody = Buffer.from(body, 'base64');
+                } else if (body) {
+                    requestBody = body;
+                } else {
+                    requestBody = null; // Explicitly null for GET/DELETE etc.
+                }
+
                 if (requestBody) {
                     cleanHeaders['Content-Length'] = Buffer.byteLength(requestBody);
                 }
@@ -233,7 +238,7 @@ export const handler = async (event, context) => {
                 const response = await makeHttpRequest({
                     hostname: targetInfo.ip,
                     port: targetInfo.port,
-                    path: fullPath,
+                    path: pathWithQuery,
                     method: httpMethod,
                     headers: cleanHeaders,
                     body: requestBody,
@@ -242,11 +247,10 @@ export const handler = async (event, context) => {
                 return response;
 
             default:
-                throw new Error(`Unknown action specified: $${event.action}`);
+                throw new Error(`Unknown action specified: \$${event.action}`);
         }
     } catch (error) {
-        log('ERROR', 'Lambda execution failed', { requestId, action: event.action, error: error.message });
-        // Re-throw to fail the Step Function state
+        log('ERROR', 'Lambda execution failed', { requestId, action: event.action, error: error.message, stack: error.stack });
         throw error;
     }
 };
