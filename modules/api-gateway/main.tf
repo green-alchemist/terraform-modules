@@ -125,21 +125,6 @@ def handler(event, context):
   EOF
 }
 
-# Conditional nested Lambda proxy module
-# module "lambda_wake_proxy" {
-#   count = var.enable_lambda_proxy ? 1 : 0
-
-#   source                    = "git@github.com:green-alchemist/terraform-modules.git//modules/lambda-wake-proxy"
-#   cluster_name              = var.cluster_name
-#   service_name              = var.service_name
-#   service_connect_namespace = var.service_connect_namespace
-#   cloud_map_service_id      = var.cloud_map_service_id
-#   target_port               = var.target_port
-#   subnet_ids                = var.subnet_ids
-#   security_group_ids        = var.vpc_link_security_group_ids
-#   lambda_code               = local.lambda_code
-# }
-
 module "lambdas" {
   source = "git@github.com:green-alchemist/terraform-modules.git//modules/lambda"
   count  = var.enable_lambda_proxy ? 1 : 0
