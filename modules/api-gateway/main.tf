@@ -83,7 +83,13 @@ resource "aws_apigatewayv2_integration" "this" {
   credentials_arn        = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
 
   request_parameters = var.enable_lambda_proxy ? {
-    "Input"           = "{\\\"httpMethod\\\":\\\"$context.http.method\\\",\\\"path\\\":\\\"$context.http.path\\\",\\\"queryString\\\":\\\"$context.http.querystring\\\"}"
+    "Input"           = jsonencode({
+      "body"             = "$request.body",
+      "headers"          = "$request.headers",
+      "httpMethod"       = "$context.http.method",
+      "path"             = "$context.http.path",
+      "queryString"      = "$context.http.querystring"
+    })
     "StateMachineArn" = one(module.step_function[*].state_machine_arn)
   } : {}
 }
