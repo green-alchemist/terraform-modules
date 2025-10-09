@@ -73,7 +73,15 @@ resource "aws_sfn_state_machine" "this" {
       "PreserveOriginalInput" : {
         "Type" : "Pass",
         "Parameters" : {
-          "original_request.$" : "States.StringToJson($.input)"
+          // Construct the object the Lambda expects, using the path from the input
+          "original_request" : {
+            "rawPath.$" : "$.rawPath", // Use the path passed from API Gateway
+            "requestContext" : {
+              "http" : {
+                "method" : "GET" // Hardcode GET as we know this is the only method
+              }
+            }
+          }
         },
         "ResultPath" : "$.preserved",
         "Next" : "CheckIfHealthy"
@@ -119,7 +127,7 @@ resource "aws_sfn_state_machine" "this" {
           "FunctionName" = var.lambda_function_arn,
           "Payload" = {
             "action" : "proxy",
-            "original_request.$" : "$.preserved.original_request",
+            "original_request.$" : "$.preserved.original_request", // Pass the newly constructed object
             "target.$" : "$.health_status.body"
           }
         },
