@@ -293,7 +293,7 @@ module "step_function" {
   source = "git@github.com:green-alchemist/terraform-modules.git//modules/step-function"
 
   state_machine_name  = "${var.name}-orchestrator"
-  lambda_function_arn = module.lambdas[0].lambda_arns["status-poller"]
+  lambda_function_arn = module.lambdas[0].lambda_arns["wake-proxy"]
   tags                = var.tags
   enable_logging      = true
 }
