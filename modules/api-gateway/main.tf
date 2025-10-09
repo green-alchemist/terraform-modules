@@ -155,7 +155,7 @@ module "lambdas" {
         subnet_ids         = var.subnet_ids
         security_group_ids = var.lambda_security_group_ids
       }
-#     },
+    },
 #     {
 #       name        = "status-poller"
 #       code        = <<-EOF
