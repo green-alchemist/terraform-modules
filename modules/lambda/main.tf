@@ -71,7 +71,7 @@ data "archive_file" "lambda_zip" {
   for_each = { for cfg in var.lambda_configs : cfg.name => cfg }
 
   type        = "zip"
-  output_path = "${path.module}/.terraform/lambda-${var.lambda_name}.zip"
+  output_path = "${path.module}/.terraform/lambda-${var.lambda_name}${each.key}.zip"
   source {
     content  = each.value.code
     filename = "index.py"
