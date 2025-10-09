@@ -1,11 +1,12 @@
-resource "aws_lambda_function" "scale_trigger" {
+resource "aws_lambda_function" "wake_proxy" {
   filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
-  function_name    = "${var.service_name}-scale-trigger"
+  function_name    = "${var.service_name}-wake-proxy"
   role             = aws_iam_role.lambda.arn
   handler          = "index.handler"
-  runtime          = "nodejs20.x"
-  timeout          = 90
+  runtime          = "python3.12"
+  timeout          = 120 # Longer for proxy/polling
+  memory_size      = 256 # Adjustable
 
   environment {
     variables = {
@@ -14,8 +15,8 @@ resource "aws_lambda_function" "scale_trigger" {
       TARGET_SERVICE_NAME       = var.service_name
       SERVICE_CONNECT_NAMESPACE = var.service_connect_namespace
       TARGET_PORT               = var.target_port
-      LOG_LEVEL                 = "DEBUG"
       CLOUD_MAP_SERVICE_ID      = var.cloud_map_service_id
+      LOG_LEVEL                 = "DEBUG"
     }
   }
 
@@ -78,8 +79,8 @@ data "archive_file" "lambda_zip" {
   output_path = "${path.module}/.terraform/lambda-${var.service_name}.zip"
 
   source {
-    content  = local.lambda_code
-    filename = "index.mjs"
+    content  = var.lambda_code != "" ? var.lambda_code : local.default_code # Fallback to local if needed
+    filename = "index.py"
   }
 }
 

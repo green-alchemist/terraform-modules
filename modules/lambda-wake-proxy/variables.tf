@@ -32,3 +32,9 @@ variable "security_group_ids" {
   description = "List of security group IDs for the Lambda VPC config"
   type        = list(string)
 }
+
+variable "lambda_code" {
+  type        = string
+  description = "Python code for the Lambda handler"
+  default     = "" # Or set a default heredoc
+}
