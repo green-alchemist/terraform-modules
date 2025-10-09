@@ -70,7 +70,7 @@ resource "aws_sfn_state_machine" "this" {
     Comment = "Orchestrates the scale-up, health check, and proxying for a serverless ECS task",
     StartAt = "PreserveOriginalInput",
     States = {
-      "PrepareProxyInput" : {
+      "PreserveOriginalInput" : {
         "Type" : "Pass",
         "Parameters" : {
           "original_request.$" : "States.StringToJson($.input)"
