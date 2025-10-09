@@ -137,10 +137,10 @@ module "lambdas" {
       timeout     = 120
       memory_size = 256
       permissions = [
-        { Action = "ecs:UpdateService", resource = "*" },
-        { Action = "ecs:DescribeServices", resource = "*" },
-        { Action = "servicediscovery:ListInstances", resource = "*" },
-        { Action = "servicediscovery:GetInstancesHealthStatus", resource = "*" }
+        { Action = "ecs:UpdateService", Resource = "*" },
+        { Action = "ecs:DescribeServices", Resource = "*" },
+        { Action = "servicediscovery:ListInstances", Resource = "*" },
+        { Action = "servicediscovery:GetInstancesHealthStatus", Resource = "*" }
       ]
       environment = {
         ECS_CLUSTER               = var.cluster_name
@@ -177,7 +177,7 @@ def handler(event, context):
 EOF
       timeout     = 10
       memory_size = 128
-      permissions = [{ Action = "states:DescribeExecution", resource = "*" }]
+      permissions = [{ Action = "states:DescribeExecution", Resource = "*" }]
       environment = {} # No env vars needed
       vpc_config = {
         subnet_ids         = []
@@ -243,8 +243,8 @@ EOF
       timeout     = 10
       memory_size = 128
       permissions = [
-        { Action = "logs:CreateLogStream", resource = "arn:aws:logs:*:*:*" },
-        { Action = "logs:PutLogEvents", resource = "arn:aws:logs:*:*:*" }
+        { Action = "logs:CreateLogStream", Resource = "arn:aws:logs:*:*:*" },
+        { Action = "logs:PutLogEvents", Resource = "arn:aws:logs:*:*:*" }
       ]
       environment = {
         API_GATEWAY_URL = aws_apigatewayv2_api.this.api_endpoint
