@@ -179,10 +179,10 @@ EOF
       memory_size = 128
       permissions = [{ Action = "states:DescribeExecution", Resource = "*" }]
       environment = {} # No env vars needed
-      # vpc_config = {
-      #   subnet_ids         = []
-      #   security_group_ids = []
-      # }
+      vpc_config = {
+        subnet_ids         = []
+        security_group_ids = []
+      }
     },
     {
       name        = "strapi-loader"
@@ -249,10 +249,10 @@ EOF
       environment = {
         API_GATEWAY_URL = aws_apigatewayv2_api.this.api_endpoint
       }
-      # vpc_config = {
-      #   subnet_ids         = []
-      #   security_group_ids = []
-      # }
+      vpc_config = {
+        subnet_ids         = []
+        security_group_ids = []
+      }
     }
   ]
 }
