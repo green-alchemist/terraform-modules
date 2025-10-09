@@ -152,8 +152,8 @@ module "lambdas" {
         LOG_LEVEL                 = "DEBUG"
       }
       vpc_config = {
-        subnet_ids         = coalescelist(var.subnet_ids, ["subnet-0a5f4d67d790b1154", "subnet-0bb1b4b3d40464d04"])
-        security_group_ids = coalescelist(var.lambda_security_group_ids, ["sg-1234567890abcdef0"])
+        subnet_ids         = [var.subnet_ids]
+        security_group_ids = [var.lambda_security_group_ids]
       }
     },
     {
