@@ -363,7 +363,7 @@ resource "aws_apigatewayv2_integration" "sfn_start" {
   credentials_arn        = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
 
 
-  request_templates = {
+  request_templates = var.enable_lambda_proxy ? {
     "application/json" = <<-EOF
 {
   "stateMachineArn": "$${module.step_function[0].state_machine_arn}",
@@ -371,7 +371,13 @@ resource "aws_apigatewayv2_integration" "sfn_start" {
   "name": "$context.requestId"
 }
 EOF
-  }
+  } : {}
+
+  request_parameters = var.enable_lambda_proxy ? {
+    "StateMachineArn" = module.step_function[0].state_machine_arn
+    "Input"           = "$request.body"
+    "Name"            = "$context.requestId"
+  } : {}
   # request_parameters = var.enable_lambda_proxy ? {
   #   "Input" = jsonencode({
   #     "input" = { # Pass request details for proxy
