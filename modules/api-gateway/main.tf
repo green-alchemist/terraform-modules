@@ -82,7 +82,7 @@ import os
 import time
 import boto3
 from botocore.exceptions import ClientError
-import requests  # For proxy HTTP
+import requests
 
 # Setup logging
 LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
@@ -92,7 +92,7 @@ logger = logging.getLogger(__name__)
 ecs_client = boto3.client('ecs')
 sd_client = boto3.client('servicediscovery')
 
-def scale_up_ecs_service(cluster, service, request_id):
+def scale_up_ecs_service(cluster, service, request_id, execution_arn):
     try:
         desc = ecs_client.describe_services(cluster=cluster, services=[service])
         desired_count = desc['services'][0]['desiredCount']
@@ -101,7 +101,11 @@ def scale_up_ecs_service(cluster, service, request_id):
             ecs_client.update_service(cluster=cluster, service=service, desiredCount=1)
         else:
             logger.debug(f"Tasks already running: {desired_count} - request_id: {request_id}")
-        return {'status': 'OK', 'message': 'Scale-up initiated'}
+        return {
+            "status": "Accepted",
+            "executionArn": execution_arn,
+            "pollUrl": f"/status/$${execution_arn.split(':')[-1]}"
+        }
     except ClientError as e:
         logger.error(f"Failed to scale up: {e} - request_id: {request_id}")
         raise
@@ -152,7 +156,6 @@ def proxy_request(event, request_id):
         full_path = f"{path}?{query}" if query else path
         method = req_ctx['http']['method']
 
-        # Clean headers
         clean_headers = {k: v for k, v in headers.items() if k.lower() not in ['host', 'x-forwarded-for', 'x-forwarded-port', 'x-forwarded-proto', 'x-amzn-trace-id', 'x-amz-cf-id']}
         clean_headers['Host'] = target['ip']
 
@@ -168,7 +171,7 @@ def proxy_request(event, request_id):
             url=f"http://{target['ip']}:{target['port']}{full_path}",
             headers=clean_headers,
             data=req_body,
-            timeout=110  # Slightly less than Lambda timeout
+            timeout=110
         )
         return {
             'statusCode': resp.status_code,
@@ -182,10 +185,11 @@ def proxy_request(event, request_id):
 def handler(event, context):
     request_id = context.aws_request_id
     action = event.get('action')
+    execution_arn = context.invoked_function_arn  # Use Lambda's ARN or pass executionArn from Step Function
     logger.info(f"Invoked with action: {action} - request_id: {request_id}")
 
     if action == 'scaleUp':
-        return scale_up_ecs_service(os.environ['ECS_CLUSTER'], os.environ['ECS_SERVICE'], request_id)
+        return scale_up_ecs_service(os.environ['ECS_CLUSTER'], os.environ['ECS_SERVICE'], request_id, execution_arn)
     
     elif action == 'checkHealth':
         return {'body': get_healthy_instance(os.environ['CLOUD_MAP_SERVICE_ID'], request_id)}
@@ -195,7 +199,7 @@ def handler(event, context):
     
     else:
         raise ValueError(f"Unknown action: {action}")
-  EOF
+EOF
 }
 
 module "lambdas" {
@@ -375,15 +379,15 @@ resource "aws_apigatewayv2_route" "proxy_any" {
   target    = "integrations/${aws_apigatewayv2_integration.sfn_start.id}"
 }
 
-# Response for 202
-resource "aws_apigatewayv2_integration_response" "start_202" {
-  api_id                   = aws_apigatewayv2_api.this.id
-  integration_id           = aws_apigatewayv2_integration.sfn_start.id
-  integration_response_key = "/200/"
-  response_templates = {
-    "application/json" = "{\"status\": \"Accepted\", \"executionArn\": \"$input.json('$.executionArn')\", \"pollUrl\": \"/status/$util.escapeJavaScript($input.json('$.executionArn').split(':').pop())\"}"
-  }
-}
+# # Response for 202
+# resource "aws_apigatewayv2_integration_response" "start_202" {
+#   api_id                   = aws_apigatewayv2_api.this.id
+#   integration_id           = aws_apigatewayv2_integration.sfn_start.id
+#   integration_response_key = "/200/"
+#   response_templates = {
+#     "application/json" = "{\"status\": \"Accepted\", \"executionArn\": \"$input.json('$.executionArn')\", \"pollUrl\": \"/status/$util.escapeJavaScript($input.json('$.executionArn').split(':').pop())\"}"
+#   }
+# }
 
 # Polling integration (DescribeExecution)
 resource "aws_apigatewayv2_integration" "sfn_status" {

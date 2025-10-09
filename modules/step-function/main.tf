@@ -67,14 +67,14 @@ resource "aws_sfn_state_machine" "this" {
 
   type = "STANDARD" # For async executions >30s
 
-  definition = jsonencode({
+  definition = var.definition != "" ? var.definition : jsonencode({
     Comment = "Orchestrates wake and proxy for ECS",
     StartAt = "CheckIfHealthy",
     States = {
       CheckIfHealthy = {
         Type       = "Task",
         Resource   = "arn:aws:states:::lambda:invoke",
-        Parameters = { "Payload.$" = "$.input", "FunctionName" = var.lambda_function_arn }, # Pass input for proxy later
+        Parameters = { "Payload" = { "action" = "checkHealth" }, "FunctionName" = var.lambda_function_arn },
         ResultPath = "$.health_status",
         Next       = "IsAlreadyHealthy"
       },
@@ -86,9 +86,15 @@ resource "aws_sfn_state_machine" "this" {
       ScaleUpEcsTask = {
         Type       = "Task",
         Resource   = "arn:aws:states:::lambda:invoke",
-        Parameters = { "Payload" = { "action" = "scaleUp" }, "FunctionName" = var.lambda_function_arn },
+        Parameters = {
+          "Payload" = {
+            "action" = "scaleUp",
+            "executionArn.$" = "$$.Execution.Id"
+          },
+          "FunctionName" = var.lambda_function_arn
+        },
         ResultPath = "$.scale_up_result",
-        Next       = "PollHealth" # Skip initial wait, poll with backoff in Lambda
+        End        = true  # End here to return the scale-up response
       },
       PollHealth = {
         Type       = "Task",
@@ -101,7 +107,7 @@ resource "aws_sfn_state_machine" "this" {
       IsTaskHealthyNow = {
         Type    = "Choice",
         Choices = [{ Variable = "$.health_status.body.status", StringEquals = "READY", Next = "ProxyRequest" }],
-        Default = "PollHealth" # Loop with retry
+        Default = "PollHealth"
       },
       ProxyRequest = {
         Type     = "Task",
