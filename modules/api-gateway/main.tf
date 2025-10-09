@@ -148,7 +148,7 @@ module "lambda_wake_proxy" {
   lambda_configs = [
     {
       name        = "wake-proxy"
-      code        = file("${path.module}/lambda_wake_proxy.py") # Your existing Python code from previous response
+      code        = local.lambda_code
       timeout     = 120
       memory_size = 256
       permissions = [
@@ -222,6 +222,7 @@ resource "aws_iam_role" "api_gateway_sfn_role" {
     }]
   })
 }
+
 
 resource "aws_iam_role_policy" "api_gateway_sfn_policy" {
   count = var.enable_lambda_proxy ? 1 : 0
