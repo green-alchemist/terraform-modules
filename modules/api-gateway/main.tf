@@ -152,8 +152,8 @@ module "lambdas" {
         LOG_LEVEL                 = "DEBUG"
       }
       vpc_config = {
-        subnet_ids         = [var.subnet_ids]
-        security_group_ids = [var.lambda_security_group_ids]
+        subnet_ids         = var.subnet_ids
+        security_group_ids = var.lambda_security_group_ids
       }
     },
     {
