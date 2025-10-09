@@ -178,15 +178,15 @@ EOF
       timeout     = 10
       memory_size = 128
       permissions = [{ Action = "states:DescribeExecution", resource = "*" }]
-      environment = {}                                               # No env vars needed
+      environment = {} # No env vars needed
       vpc_config = {
         subnet_ids         = []
         security_group_ids = []
       }
     },
     {
-      name = "strapi-loader"
-      code = <<-EOF
+      name        = "strapi-loader"
+      code        = <<-EOF
 import json
 
 def handler(event, context):
@@ -240,7 +240,7 @@ def handler(event, context):
 """
     }
 EOF
-      timeout = 10
+      timeout     = 10
       memory_size = 128
       permissions = [
         { Action = "logs:CreateLogStream", resource = "arn:aws:logs:*:*:*" },
@@ -267,9 +267,9 @@ resource "aws_lambda_permission" "loader_apigw" {
 }
 
 resource "aws_apigatewayv2_integration" "loader" {
-  api_id             = aws_apigatewayv2_api.this.id
-  integration_type   = "AWS_PROXY"
-  integration_uri    = module.lambdas[0].lambda_invoke_arns["strapi-loader"]
+  api_id                 = aws_apigatewayv2_api.this.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.lambdas[0].lambda_invoke_arns["strapi-loader"]
   payload_format_version = "2.0"
 }
 

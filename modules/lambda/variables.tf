@@ -10,8 +10,8 @@ variable "lambda_configs" {
     timeout     = number
     memory_size = number
     permissions = list(object({
-      action   = string
-      resource = string
+      Action   = string
+      Resource = string
     }))
     environment = map(string)
     vpc_config = object({

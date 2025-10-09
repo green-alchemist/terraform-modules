@@ -26,7 +26,7 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_lambda_configs"></a> [lambda\_configs](#input\_lambda\_configs) | List of Lambda configurations (name, code, timeout, memory, permissions, env vars, VPC) | <pre>list(object({<br/>    name        = string<br/>    code        = string<br/>    timeout     = number<br/>    memory_size = number<br/>    permissions = list(object({<br/>      action   = string<br/>      resource = string<br/>    }))<br/>    environment = map(string)<br/>    vpc_config = object({<br/>      subnet_ids         = list(string)<br/>      security_group_ids = list(string)<br/>    })<br/>  }))</pre> | `[]` | no |
+| <a name="input_lambda_configs"></a> [lambda\_configs](#input\_lambda\_configs) | List of Lambda configurations (name, code, timeout, memory, permissions, env vars, VPC) | <pre>list(object({<br/>    name        = string<br/>    code        = string<br/>    timeout     = number<br/>    memory_size = number<br/>    permissions = list(object({<br/>      Action   = string<br/>      Resource = string<br/>    }))<br/>    environment = map(string)<br/>    vpc_config = object({<br/>      subnet_ids         = list(string)<br/>      security_group_ids = list(string)<br/>    })<br/>  }))</pre> | `[]` | no |
 | <a name="input_lambda_name"></a> [lambda\_name](#input\_lambda\_name) | Lambda name. | `string` | n/a | yes |
 
 ## Outputs
