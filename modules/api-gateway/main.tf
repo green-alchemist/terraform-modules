@@ -114,60 +114,74 @@ def scale_up_ecs_service(cluster, service, request_id, execution_arn):
         else:
             logger.debug(f"Tasks already running: {desired_count} - request_id: {request_id}")
         return {
-            "status": "Accepted",
-            "executionArn": execution_arn,
-            "pollUrl": f"/status/$${execution_arn.split(':')[-1]}"
+            "statusCode": 202,
+            "headers": {"Content-Type": "application/json"},
+            "body": json.dumps({
+                "status": "Accepted",
+                "executionArn": execution_arn,
+                "pollUrl": f"/status/$${execution_arn.split(':')[-1]}"
+            })
         }
     except ClientError as e:
         logger.error(f"Failed to scale up: {e} - request_id: {request_id}")
         raise
 
-def get_healthy_instance(service_id, request_id, max_attempts=12, delay=10):
+def get_healthy_instance(service_id, request_id, max_attempts=12, delay=15):
     try:
         for attempt in range(1, max_attempts + 1):
             list_resp = sd_client.list_instances(ServiceId=service_id)
             instances = list_resp.get('Instances', [])
-            logger.debug(f"Listed {len(instances)} instances - attempt: {attempt}, request_id: {request_id}")
+            logger.debug(f"Listed {len(instances)} instances for service {service_id} - attempt: {attempt}, request_id: {request_id}")
 
             if not instances:
+                logger.info(f"No instances found for service {service_id} - attempt: {attempt}, request_id: {request_id}")
                 time.sleep(delay)
                 continue
 
-            health_resp = sd_client.get_instances_health_status(
-                ServiceId=service_id,
-                Instances=[inst['Id'] for inst in instances]
-            )
-            health_map = health_resp.get('Status', {})
-            healthy = [inst for inst in instances if health_map.get(inst['Id']) == 'HEALTHY']
+            instance_ids = [inst['Id'] for inst in instances]
+            logger.debug(f"Checking health for instances: {instance_ids} - request_id: {request_id}")
+            try:
+                health_resp = sd_client.get_instances_health_status(
+                    ServiceId=service_id,
+                    Instances=instance_ids
+                )
+                health_map = health_resp.get('Status', {})
+                healthy = [inst for inst in instances if health_map.get(inst['Id']) == 'HEALTHY']
 
-            if healthy:
-                inst = healthy[0]
-                ip = inst['Attributes']['AWS_INSTANCE_IPV4']
-                port = int(inst['Attributes'].get('AWS_INSTANCE_PORT', os.environ['TARGET_PORT']))
-                logger.info(f"Healthy instance found: {ip.rsplit('.', 1)[0]}.xxx:{port} - request_id: {request_id}")
-                return {'status': 'READY', 'ip': ip, 'port': port}
-            
-            logger.debug(f"No healthy instances yet - attempt: {attempt}, request_id: {request_id}")
+                if healthy:
+                    inst = healthy[0]
+                    ip = inst['Attributes']['AWS_INSTANCE_IPV4']
+                    port = int(inst['Attributes'].get('AWS_INSTANCE_PORT', os.environ['TARGET_PORT']))
+                    logger.info(f"Healthy instance found: {ip.rsplit('.', 1)[0]}.xxx:{port} - request_id: {request_id}")
+                    return {'status': 'READY', 'ip': ip, 'port': port}
+                
+                logger.debug(f"No healthy instances yet - attempt: {attempt}, request_id: {request_id}")
+            except ClientError as e:
+                if e.response['Error']['Code'] == 'InstanceNotFound':
+                    logger.warning(f"InstanceNotFound for service {service_id} - attempt: {attempt}, request_id: {request_id}")
+                else:
+                    logger.error(f"Failed to get health status: {e} - request_id: {request_id}")
+                    raise
             time.sleep(delay)
         
+        logger.info(f"No healthy instances after {max_attempts} attempts for service {service_id} - request_id: {request_id}")
         return {'status': 'PENDING'}
     except ClientError as e:
-        logger.error(f"Failed to get healthy instance: {e} - request_id: {request_id}")
+        logger.error(f"Failed to list instances: {e} - request_id: {request_id}")
         raise
 
 def proxy_request(event, request_id):
     try:
-        req_ctx = event['requestContext']
-        path = event['rawPath']
-        query = event['rawQueryString']
+        original_request = event.get('original_request', {})
+        path = original_request.get('path', '/admin')
+        query = original_request.get('queryString', '')
         body = event.get('body')
         headers = event.get('headers', {})
         is_base64 = event.get('isBase64Encoded', False)
         target = event['target']
+        method = original_request.get('httpMethod', 'GET')  # Default to GET if not provided
 
         full_path = f"{path}?{query}" if query else path
-        method = req_ctx['http']['method']
-
         clean_headers = {k: v for k, v in headers.items() if k.lower() not in ['host', 'x-forwarded-for', 'x-forwarded-port', 'x-forwarded-proto', 'x-amzn-trace-id', 'x-amz-cf-id']}
         clean_headers['Host'] = target['ip']
 
@@ -319,6 +333,99 @@ module "step_function" {
   lambda_function_arn = module.lambdas[0].lambda_arns["wake-proxy"]
   tags                = var.tags
   enable_logging      = true
+  definition = <<EOF
+{
+  "Comment": "Orchestrates ECS service wake-up and proxying",
+  "StartAt": "CheckIfHealthy",
+  "States": {
+    "CheckIfHealthy": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "$${module.lambdas[0].lambda_invoke_arns["wake-proxy"]}",
+        "Payload": {
+          "action": "checkHealth"
+        }
+      },
+      "ResultPath": "$.health_status",
+      "ResultSelector": {
+        "body.$": "$.Payload.body"
+      },
+      "Next": "IsAlreadyHealthy"
+    },
+    "IsAlreadyHealthy": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.health_status.body.status",
+          "StringEquals": "READY",
+          "Next": "ProxyRequest"
+        }
+      ],
+      "Default": "ScaleUpEcsTask"
+    },
+    "ScaleUpEcsTask": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "$${module.lambdas[0].lambda_invoke_arns["wake-proxy"]}",
+        "Payload": {
+          "action": "scaleUp",
+          "executionArn.$": "$$.Execution.Id"
+        }
+      },
+      "ResultPath": "$.scale_up_result",
+      "ResultSelector": {
+        "body.$": "$.Payload.body"
+      },
+      "Next": "PollHealth"
+    },
+    "PollHealth": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "$${module.lambdas[0].lambda_invoke_arns["wake-proxy"]}",
+        "Payload": {
+          "action": "checkHealth"
+        }
+      },
+      "ResultPath": "$.health_status",
+      "ResultSelector": {
+        "body.$": "$.Payload.body"
+      },
+      "Next": "IsTaskHealthyNow"
+    },
+    "IsTaskHealthyNow": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.health_status.body.status",
+          "StringEquals": "READY",
+          "Next": "ProxyRequest"
+        }
+      ],
+      "Default": "PollHealth"
+    },
+    "ProxyRequest": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "$${module.lambdas[0].lambda_invoke_arns["wake-proxy"]}",
+        "Payload": {
+          "action": "proxy",
+          "original_request.$": "$$.Execution.Input.original_request",
+          "target.$": "$.health_status.body"
+        }
+      },
+      "ResultPath": "$.proxy_result",
+      "ResultSelector": {
+        "body.$": "$.Payload"
+      },
+      "End": true
+    }
+  }
+}
+EOF
 }
 
 resource "aws_iam_role" "api_gateway_sfn_role" {
@@ -385,9 +492,18 @@ resource "aws_apigatewayv2_integration" "sfn_start" {
   timeout_milliseconds   = var.enable_lambda_proxy ? null : var.integration_timeout_millis
   credentials_arn        = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
 
-  request_parameters = var.enable_lambda_proxy ? {
+  request_parameters = var.enable_lambda_proxy ?{
     "StateMachineArn" = module.step_function[0].state_machine_arn
-    "Input"           = "$request.body"
+    "Input"           = jsonencode({
+      "action" = "scaleUp",
+      "original_request" = {
+        "path" = "$context.http.path",
+        "httpMethod" = "$context.http.method",
+        "queryString" = "$context.http.queryString",
+        "headers" = "$context.http.headers",
+        "requestContext" = "$context.request"
+      }
+    })
     "Name"            = "$context.requestId"
   } : {}
 }
