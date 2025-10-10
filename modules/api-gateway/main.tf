@@ -202,30 +202,6 @@ def handler(event, context):
 EOF
 }
 
-resource "null_resource" "wake_proxy_dependencies" {
-  triggers = {
-    always_run = "${timestamp()}"
-  }
-
-  provisioner "local-exec" {
-    command = <<EOC
-mkdir -p lambda/wake-proxy
-cat << EOF > lambda/wake-proxy/index.py
-$#{local.wake_proxy}
-EOF
-echo "requests" > lambda/wake-proxy/requirements.txt
-pip install -r lambda/wake-proxy/requirements.txt -t lambda/wake-proxy
-cd lambda/wake-proxy
-zip -r ../../wake-proxy.zip .
-EOC
-  }
-}
-
-data "local_file" "wake_proxy_zip" {
-  filename   = "${path.module}/wake-proxy.zip"
-  depends_on = [null_resource.wake_proxy_dependencies]
-}
-
 module "lambdas" {
   source = "git@github.com:green-alchemist/terraform-modules.git//modules/lambda"
   count  = var.enable_lambda_proxy ? 1 : 0
@@ -233,10 +209,11 @@ module "lambdas" {
   lambda_name = var.service_name
   lambda_configs = [
     {
-      name        = "wake-proxy"
-      code        = local.wake_proxy
-      timeout     = 120
-      memory_size = 256
+      name            = "wake-proxy"
+      code            = local.wake_proxy
+      python_packages = ["requests"]
+      timeout         = 120
+      memory_size     = 256
       permissions = [
         { Effect = "Allow", Action = "ecs:UpdateService", Resource = "*" },
         { Effect = "Allow", Action = "ecs:DescribeServices", Resource = "*" },
@@ -259,22 +236,24 @@ module "lambdas" {
       }
     },
     {
-      name        = "status-poller"
-      code        = local.status_poller
-      timeout     = 10
-      memory_size = 128
-      permissions = [{ Effect = "Allow", Action = "states:DescribeExecution", Resource = "*" }]
-      environment = {} # No env vars needed
+      name            = "status-poller"
+      code            = local.status_poller
+      python_packages = []
+      timeout         = 10
+      memory_size     = 128
+      permissions     = [{ Effect = "Allow", Action = "states:DescribeExecution", Resource = "*" }]
+      environment     = {} # No env vars needed
       vpc_config = {
         subnet_ids         = []
         security_group_ids = []
       }
     },
     {
-      name        = "strapi-loader"
-      code        = local.strapi_loader
-      timeout     = 10
-      memory_size = 128
+      name            = "strapi-loader"
+      code            = local.strapi_loader
+      python_packages = []
+      timeout         = 10
+      memory_size     = 128
       permissions = [
         { Effect = "Allow", Action = "logs:CreateLogStream", Resource = "arn:aws:logs:*:*:*" },
         { Effect = "Allow", Action = "logs:PutLogEvents", Resource = "arn:aws:logs:*:*:*" }
