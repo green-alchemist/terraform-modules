@@ -1,18 +1,41 @@
-resource "null_resource" "lambda_package" {
+data "archive_file" "lambda_package" {
   for_each = { for cfg in var.lambda_configs : cfg.name => cfg }
 
-  triggers = {
-    code_hash = sha256(each.value.code != null ? each.value.code : file(each.value.filename))
-    packages  = join(",", coalesce(each.value.python_packages, []))
+  type        = "zip"
+  output_path = "${path.module}/lambda/${each.key}.zip"
+
+  source {
+    content  = each.value.code != null ? each.value.code : file(each.value.filename)
+    filename = "index.py"
   }
 
+  dynamic "source" {
+    for_each = length(coalesce(each.value.python_packages, [])) > 0 ? [1] : []
+    content {
+      content  = join("\n", each.value.python_packages)
+      filename = "requirements.txt"
+    }
+  }
+}
+
+# Lambda Layer for Python packages (e.g., requests)
+resource "aws_lambda_layer_version" "python_packages" {
+  for_each = { for cfg in var.lambda_configs : cfg.name => cfg if length(coalesce(cfg.python_packages, [])) > 0 }
+
+  layer_name          = "${var.lambda_name}-${each.key}-layer"
+  description         = "Python dependencies for ${each.key}"
+  compatible_runtimes = ["python3.9"] # Adjust to your Python version
+
+  # Use a pre-built ZIP for requests (or build dynamically if needed)
+  filename = "${path.module}/lambda/${each.key}-layer.zip"
+
   provisioner "local-exec" {
-    command = <<-EOC
-mkdir -p $${path.module}/lambda/$${each.key}
-echo "$${each.value.code != null ? each.value.code : file(each.value.filename)}" > $${path.module}/lambda/$${each.key}/index.py
-$${length(coalesce(each.value.python_packages, [])) > 0 ? "echo '$${join("\n", each.value.python_packages)}' > $${path.module}/lambda/$${each.key}/requirements.txt && pip install -r $${path.module}/lambda/$${each.key}/requirements.txt -t $${path.module}/lambda/$${each.key}" : ""}
-cd $${path.module}/lambda/$${each.key}
-zip -r $${path.module}/lambda/$${each.key}.zip .
+    command = <<EOC
+mkdir -p ${path.module}/lambda/${each.key}-layer/python
+echo "${join("\n", each.value.python_packages)}" > ${path.module}/lambda/${each.key}-layer/requirements.txt
+pip install -r ${path.module}/lambda/${each.key}-layer/requirements.txt -t ${path.module}/lambda/${each.key}-layer/python
+cd ${path.module}/lambda/${each.key}-layer
+zip -r ${path.module}/lambda/${each.key}-layer.zip python
 EOC
   }
 }
@@ -20,10 +43,11 @@ EOC
 resource "aws_lambda_function" "this" {
   for_each = { for idx, cfg in var.lambda_configs : cfg.name => cfg }
 
-  filename         = "${path.module}/lambda/${each.key}.zip"
-  source_code_hash = filebase64sha256("${path.module}/lambda/${each.key}.zip")
+  filename         = data.archive_file.lambda_package[each.key].output_path
+  source_code_hash = data.archive_file.lambda_package[each.key].output_base64sha256
+  role             = aws_iam_role.lambda[each.key].arn
+  layers           = length(coalesce(each.value.python_packages, [])) > 0 ? [aws_lambda_layer_version.python_packages[each.key].arn] : []
   function_name    = "${var.lambda_name}-${each.value.name}"
-  role             = aws_iam_role.this[each.key].arn
   handler          = "index.handler"
   runtime          = "python3.12"
   timeout          = each.value.timeout
@@ -94,12 +118,12 @@ resource "aws_iam_role_policy" "this" {
   })
 }
 
-data "archive_file" "lambda_zip" {
-  for_each    = { for cfg in var.lambda_configs : cfg.name => cfg }
-  type        = "zip"
-  output_path = "${path.module}/.terraform/lambda-${each.key}.zip"
-  source {
-    content  = each.value.code
-    filename = "index.py"
-  }
-}
+# data "archive_file" "lambda_zip" {
+#   for_each    = { for cfg in var.lambda_configs : cfg.name => cfg }
+#   type        = "zip"
+#   output_path = "${path.module}/.terraform/lambda-${each.key}.zip"
+#   source {
+#     content  = each.value.code
+#     filename = "index.py"
+#   }
+# }
