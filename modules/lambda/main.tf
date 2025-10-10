@@ -1,56 +1,54 @@
-resource "null_resource" "python_package_layer" {
+# This data source runs an external script to build the layer package in memory.
+data "external" "python_lambda_layer" {
   for_each = { for cfg in var.lambda_configs : cfg.name => cfg if length(coalesce(cfg.python_packages, [])) > 0 }
 
-  # Trigger a re-provision only when the list of packages changes.
-  triggers = {
-    packages_hash = sha256(join(",", each.value.python_packages))
-  }
+  program = ["bash", "-c", <<-EOT
+    set -e
+    # Create a self-cleaning temporary directory
+    TMP_DIR=$(mktemp -d)
+    trap 'rm -rf -- "$TMP_DIR"' EXIT
 
-  provisioner "local-exec" {
-    # NOTE: This requires 'pip', 'zip', and 'shasum' (or 'sha256sum') on the machine running Terraform.
-    command = <<-EOC
-      set -e
-      LAYER_DIR="${path.module}/.terraform/lambda_layers/${each.key}"
-      REQUIREMENTS_FILE="$${LAYER_DIR}/requirements.txt"
-      PACKAGE_DIR="$${LAYER_DIR}/python"
-      OUTPUT_ZIP="$${LAYER_DIR}_layer.zip"
-      HASH_FILE="$${LAYER_DIR}_layer.hash"
+    PACKAGE_DIR="$TMP_DIR/python"
+    mkdir -p "$PACKAGE_DIR"
 
-      # Clean up previous build artifacts to ensure a fresh build
-      rm -rf $${LAYER_DIR} $${OUTPUT_ZIP} $${HASH_FILE}
+    # Read packages from stdin (passed via input attribute)
+    PACKAGES=$(jq -r '.packages | join(" ")' -)
 
-      # Create directories
-      mkdir -p $${PACKAGE_DIR}
+    # Install packages if any exist
+    if [ -n "$PACKAGES" ]; then
+      pip install $PACKAGES -t "$PACKAGE_DIR" >&2
+    fi
 
-      # Install packages
-      echo '${join("\n", each.value.python_packages)}' > $${REQUIREMENTS_FILE}
-      pip install -r $${REQUIREMENTS_FILE} -t $${PACKAGE_DIR}
+    # Create zip file in the temp directory
+    ZIP_FILE="$TMP_DIR/layer.zip"
+    cd "$PACKAGE_DIR" && zip -r "$ZIP_FILE" . >&2
 
-      # Create the zip file
-      cd $${LAYER_DIR}
-      zip -r $${OUTPUT_ZIP} python
+    # CRITICAL STEP: Base64 encode the zip file and output as JSON
+    # This is captured by the 'result' attribute of the data source.
+    BASE64_CONTENT=$(base64 -w 0 "$ZIP_FILE")
+    jq -n --arg content "$BASE64_CONTENT" '{"content_base64": $content}'
+  EOT
+  ]
 
-      # Calculate the hash of the zip and save it to the hash file
-      shasum -a 256 $${OUTPUT_ZIP} | awk '{print $1}' | xxd -r -p | base64 > $${HASH_FILE}
-    EOC
+  query = {
+    # Pass the list of packages to the script's standard input.
+    packages = jsonencode(each.value.python_packages)
   }
 }
 
-# This resource creates the Lambda Layer from the ZIP file.
+# This resource now creates the layer directly from the base64-encoded content.
 resource "aws_lambda_layer_version" "python_packages" {
   for_each = { for cfg in var.lambda_configs : cfg.name => cfg if length(coalesce(cfg.python_packages, [])) > 0 }
-
-  # This dependency ensures the local-exec script has finished before this resource is created.
-  depends_on = [null_resource.python_package_layer]
 
   layer_name          = "${var.lambda_name}-${each.key}-layer"
   description         = "Python dependencies for ${each.key}"
   compatible_runtimes = ["python3.12"]
-  filename            = "${path.module}/.terraform/lambda_layers/${each.key}_layer.zip"
 
-  # THE FIX: Read the pre-calculated hash from the file instead of trying to calculate it.
-  source_code_hash    = file("${path.module}/.terraform/lambda_layers/${each.key}_layer.hash")
+  # THE FIX: No filename or hash. Content is provided directly.
+  content = data.external.python_lambda_layer[each.key].result.content_base64
 }
+
+
 
 # --- LAMBDA FUNCTION CREATION ---
 
