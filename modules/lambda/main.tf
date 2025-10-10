@@ -32,8 +32,8 @@ resource "aws_lambda_layer_version" "python_packages" {
   layer_name          = "${var.lambda_name}-${each.key}-layer"
   description         = "Python dependencies for ${each.key}"
   compatible_runtimes = ["python3.12"] # Adjust to your Python version
-  filename            = "${path.module}/lambda/${each.key}-layer.zip"
-  source_code_hash    = chomp(file("${path.module}/lambda/${each.key}-layer.hash"))
+  filename            = "${path.module}/.terraform/lambda/${each.key}-layer.zip"
+  source_code_hash    = chomp(file("${path.module}/.terraform/lambda/${each.key}-layer.hash"))
 
   depends_on = [
     null_resource.python_package_layer,
@@ -46,8 +46,7 @@ data "archive_file" "lambda_package" {
   for_each = { for cfg in var.lambda_configs : cfg.name => cfg }
 
   type        = "zip"
-  output_path = "${path.module}/lambda/${each.key}.zip"
-
+  output_path = "${path.module}/.terraform/lambda-${each.key}.zip"
   source {
     content  = each.value.code != null ? each.value.code : file(each.value.filename)
     filename = "index.py"
