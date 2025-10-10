@@ -1,65 +1,60 @@
 resource "null_resource" "python_package_layer" {
   for_each = { for cfg in var.lambda_configs : cfg.name => cfg if length(coalesce(cfg.python_packages, [])) > 0 }
 
+  # Trigger a re-provision when the list of packages changes.
   triggers = {
-    packages = join(",", each.value.python_packages)
+    packages_hash = sha256(join(",", each.value.python_packages))
   }
 
   provisioner "local-exec" {
-    command = <<EOC
-mkdir -p $${path.module}/lambda/$${each.key}-layer/python
-echo "$${join("\n", each.value.python_packages)}" > $${path.module}/lambda/$${each.key}-layer/requirements.txt
-pip install -r $${path.module}/lambda/$${each.key}-layer/requirements.txt -t $${path.module}/lambda/$${each.key}-layer/python
-cd $${path.module}/lambda/$${each.key}-layer
-zip -r $${path.module}/lambda/$${each.key}-layer.zip python
-EOC
+    # NOTE: This command requires 'pip' and 'zip' to be installed on the machine running Terraform.
+    # The paths are now consistent and use the module's root.
+    command = <<-EOC
+      set -e
+      LAYER_DIR="${path.module}/.terraform/lambda_layers/${each.key}"
+      REQUIREMENTS_FILE="$${LAYER_DIR}/requirements.txt"
+      PACKAGE_DIR="$${LAYER_DIR}/python"
+      OUTPUT_ZIP="${path.module}/.terraform/lambda_layers/${each.key}_layer.zip"
+
+      mkdir -p $${PACKAGE_DIR}
+      echo '${join("\n", each.value.python_packages)}' > $${REQUIREMENTS_FILE}
+      pip install -r $${REQUIREMENTS_FILE} -t $${PACKAGE_DIR}
+      cd $${LAYER_DIR}
+      zip -r $${OUTPUT_ZIP} python
+    EOC
   }
 }
 
-resource "local_file" "layer_hash" {
-  for_each = { for cfg in var.lambda_configs : cfg.name => cfg if length(coalesce(cfg.python_packages, [])) > 0 }
-
-  content  = "" # Will be overwritten by null_resource
-  filename = "${path.module}/lambda/${each.key}-layer.hash"
-
-  depends_on = [null_resource.python_package_layer]
-}
-
-# Lambda Layer for Python packages
+# This resource creates the Lambda Layer from the ZIP file created by the local-exec provisioner.
 resource "aws_lambda_layer_version" "python_packages" {
   for_each = { for cfg in var.lambda_configs : cfg.name => cfg if length(coalesce(cfg.python_packages, [])) > 0 }
 
+  # This ensures the layer is created only after the ZIP file exists.
+  depends_on = [null_resource.python_package_layer]
+
   layer_name          = "${var.lambda_name}-${each.key}-layer"
   description         = "Python dependencies for ${each.key}"
-  compatible_runtimes = ["python3.12"] # Adjust to your Python version
-  filename            = "${path.module}/.terraform/lambda/${each.key}-layer.zip"
-  source_code_hash    = chomp(file("${path.module}/.terraform/lambda/${each.key}-layer.hash"))
+  compatible_runtimes = ["python3.12"]
+  filename            = "${path.module}/.terraform/lambda_layers/${each.key}_layer.zip"
 
-  depends_on = [
-    null_resource.python_package_layer,
-    local_file.layer_hash
-  ]
+  # The hash is now correctly calculated from the ZIP file itself, ensuring updates.
+  source_code_hash    = filebase64sha256("${path.module}/.terraform/lambda_layers/${each.key}_layer.zip")
 }
 
-# Create a ZIP file in memory for each Lambda
+# --- LAMBDA FUNCTION CREATION ---
+
+# Create a ZIP file for each Lambda's handler code.
 data "archive_file" "lambda_package" {
   for_each = { for cfg in var.lambda_configs : cfg.name => cfg }
 
   type        = "zip"
-  output_path = "${path.module}/.terraform/lambda-${each.key}.zip"
+  output_path = "${path.module}/.terraform/lambda_packages/${each.key}.zip"
   source {
     content  = each.value.code != null ? each.value.code : file(each.value.filename)
     filename = "index.py"
   }
-
-  dynamic "source" {
-    for_each = length(coalesce(each.value.python_packages, [])) > 0 ? [1] : []
-    content {
-      content  = join("\n", each.value.python_packages)
-      filename = "requirements.txt"
-    }
-  }
 }
+
 
 resource "aws_lambda_function" "this" {
   for_each = { for idx, cfg in var.lambda_configs : cfg.name => cfg }
