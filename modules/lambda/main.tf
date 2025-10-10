@@ -1,35 +1,46 @@
 resource "null_resource" "python_package_layer" {
   for_each = { for cfg in var.lambda_configs : cfg.name => cfg if length(coalesce(cfg.python_packages, [])) > 0 }
 
-  # Trigger a re-provision when the list of packages changes.
+  # Trigger a re-provision only when the list of packages changes.
   triggers = {
     packages_hash = sha256(join(",", each.value.python_packages))
   }
 
   provisioner "local-exec" {
-    # NOTE: This command requires 'pip' and 'zip' to be installed on the machine running Terraform.
-    # The paths are now consistent and use the module's root.
+    # NOTE: This requires 'pip', 'zip', and 'shasum' (or 'sha256sum') on the machine running Terraform.
     command = <<-EOC
       set -e
       LAYER_DIR="${path.module}/.terraform/lambda_layers/${each.key}"
       REQUIREMENTS_FILE="$${LAYER_DIR}/requirements.txt"
       PACKAGE_DIR="$${LAYER_DIR}/python"
-      OUTPUT_ZIP="${path.module}/.terraform/lambda_layers/${each.key}_layer.zip"
+      OUTPUT_ZIP="$${LAYER_DIR}_layer.zip"
+      HASH_FILE="$${LAYER_DIR}_layer.hash"
 
+      # Clean up previous build artifacts to ensure a fresh build
+      rm -rf $${LAYER_DIR} $${OUTPUT_ZIP} $${HASH_FILE}
+
+      # Create directories
       mkdir -p $${PACKAGE_DIR}
+
+      # Install packages
       echo '${join("\n", each.value.python_packages)}' > $${REQUIREMENTS_FILE}
       pip install -r $${REQUIREMENTS_FILE} -t $${PACKAGE_DIR}
+
+      # Create the zip file
       cd $${LAYER_DIR}
       zip -r $${OUTPUT_ZIP} python
+
+      # Calculate the hash of the zip and save it to the hash file
+      shasum -a 256 $${OUTPUT_ZIP} | awk '{print $1}' | xxd -r -p | base64 > $${HASH_FILE}
     EOC
   }
 }
 
-# This resource creates the Lambda Layer from the ZIP file created by the local-exec provisioner.
+# This resource creates the Lambda Layer from the ZIP file.
 resource "aws_lambda_layer_version" "python_packages" {
   for_each = { for cfg in var.lambda_configs : cfg.name => cfg if length(coalesce(cfg.python_packages, [])) > 0 }
 
-  # This ensures the layer is created only after the ZIP file exists.
+  # This dependency ensures the local-exec script has finished before this resource is created.
   depends_on = [null_resource.python_package_layer]
 
   layer_name          = "${var.lambda_name}-${each.key}-layer"
@@ -37,8 +48,8 @@ resource "aws_lambda_layer_version" "python_packages" {
   compatible_runtimes = ["python3.12"]
   filename            = "${path.module}/.terraform/lambda_layers/${each.key}_layer.zip"
 
-  # The hash is now correctly calculated from the ZIP file itself, ensuring updates.
-  source_code_hash    = filebase64sha256("${path.module}/.terraform/lambda_layers/${each.key}_layer.zip")
+  # THE FIX: Read the pre-calculated hash from the file instead of trying to calculate it.
+  source_code_hash    = file("${path.module}/.terraform/lambda_layers/${each.key}_layer.hash")
 }
 
 # --- LAMBDA FUNCTION CREATION ---
