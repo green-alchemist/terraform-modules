@@ -16,6 +16,15 @@ EOC
   }
 }
 
+resource "local_file" "layer_hash" {
+  for_each = { for cfg in var.lambda_configs : cfg.name => cfg if length(coalesce(cfg.python_packages, [])) > 0 }
+
+  content  = "" # Will be overwritten by null_resource
+  filename = "${path.module}/lambda/${each.key}-layer.hash"
+
+  depends_on = [null_resource.python_package_layer]
+}
+
 # Lambda Layer for Python packages
 resource "aws_lambda_layer_version" "python_packages" {
   for_each = { for cfg in var.lambda_configs : cfg.name => cfg if length(coalesce(cfg.python_packages, [])) > 0 }
@@ -24,9 +33,12 @@ resource "aws_lambda_layer_version" "python_packages" {
   description         = "Python dependencies for ${each.key}"
   compatible_runtimes = ["python3.12"] # Adjust to your Python version
   filename            = "${path.module}/lambda/${each.key}-layer.zip"
-  source_code_hash    = filebase64sha256("${path.module}/lambda/${each.key}-layer.zip")
+  source_code_hash    = chomp(file("${path.module}/lambda/${each.key}-layer.hash"))
 
-  depends_on = [null_resource.python_package_layer]
+  depends_on = [
+    null_resource.python_package_layer,
+    local_file.layer_hash
+  ]
 }
 
 # Create a ZIP file in memory for each Lambda
