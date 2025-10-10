@@ -333,7 +333,7 @@ module "step_function" {
   lambda_function_arn = module.lambdas[0].lambda_arns["wake-proxy"]
   tags                = var.tags
   enable_logging      = true
-  definition = <<EOF
+  definition          = <<EOF
 {
   "Comment": "Orchestrates ECS service wake-up and proxying",
   "StartAt": "CheckIfHealthy",
@@ -492,19 +492,19 @@ resource "aws_apigatewayv2_integration" "sfn_start" {
   timeout_milliseconds   = var.enable_lambda_proxy ? null : var.integration_timeout_millis
   credentials_arn        = var.enable_lambda_proxy ? aws_iam_role.api_gateway_sfn_role[0].arn : null
 
-  request_parameters = var.enable_lambda_proxy ?{
+  request_parameters = var.enable_lambda_proxy ? {
     "StateMachineArn" = module.step_function[0].state_machine_arn
-    "Input"           = jsonencode({
+    "Input" = jsonencode({
       "action" = "scaleUp",
       "original_request" = {
-        "path" = "$context.http.path",
-        "httpMethod" = "$context.http.method",
-        "queryString" = "$context.http.queryString",
-        "headers" = "$context.http.headers",
+        "path"           = "$context.http.path",
+        "httpMethod"     = "$context.http.method",
+        "queryString"    = "$context.http.queryString",
+        "headers"        = "$context.http.headers",
         "requestContext" = "$context.request"
       }
     })
-    "Name"            = "$context.requestId"
+    "Name" = "$context.requestId"
   } : {}
 }
 
