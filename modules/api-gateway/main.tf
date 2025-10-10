@@ -4,7 +4,7 @@ data "aws_caller_identity" "current" {}
 locals {
   strapi_loader = <<-EOF
     import json
-
+    import os
     def handler(event, context):
         return {
             "statusCode": 200,
@@ -32,8 +32,8 @@ locals {
                             const statusRes = await fetch(`$${process.env.API_GATEWAY_URL}$${pollUrl}`);
                             const {{ status, output }} = await statusRes.json();
                             if (status === 'SUCCEEDED') {{
-                                console.log('ECS ready, redirecting to $${event['rawPath']}');
-                                window.location.href = url; // Redirect to original Strapi path
+                                console.log('ECS ready, redirecting to /admin');
+                                window.location.href = '/admin';
                                 return;
                             }}
                             if (['FAILED', 'TIMED_OUT', 'ABORTED'].includes(status)) {{
@@ -42,14 +42,14 @@ locals {
                             await new Promise(resolve => setTimeout(resolve, 5000));
                         }}
                     }} else {{
-                        window.location.href = url; // Already warm, redirect
+                        window.location.href = '/admin';
                     }}
                 }} catch (error) {{
                     console.error('Error:', error);
                     document.body.innerHTML = `<div>Error: $${error.message}</div>`;
                 }}
             }}
-            fetchWithWake('$${event['rawPath'] || '/admin'}');
+            fetchWithWake('/admin');
         </script>
     </body>
     </html>
@@ -83,6 +83,7 @@ import time
 import boto3
 from botocore.exceptions import ClientError
 import requests
+import base64
 
 # Setup logging
 LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
@@ -173,10 +174,14 @@ def proxy_request(event, request_id):
             data=req_body,
             timeout=110
         )
+        response_headers = dict(resp.headers)
+        if full_path.startswith('/admin'):
+            response_headers['Content-Type'] = 'text/html'
         return {
             'statusCode': resp.status_code,
-            'headers': dict(resp.headers),
-            'body': resp.text
+            'headers': response_headers,
+            'body': resp.text,
+            'isBase64Encoded': False
         }
     except Exception as e:
         logger.error(f"Proxy failed: {e} - request_id: {request_id}")
@@ -185,7 +190,7 @@ def proxy_request(event, request_id):
 def handler(event, context):
     request_id = context.aws_request_id
     action = event.get('action')
-    execution_arn = context.invoked_function_arn  # Use Lambda's ARN or pass executionArn from Step Function
+    execution_arn = event.get('executionArn', context.invoked_function_arn)
     logger.info(f"Invoked with action: {action} - request_id: {request_id}")
 
     if action == 'scaleUp':
@@ -287,7 +292,7 @@ resource "aws_apigatewayv2_integration" "loader" {
 
 resource "aws_apigatewayv2_route" "loader_admin" {
   api_id    = aws_apigatewayv2_api.this.id
-  route_key = "GET /admin/{proxy+}"
+  route_key = "GET /admin/wake"
   target    = "integrations/${aws_apigatewayv2_integration.loader.id}"
 }
 
