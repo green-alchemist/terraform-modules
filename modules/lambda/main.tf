@@ -1,3 +1,5 @@
+data "aws_called_identity" "current" {}
+
 # --- S3 BUCKET FOR LAMBDA ARTIFACTS ---
 # It's best practice to have a dedicated, versioned bucket for code artifacts.
 resource "aws_s3_bucket" "lambda_artifacts" {
