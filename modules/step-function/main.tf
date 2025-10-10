@@ -67,7 +67,7 @@ resource "aws_sfn_state_machine" "this" {
 
   type = "STANDARD" # For async executions >30s
 
-  definition = var.definition != "" ? jsonencode(var.definition) : jsonencode({
+  definition = var.definition != "" ? var.definition : jsonencode({
     Comment = "Orchestrates the scale-up, health check, and proxying for a serverless ECS task",
     StartAt = "CheckIfHealthy", # We can start here since API Gateway input is not being used
     States = {

@@ -333,99 +333,97 @@ module "step_function" {
   lambda_function_arn = module.lambdas[0].lambda_arns["wake-proxy"]
   tags                = var.tags
   enable_logging      = true
-  definition          = <<EOF
-{
-  "Comment": "Orchestrates ECS service wake-up and proxying",
-  "StartAt": "CheckIfHealthy",
-  "States": {
-    "CheckIfHealthy": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::lambda:invoke",
-      "Parameters": {
-        "FunctionName": "$${module.lambdas[0].lambda_invoke_arns["wake-proxy"]}",
-        "Payload": {
-          "action": "checkHealth"
-        }
+  definition = jsonencode({
+    "Comment" : "Orchestrates ECS service wake-up and proxying",
+    "StartAt" : "CheckIfHealthy",
+    "States" : {
+      "CheckIfHealthy" : {
+        "Type" : "Task",
+        "Resource" : "arn:aws:states:::lambda:invoke",
+        "Parameters" : {
+          "FunctionName" : "${module.lambdas[0].lambda_invoke_arns["wake-proxy"]}",
+          "Payload" : {
+            "action" : "checkHealth"
+          }
+        },
+        "ResultPath" : "$.health_status",
+        "ResultSelector" : {
+          "body.$" : "$.Payload.body"
+        },
+        "Next" : "IsAlreadyHealthy"
       },
-      "ResultPath": "$.health_status",
-      "ResultSelector": {
-        "body.$": "$.Payload.body"
+      "IsAlreadyHealthy" : {
+        "Type" : "Choice",
+        "Choices" : [
+          {
+            "Variable" : "$.health_status.body.status",
+            "StringEquals" : "READY",
+            "Next" : "ProxyRequest"
+          }
+        ],
+        "Default" : "ScaleUpEcsTask"
       },
-      "Next": "IsAlreadyHealthy"
-    },
-    "IsAlreadyHealthy": {
-      "Type": "Choice",
-      "Choices": [
-        {
-          "Variable": "$.health_status.body.status",
-          "StringEquals": "READY",
-          "Next": "ProxyRequest"
-        }
-      ],
-      "Default": "ScaleUpEcsTask"
-    },
-    "ScaleUpEcsTask": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::lambda:invoke",
-      "Parameters": {
-        "FunctionName": "$${module.lambdas[0].lambda_invoke_arns["wake-proxy"]}",
-        "Payload": {
-          "action": "scaleUp",
-          "executionArn.$": "$$.Execution.Id"
-        }
+      "ScaleUpEcsTask" : {
+        "Type" : "Task",
+        "Resource" : "arn:aws:states:::lambda:invoke",
+        "Parameters" : {
+          "FunctionName" : "${module.lambdas[0].lambda_invoke_arns["wake-proxy"]}",
+          "Payload" : {
+            "action" : "scaleUp",
+            "executionArn.$" : "$$.Execution.Id"
+          }
+        },
+        "ResultPath" : "$.scale_up_result",
+        "ResultSelector" : {
+          "body.$" : "$.Payload.body"
+        },
+        "Next" : "PollHealth"
       },
-      "ResultPath": "$.scale_up_result",
-      "ResultSelector": {
-        "body.$": "$.Payload.body"
+      "PollHealth" : {
+        "Type" : "Task",
+        "Resource" : "arn:aws:states:::lambda:invoke",
+        "Parameters" : {
+          "FunctionName" : "${module.lambdas[0].lambda_invoke_arns["wake-proxy"]}",
+          "Payload" : {
+            "action" : "checkHealth"
+          }
+        },
+        "ResultPath" : "$.health_status",
+        "ResultSelector" : {
+          "body.$" : "$.Payload.body"
+        },
+        "Next" : "IsTaskHealthyNow"
       },
-      "Next": "PollHealth"
-    },
-    "PollHealth": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::lambda:invoke",
-      "Parameters": {
-        "FunctionName": "$${module.lambdas[0].lambda_invoke_arns["wake-proxy"]}",
-        "Payload": {
-          "action": "checkHealth"
-        }
+      "IsTaskHealthyNow" : {
+        "Type" : "Choice",
+        "Choices" : [
+          {
+            "Variable" : "$.health_status.body.status",
+            "StringEquals" : "READY",
+            "Next" : "ProxyRequest"
+          }
+        ],
+        "Default" : "PollHealth"
       },
-      "ResultPath": "$.health_status",
-      "ResultSelector": {
-        "body.$": "$.Payload.body"
-      },
-      "Next": "IsTaskHealthyNow"
-    },
-    "IsTaskHealthyNow": {
-      "Type": "Choice",
-      "Choices": [
-        {
-          "Variable": "$.health_status.body.status",
-          "StringEquals": "READY",
-          "Next": "ProxyRequest"
-        }
-      ],
-      "Default": "PollHealth"
-    },
-    "ProxyRequest": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::lambda:invoke",
-      "Parameters": {
-        "FunctionName": "$${module.lambdas[0].lambda_invoke_arns["wake-proxy"]}",
-        "Payload": {
-          "action": "proxy",
-          "original_request.$": "$$.Execution.Input.original_request",
-          "target.$": "$.health_status.body"
-        }
-      },
-      "ResultPath": "$.proxy_result",
-      "ResultSelector": {
-        "body.$": "$.Payload"
-      },
-      "End": true
+      "ProxyRequest" : {
+        "Type" : "Task",
+        "Resource" : "arn:aws:states:::lambda:invoke",
+        "Parameters" : {
+          "FunctionName" : "${module.lambdas[0].lambda_invoke_arns["wake-proxy"]}",
+          "Payload" : {
+            "action" : "proxy",
+            "original_request.$" : "$$.Execution.Input.original_request",
+            "target.$" : "$.health_status.body"
+          }
+        },
+        "ResultPath" : "$.proxy_result",
+        "ResultSelector" : {
+          "body.$" : "$.Payload"
+        },
+        "End" : true
+      }
     }
-  }
-}
-EOF
+  })
 }
 
 resource "aws_iam_role" "api_gateway_sfn_role" {
