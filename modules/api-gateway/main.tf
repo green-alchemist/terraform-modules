@@ -202,6 +202,30 @@ def handler(event, context):
 EOF
 }
 
+resource "null_resource" "wake_proxy_dependencies" {
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+
+  provisioner "local-exec" {
+    command = <<EOC
+mkdir -p lambda/wake-proxy
+cat << EOF > lambda/wake-proxy/index.py
+$#{local.wake_proxy}
+EOF
+echo "requests" > lambda/wake-proxy/requirements.txt
+pip install -r lambda/wake-proxy/requirements.txt -t lambda/wake-proxy
+cd lambda/wake-proxy
+zip -r ../../wake-proxy.zip .
+EOC
+  }
+}
+
+data "local_file" "wake_proxy_zip" {
+  filename   = "${path.module}/wake-proxy.zip"
+  depends_on = [null_resource.wake_proxy_dependencies]
+}
+
 module "lambdas" {
   source = "git@github.com:green-alchemist/terraform-modules.git//modules/lambda"
   count  = var.enable_lambda_proxy ? 1 : 0

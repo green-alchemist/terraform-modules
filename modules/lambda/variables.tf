@@ -5,10 +5,12 @@ variable "lambda_name" {
 
 variable "lambda_configs" {
   type = list(object({
-    name        = string
-    code        = string
-    timeout     = number
-    memory_size = number
+    name            = string
+    code            = string
+    filename        = optional(string)
+    python_packages = optional(list(string), [])
+    timeout         = number
+    memory_size     = number
     permissions = list(object({
       Action   = string
       Resource = string

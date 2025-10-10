@@ -1,9 +1,28 @@
+resource "null_resource" "lambda_package" {
+  for_each = { for cfg in var.lambda_configs : cfg.name => cfg }
+
+  triggers = {
+    code_hash = sha256(each.value.code != null ? each.value.code : file(each.value.filename))
+    packages  = join(",", coalesce(each.value.python_packages, []))
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOC
+mkdir -p $${path.module}/lambda/$${each.key}
+echo "$${each.value.code != null ? each.value.code : file(each.value.filename)}" > $${path.module}/lambda/$${each.key}/index.py
+$${length(coalesce(each.value.python_packages, [])) > 0 ? "echo '$${join("\n", each.value.python_packages)}' > $${path.module}/lambda/$${each.key}/requirements.txt && pip install -r $${path.module}/lambda/$${each.key}/requirements.txt -t $${path.module}/lambda/$${each.key}" : ""}
+cd $${path.module}/lambda/$${each.key}
+zip -r $${path.module}/lambda/$${each.key}.zip .
+EOC
+  }
+}
+
 resource "aws_lambda_function" "this" {
   for_each = { for idx, cfg in var.lambda_configs : cfg.name => cfg }
 
-  filename         = "${path.module}/.terraform/lambda-${each.key}.zip"
-  source_code_hash = data.archive_file.lambda_zip[each.key].output_base64sha256
-  function_name    = "${var.lambda_name}-${each.key}"
+  filename         = "${path.module}/lambda/${each.key}.zip"
+  source_code_hash = filebase64sha256("${path.module}/lambda/${each.key}.zip")
+  function_name    = "${var.lambda_name}-${each.value.name}"
   role             = aws_iam_role.this[each.key].arn
   handler          = "index.handler"
   runtime          = "python3.12"
