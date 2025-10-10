@@ -68,65 +68,68 @@ resource "aws_sfn_state_machine" "this" {
   type = "STANDARD" # For async executions >30s
 
   definition = jsonencode({
-    Comment = "Orchestrates wake and proxy for ECS",
-    StartAt = "CheckIfHealthy",
+    Comment = "Orchestrates the scale-up, health check, and proxying for a serverless ECS task",
+    StartAt = "CheckIfHealthy", # We can start here since API Gateway input is not being used
     States = {
       CheckIfHealthy = {
-        Type       = "Task",
-        Resource   = "arn:aws:states:::lambda:invoke",
-        Parameters = { "Payload" = { "action" = "checkHealth" }, "FunctionName" = var.lambda_function_arn },
-        ResultSelector = {
-          "body.$" = "$.Payload.body"
-        },
-        ResultPath = "$.health_status",
-        Next       = "IsAlreadyHealthy"
+        Type           = "Task",
+        Resource       = "arn:aws:states:::lambda:invoke",
+        Parameters     = { "FunctionName" = var.lambda_function_arn, "Payload" = { "action" = "checkHealth" } },
+        ResultPath     = "$.health_status",
+        Next           = "IsAlreadyHealthy"
       },
       IsAlreadyHealthy = {
         Type    = "Choice",
-        Choices = [{ Variable = "$.health_status.body.status", StringEquals = "READY", Next = "ProxyRequest" }],
+        Choices = [
+          {
+            # THIS IS THE FIX: Correctly path into the nested Payload object
+            "Variable" = "$.health_status.Payload.body.status",
+            "StringEquals" = "READY",
+            "Next" = "ProxyRequest"
+          }
+        ],
         Default = "ScaleUpEcsTask"
       },
       ScaleUpEcsTask = {
         Type       = "Task",
         Resource   = "arn:aws:states:::lambda:invoke",
-        Parameters = { "Payload" = { "action" = "scaleUp" }, "FunctionName" = var.lambda_function_arn },
+        Parameters = { "FunctionName" = var.lambda_function_arn, "Payload" = { "action" = "scaleUp" } },
         ResultPath = "$.scale_up_result",
-        Next       = "PollHealth"
+        Next       = "Wait"
       },
+      Wait = { "Type" = "Wait", "Seconds" = 30, "Next" = "PollHealth" },
       PollHealth = {
-        Type       = "Task",
-        Resource   = "arn:aws:states:::lambda:invoke",
-        Parameters = { "Payload" = { "action" = "checkHealth" }, "FunctionName" = var.lambda_function_arn },
-        ResultSelector = {
-          "body.$" = "$.Payload.body"
-        },
-        ResultPath = "$.health_status",
-        Retry      = [{ ErrorEquals = ["States.ALL"], IntervalSeconds = 10, MaxAttempts = 9, BackoffRate = 1.5 }],
-        Next       = "IsTaskHealthyNow"
+        Type           = "Task",
+        Resource       = "arn:aws:states:::lambda:invoke",
+        Parameters     = { "FunctionName" = var.lambda_function_arn, "Payload" = { "action" = "checkHealth" } },
+        ResultPath     = "$.health_status",
+        Next           = "IsTaskHealthyNow"
       },
       IsTaskHealthyNow = {
         Type    = "Choice",
-        Choices = [{ Variable = "$.health_status.body.status", StringEquals = "READY", Next = "ProxyRequest" }],
-        Default = "PollHealth"
+        Choices = [
+          {
+            # THIS IS THE FIX: Correctly path into the nested Payload object
+            "Variable" = "$.health_status.Payload.body.status",
+            "StringEquals" = "READY",
+            "Next" = "ProxyRequest"
+          }
+        ],
+        Default = "Wait"
       },
       ProxyRequest = {
         Type     = "Task",
         Resource = "arn:aws:states:::lambda:invoke",
-        Parameters = {
-          "FunctionName" = var.lambda_function_arn,
-          "Payload" = {
-            "action"            = "proxy",
-            "requestContext.$"  = "$.input.requestContext",
-            "rawPath.$"         = "$.input.rawPath",
-            "rawQueryString.$"  = "$.input.rawQueryString",
-            "body.$"            = "$.input.body",
-            "headers.$"         = "$.input.headers",
-            "isBase64Encoded.$" = "$.input.isBase64Encoded",
-            "target.$"          = "$.health_status.body"
-          }
+        # We need to define the 'preserved' object here since we removed the first state
+        "Parameters" = {
+            "FunctionName" = var.lambda_function_arn,
+            "Payload" = {
+              "action" : "proxy",
+              "original_request" : { "path": "from-step-function" }, # Placeholder
+              "target.$" : "$.health_status.Payload.body"
+            }
         },
-        ResultPath = "$.proxy_result",
-        End        = true
+        End = true
       }
     }
   })
