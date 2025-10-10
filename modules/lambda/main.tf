@@ -1,42 +1,64 @@
-# This data source runs an external script to build the layer package in memory.
-data "external" "python_lambda_layer" {
+# --- S3 BUCKET FOR LAMBDA ARTIFACTS ---
+# It's best practice to have a dedicated, versioned bucket for code artifacts.
+resource "aws_s3_bucket" "lambda_artifacts" {
+  bucket = "${var.lambda_name}-artifacts-${data.aws_caller_identity.current.account_id}" # A unique name
+}
+
+resource "aws_s3_bucket_versioning" "lambda_artifacts" {
+  bucket = aws_s3_bucket.lambda_artifacts.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+
+# --- LAMBDA LAYER CREATION ---
+
+# This data source runs an external script to build the layer, upload it to S3,
+# and output the S3 object's key and version ID.
+data "external" "python_lambda_layer_s3" {
   for_each = { for cfg in var.lambda_configs : cfg.name => cfg if length(coalesce(cfg.python_packages, [])) > 0 }
 
   program = ["bash", "-c", <<-EOT
     set -e
+    # Read inputs from stdin
+    eval "$(jq -r '@sh "S3_BUCKET=\(.bucket) PACKAGES=\(.packages)"')"
+
     # Create a self-cleaning temporary directory
     TMP_DIR=$(mktemp -d)
     trap 'rm -rf -- "$TMP_DIR"' EXIT
 
     PACKAGE_DIR="$TMP_DIR/python"
+    REQUIREMENTS_FILE="$TMP_DIR/requirements.txt"
     mkdir -p "$PACKAGE_DIR"
 
-    # Read packages from stdin (passed via input attribute)
-    PACKAGES=$(jq -r '.packages | join(" ")' -)
+    # Install packages
+    echo "$PACKAGES" | jq -r '.[]' > "$REQUIREMENTS_FILE"
+    pip install -r "$REQUIREMENTS_FILE" -t "$PACKAGE_DIR" >&2
 
-    # Install packages if any exist
-    if [ -n "$PACKAGES" ]; then
-      pip install $PACKAGES -t "$PACKAGE_DIR" >&2
-    fi
-
-    # Create zip file in the temp directory
+    # Create the zip file
     ZIP_FILE="$TMP_DIR/layer.zip"
-    cd "$PACKAGE_DIR" && zip -r "$ZIP_FILE" . >&2
+    cd "$TMP_DIR"
+    zip -r "$ZIP_FILE" python >&2
 
-    # CRITICAL STEP: Base64 encode the zip file and output as JSON
-    # This is captured by the 'result' attribute of the data source.
-    BASE64_CONTENT=$(base64 -w 0 "$ZIP_FILE")
-    jq -n --arg content "$BASE64_CONTENT" '{"content_base64": $content}'
+    # Upload to S3 and get the VersionId from the output
+    S3_KEY="layers/${each.key}/$(date +%s).zip"
+    UPLOAD_RESULT=$(aws s3api put-object --bucket "$S3_BUCKET" --key "$S3_KEY" --body "$ZIP_FILE" --output json)
+    VERSION_ID=$(echo "$UPLOAD_RESULT" | jq -r '.VersionId')
+
+    # CRITICAL: Output the S3 key and version as a JSON object to stdout
+    jq -n --arg key "$S3_KEY" --arg version_id "$VERSION_ID" \
+      '{"s3_key": $key, "s3_object_version_id": $version_id}'
   EOT
   ]
 
   query = {
-    # Pass the list of packages to the script's standard input.
+    bucket   = aws_s3_bucket.lambda_artifacts.id,
     packages = jsonencode(each.value.python_packages)
   }
 }
 
-# This resource now creates the layer directly from the base64-encoded content.
+# This resource now creates the layer directly from the S3 object.
 resource "aws_lambda_layer_version" "python_packages" {
   for_each = { for cfg in var.lambda_configs : cfg.name => cfg if length(coalesce(cfg.python_packages, [])) > 0 }
 
@@ -44,9 +66,12 @@ resource "aws_lambda_layer_version" "python_packages" {
   description         = "Python dependencies for ${each.key}"
   compatible_runtimes = ["python3.12"]
 
-  # THE FIX: No filename or hash. Content is provided directly.
-  content = data.external.python_lambda_layer[each.key].result.content_base64
+  # THE FIX: Point to the object uploaded by the external script.
+  s3_bucket         = aws_s3_bucket.lambda_artifacts.id
+  s3_key            = data.external.python_lambda_layer_s3[each.key].result.s3_key
+  s3_object_version = data.external.python_lambda_layer_s3[each.key].result.s3_object_version_id
 }
+
 
 
 
