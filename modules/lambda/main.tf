@@ -3,8 +3,8 @@ data "aws_caller_identity" "current" {}
 # --- S3 BUCKET FOR LAMBDA ARTIFACTS ---
 # It's best practice to have a dedicated, versioned bucket for code artifacts.
 resource "aws_s3_bucket" "lambda_artifacts" {
-  bucket = "${var.lambda_name}-artifacts-${data.aws_caller_identity.current.account_id}" # A unique name
-  force_destroy = true 
+  bucket        = "${var.lambda_name}-artifacts-${data.aws_caller_identity.current.account_id}" # A unique name
+  force_destroy = true
 }
 
 resource "aws_s3_bucket_versioning" "lambda_artifacts" {

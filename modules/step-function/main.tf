@@ -72,20 +72,20 @@ resource "aws_sfn_state_machine" "this" {
     StartAt = "CheckIfHealthy", # We can start here since API Gateway input is not being used
     States = {
       CheckIfHealthy = {
-        Type           = "Task",
-        Resource       = "arn:aws:states:::lambda:invoke",
-        Parameters     = { "FunctionName" = var.lambda_function_arn, "Payload" = { "action" = "checkHealth" } },
-        ResultPath     = "$.health_status",
-        Next           = "IsAlreadyHealthy"
+        Type       = "Task",
+        Resource   = "arn:aws:states:::lambda:invoke",
+        Parameters = { "FunctionName" = var.lambda_function_arn, "Payload" = { "action" = "checkHealth" } },
+        ResultPath = "$.health_status",
+        Next       = "IsAlreadyHealthy"
       },
       IsAlreadyHealthy = {
-        Type    = "Choice",
+        Type = "Choice",
         Choices = [
           {
             # THIS IS THE FIX: Correctly path into the nested Payload object
-            "Variable" = "$.health_status.Payload.body.status",
+            "Variable"     = "$.health_status.Payload.body.status",
             "StringEquals" = "READY",
-            "Next" = "ProxyRequest"
+            "Next"         = "ProxyRequest"
           }
         ],
         Default = "ScaleUpEcsTask"
@@ -99,20 +99,20 @@ resource "aws_sfn_state_machine" "this" {
       },
       Wait = { "Type" = "Wait", "Seconds" = 30, "Next" = "PollHealth" },
       PollHealth = {
-        Type           = "Task",
-        Resource       = "arn:aws:states:::lambda:invoke",
-        Parameters     = { "FunctionName" = var.lambda_function_arn, "Payload" = { "action" = "checkHealth" } },
-        ResultPath     = "$.health_status",
-        Next           = "IsTaskHealthyNow"
+        Type       = "Task",
+        Resource   = "arn:aws:states:::lambda:invoke",
+        Parameters = { "FunctionName" = var.lambda_function_arn, "Payload" = { "action" = "checkHealth" } },
+        ResultPath = "$.health_status",
+        Next       = "IsTaskHealthyNow"
       },
       IsTaskHealthyNow = {
-        Type    = "Choice",
+        Type = "Choice",
         Choices = [
           {
             # THIS IS THE FIX: Correctly path into the nested Payload object
-            "Variable" = "$.health_status.Payload.body.status",
+            "Variable"     = "$.health_status.Payload.body.status",
             "StringEquals" = "READY",
-            "Next" = "ProxyRequest"
+            "Next"         = "ProxyRequest"
           }
         ],
         Default = "Wait"
@@ -122,12 +122,12 @@ resource "aws_sfn_state_machine" "this" {
         Resource = "arn:aws:states:::lambda:invoke",
         # We need to define the 'preserved' object here since we removed the first state
         "Parameters" = {
-            "FunctionName" = var.lambda_function_arn,
-            "Payload" = {
-              "action" : "proxy",
-              "original_request" : { "path": "from-step-function" }, # Placeholder
-              "target.$" : "$.health_status.Payload.body"
-            }
+          "FunctionName" = var.lambda_function_arn,
+          "Payload" = {
+            "action" : "proxy",
+            "original_request" : { "path" : "from-step-function" }, # Placeholder
+            "target.$" : "$.health_status.Payload.body"
+          }
         },
         End = true
       }

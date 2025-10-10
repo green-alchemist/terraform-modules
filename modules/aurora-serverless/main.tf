@@ -43,8 +43,9 @@ resource "aws_rds_cluster" "this" {
 resource "aws_rds_cluster_instance" "this" {
   count = 1
 
-  cluster_identifier = aws_rds_cluster.this.id
-  instance_class     = "db.serverless" # This is the required instance class for Serverless v2
-  engine             = aws_rds_cluster.this.engine
-  engine_version     = aws_rds_cluster.this.engine_version
+  cluster_identifier         = aws_rds_cluster.this.id
+  instance_class             = "db.serverless" # This is the required instance class for Serverless v2
+  engine                     = aws_rds_cluster.this.engine
+  engine_version             = aws_rds_cluster.this.engine_version
+  auto_minor_version_upgrade = false # keeping this false because aws docs showed 16.3 as required for scale to zero
 }
