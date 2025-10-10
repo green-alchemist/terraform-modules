@@ -25,9 +25,16 @@ locals {
         <script>
             async function fetchWithWake(url) {{
                 try {{
-                    let response = await fetch(url);
-                    if (response.status === 202) {{
-                        const data = await response.json();
+                    let response = await fetch(url, {{ method: 'POST', body: JSON.stringify({{ action: 'scaleUp' }}) }});
+                    let data;
+                    try {{
+                        data = await response.json();
+                    }} catch (e) {{
+                        console.log('No JSON response, assuming ECS is healthy');
+                        window.location.href = '/admin';
+                        return;
+                    }}
+                    if (response.status === 202 && data.executionArn) {{
                         const executionArn = data.executionArn;
                         const pollUrl = data.pollUrl || `/status/$${executionArn.split(':').pop()}`;
                         console.log(`ECS waking up, polling $${pollUrl}...`);
@@ -45,7 +52,7 @@ locals {
                             await new Promise(resolve => setTimeout(resolve, 5000));
                         }}
                     }} else {{
-                        console.log('ECS already healthy, redirecting to /admin');
+                        console.log('Unexpected response or ECS already healthy, redirecting to /admin');
                         window.location.href = '/admin';
                     }}
                 }} catch (error) {{
@@ -60,7 +67,7 @@ locals {
     """
         }
     EOF
-    
+
   status_poller = <<-EOF
     import json
     import boto3
