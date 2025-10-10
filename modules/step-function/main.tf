@@ -67,7 +67,7 @@ resource "aws_sfn_state_machine" "this" {
 
   type = "STANDARD" # For async executions >30s
 
-  definition = var.definition != "" ? var.definition : jsonencode({
+  definition = jsonencode({
     Comment = "Orchestrates wake and proxy for ECS",
     StartAt = "CheckIfHealthy",
     States = {
@@ -75,6 +75,9 @@ resource "aws_sfn_state_machine" "this" {
         Type       = "Task",
         Resource   = "arn:aws:states:::lambda:invoke",
         Parameters = { "Payload" = { "action" = "checkHealth" }, "FunctionName" = var.lambda_function_arn },
+        ResultSelector = {
+          "body.$" = "$.Payload.body"
+        },
         ResultPath = "$.health_status",
         Next       = "IsAlreadyHealthy"
       },
@@ -84,22 +87,19 @@ resource "aws_sfn_state_machine" "this" {
         Default = "ScaleUpEcsTask"
       },
       ScaleUpEcsTask = {
-        Type     = "Task",
-        Resource = "arn:aws:states:::lambda:invoke",
-        Parameters = {
-          "Payload" = {
-            "action"         = "scaleUp",
-            "executionArn.$" = "$$.Execution.Id"
-          },
-          "FunctionName" = var.lambda_function_arn
-        },
+        Type       = "Task",
+        Resource   = "arn:aws:states:::lambda:invoke",
+        Parameters = { "Payload" = { "action" = "scaleUp" }, "FunctionName" = var.lambda_function_arn },
         ResultPath = "$.scale_up_result",
-        End        = true # End here to return the scale-up response
+        Next       = "PollHealth"
       },
       PollHealth = {
         Type       = "Task",
         Resource   = "arn:aws:states:::lambda:invoke",
         Parameters = { "Payload" = { "action" = "checkHealth" }, "FunctionName" = var.lambda_function_arn },
+        ResultSelector = {
+          "body.$" = "$.Payload.body"
+        },
         ResultPath = "$.health_status",
         Retry      = [{ ErrorEquals = ["States.ALL"], IntervalSeconds = 10, MaxAttempts = 9, BackoffRate = 1.5 }],
         Next       = "IsTaskHealthyNow"
