@@ -1,3 +1,35 @@
+resource "null_resource" "python_package_layer" {
+  for_each = { for cfg in var.lambda_configs : cfg.name => cfg if length(coalesce(cfg.python_packages, [])) > 0 }
+
+  triggers = {
+    packages = join(",", each.value.python_packages)
+  }
+
+  provisioner "local-exec" {
+    command = <<EOC
+mkdir -p $${path.module}/lambda/$${each.key}-layer/python
+echo "$${join("\n", each.value.python_packages)}" > $${path.module}/lambda/$${each.key}-layer/requirements.txt
+pip install -r $${path.module}/lambda/$${each.key}-layer/requirements.txt -t $${path.module}/lambda/$${each.key}-layer/python
+cd $${path.module}/lambda/$${each.key}-layer
+zip -r $${path.module}/lambda/$${each.key}-layer.zip python
+EOC
+  }
+}
+
+# Lambda Layer for Python packages
+resource "aws_lambda_layer_version" "python_packages" {
+  for_each = { for cfg in var.lambda_configs : cfg.name => cfg if length(coalesce(cfg.python_packages, [])) > 0 }
+
+  layer_name          = "${var.lambda_name}-${each.key}-layer"
+  description         = "Python dependencies for ${each.key}"
+  compatible_runtimes = ["python3.12"] # Adjust to your Python version
+  filename            = "${path.module}/lambda/${each.key}-layer.zip"
+  source_code_hash    = filebase64sha256("${path.module}/lambda/${each.key}-layer.zip")
+
+  depends_on = [null_resource.python_package_layer[each.key]]
+}
+
+# Create a ZIP file in memory for each Lambda
 data "archive_file" "lambda_package" {
   for_each = { for cfg in var.lambda_configs : cfg.name => cfg }
 
@@ -15,28 +47,6 @@ data "archive_file" "lambda_package" {
       content  = join("\n", each.value.python_packages)
       filename = "requirements.txt"
     }
-  }
-}
-
-# Lambda Layer for Python packages (e.g., requests)
-resource "aws_lambda_layer_version" "python_packages" {
-  for_each = { for cfg in var.lambda_configs : cfg.name => cfg if length(coalesce(cfg.python_packages, [])) > 0 }
-
-  layer_name          = "${var.lambda_name}-${each.key}-layer"
-  description         = "Python dependencies for ${each.key}"
-  compatible_runtimes = ["python3.9"] # Adjust to your Python version
-
-  # Use a pre-built ZIP for requests (or build dynamically if needed)
-  filename = "${path.module}/lambda/${each.key}-layer.zip"
-
-  provisioner "local-exec" {
-    command = <<EOC
-mkdir -p ${path.module}/lambda/${each.key}-layer/python
-echo "${join("\n", each.value.python_packages)}" > ${path.module}/lambda/${each.key}-layer/requirements.txt
-pip install -r ${path.module}/lambda/${each.key}-layer/requirements.txt -t ${path.module}/lambda/${each.key}-layer/python
-cd ${path.module}/lambda/${each.key}-layer
-zip -r ${path.module}/lambda/${each.key}-layer.zip python
-EOC
   }
 }
 
