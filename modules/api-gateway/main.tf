@@ -492,17 +492,8 @@ resource "aws_apigatewayv2_integration" "sfn_start" {
 
   request_parameters = var.enable_lambda_proxy ? {
     "StateMachineArn" = module.step_function[0].state_machine_arn
-    "Input" = jsonencode({
-      "action" = "scaleUp",
-      "original_request" = {
-        "path"           = "$context.http.path",
-        "httpMethod"     = "$context.http.method",
-        "queryString"    = "$context.http.queryString",
-        "headers"        = "$context.http.headers",
-        "requestContext" = "$context.request"
-      }
-    })
-    "Name" = "$context.requestId"
+    "Input"           = "$request.body"
+    "Name"            = "$context.requestId"
   } : {}
 }
 
