@@ -5,6 +5,7 @@ locals {
   strapi_loader = <<-EOF
     import json
     import os
+    import urllib.parse
     def handler(event, context):
         return {
             "statusCode": 200,
@@ -26,7 +27,9 @@ locals {
                 try {{
                     let response = await fetch(url);
                     if (response.status === 202) {{
-                        const {{ executionArn, pollUrl }} = await response.json();
+                        const data = await response.json();
+                        const executionArn = data.executionArn;
+                        const pollUrl = data.pollUrl || `/status/$${executionArn.split(':').pop()}`;
                         console.log(`ECS waking up, polling $${pollUrl}...`);
                         while (true) {{
                             const statusRes = await fetch(`$${process.env.API_GATEWAY_URL}$${pollUrl}`);
@@ -42,6 +45,7 @@ locals {
                             await new Promise(resolve => setTimeout(resolve, 5000));
                         }}
                     }} else {{
+                        console.log('ECS already healthy, redirecting to /admin');
                         window.location.href = '/admin';
                     }}
                 }} catch (error) {{
@@ -56,7 +60,7 @@ locals {
     """
         }
     EOF
-
+    
   status_poller = <<-EOF
     import json
     import boto3
