@@ -45,7 +45,7 @@ resource "aws_lambda_function" "this" {
 
   filename         = data.archive_file.lambda_package[each.key].output_path
   source_code_hash = data.archive_file.lambda_package[each.key].output_base64sha256
-  role             = aws_iam_role.lambda[each.key].arn
+  role             = aws_iam_role.this[each.key].arn
   layers           = length(coalesce(each.value.python_packages, [])) > 0 ? [aws_lambda_layer_version.python_packages[each.key].arn] : []
   function_name    = "${var.lambda_name}-${each.value.name}"
   handler          = "index.handler"
