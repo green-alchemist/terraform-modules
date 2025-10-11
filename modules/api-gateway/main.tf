@@ -2,8 +2,7 @@ data "aws_partition" "current" {}
 data "aws_region" "current" {}
 data "aws_caller_identity" "current" {}
 locals {
-  strapi_loader = jsonencode({
-    handler = <<-EOF
+  strapi_loader = jsonencode({ <<-EOF
 import json
 import os
 import urllib.parse
