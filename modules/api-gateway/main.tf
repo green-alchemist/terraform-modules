@@ -36,6 +36,7 @@ locals {
                     }}
                     if (response.status === 202 && data.executionArn) {{
                         const executionArn = data.executionArn;
+                        console.log("DATA: ", data)
                         const pollUrl = data.pollUrl || `/status/$${executionArn.split(':').pop()}`;
                         console.log(`ECS waking up, polling $${pollUrl}...`);
                         while (true) {{
