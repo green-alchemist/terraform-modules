@@ -422,8 +422,7 @@ module "step_function" {
           "Payload" : {
             "action" : "proxy",
             "original_request.$" : "$$.Execution.Input.original_request || {}",
-            "target.$" : "$.health_status.body",
-            "body.$" = "$$.Execution.Input.body || ''"
+            "target.$" : "$.health_status.body"
           }
         },
         "ResultPath" : "$.proxy_result",
