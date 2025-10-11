@@ -47,7 +47,7 @@ def handler(event, context):
                     const pollUrl = data.pollUrl || `/status/$${executionArn.split(':').pop()}`;
                     console.log(`ECS waking up, polling $${pollUrl}...`);
                     while (true) {
-                        const statusRes = await fetch(`$${process.env.API_GATEWAY_URL}$${pollUrl}`);
+                        const statusRes = await fetch(`admin-staging.kconley.com$${pollUrl}`);
                         const { status, output } = await statusRes.json();
                         console.log(`Status: $${status}, Output: $${output}`);
                         if (status === 'SUCCEEDED') {
