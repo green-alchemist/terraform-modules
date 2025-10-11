@@ -8,6 +8,7 @@ eval "$(jq -r '@sh "CLUSTER_ID=\(.cluster_id)"')"
 # The '|| echo "[]"' handles cases where the CLI might error.
 SNAPSHOT_JSON=$(aws rds describe-db-cluster-snapshots \
   --db-cluster-identifier "$CLUSTER_ID" \
+  --snapshot-type manual \
   --query 'sort_by(DBClusterSnapshots[?Status==`available`], &SnapshotCreateTime)[-1:]' \
   --output json 2>/dev/null || echo "[]")
 
