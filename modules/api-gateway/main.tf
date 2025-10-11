@@ -431,26 +431,26 @@ module "step_function" {
         },
         "Retry" : [
           {
-            "ErrorEquals": ["States.ALL"],
-            "IntervalSeconds": 2,
-            "MaxAttempts": 3,
-            "BackoffRate": 2.0
+            "ErrorEquals" : ["States.ALL"],
+            "IntervalSeconds" : 2,
+            "MaxAttempts" : 3,
+            "BackoffRate" : 2.0
           }
         ],
-        "Catch": [
+        "Catch" : [
           {
             "ErrorEquals" : ["States.ALL"],
-            "ResultPath": "$.error",
-            "Next": "Fail"
+            "ResultPath" : "$.error",
+            "Next" : "Fail"
           }
         ],
-        "Next": "Successs"
+        "Next" : "Successs"
       },
-      "Successs": {
-        "Type": "Succeed"
+      "Successs" : {
+        "Type" : "Succeed"
       },
-      "Fail": {
-        "Type": "Fail"
+      "Fail" : {
+        "Type" : "Fail"
       }
     }
   })
