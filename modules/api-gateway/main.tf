@@ -441,7 +441,7 @@ module "step_function" {
           {
             "ErrorEquals" : ["States.ALL"],
             "ResultPath": "$.error",
-            "Next"; "Fail"
+            "Next": "Fail"
           }
         ],
         "Next": "Successs"
