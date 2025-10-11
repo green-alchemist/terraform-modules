@@ -4,19 +4,40 @@ data "aws_caller_identity" "current" {}
 locals {
   strapi_loader = <<-EOF
 import json
-import os
-import urllib.parse
+import boto3
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+sfn_client = boto3.client('stepfunctions')
+
 def handler(event, context):
     logger.debug(f"Received event: {json.dumps(event)}")
-    return {
-        "statusCode": 200,
-        "headers": {"Content-Type": "text/html"},
-        "body": """
+    
+    # Start Step Function directly
+    try:
+        response = sfn_client.start_execution(
+            stateMachineArn=os.environ['STATE_MACHINE_ARN'],
+            input=json.dumps({
+                "action": "scaleUp",
+                "original_request": {
+                    "httpMethod": "GET",
+                    "path": "/admin",
+                    "queryString": event.get('queryStringParameters', {}),
+                    "headers": event.get('headers', {})
+                }
+            }),
+            name=f"wake-{context.aws_request_id}"  # Unique execution name
+        )
+        execution_arn = response['executionArn']
+        poll_url = f"/status/{execution_arn.split(':')[-1]}"
+        
+        # Return HTML with polling logic
+        return {
+            "statusCode": 202,
+            "headers": {"Content-Type": "text/html"},
+            "body": """
 <!DOCTYPE html>
 <html>
 <head>
@@ -29,53 +50,41 @@ def handler(event, context):
 <body>
     <div class="spinner">Loading Strapi Admin...</div>
     <script>
-        async function fetchWithWake(url) {
+        async function pollStatus() {
+            const pollUrl = '{poll_url}';
             try {
-                let response = await fetch(url, { method: 'POST', body: JSON.stringify({ action: 'scaleUp' }) });
-                console.log(`Response status: $${response.status}`);
-                let data = null;
-                try {
-                    data = await response.json();
-                    console.log('Response data:', data);
-                } catch (e) {
-                    console.log('No JSON response, assuming ECS is healthy');
-                    window.location.href = '/admin';
-                    return;
-                }
-                if ((response.status === 200 || response.status === 202) && data && data.executionArn) {
-                    const executionArn = data.executionArn;
-                    const pollUrl = data.pollUrl || `/status/$${executionArn.split(':').pop()}`;
-                    console.log(`ECS waking up, polling $${pollUrl}...`);
-                    while (true) {
-                        const statusRes = await fetch(`admin-staging.kconley.com$${pollUrl}`);
-                        const { status, output } = await statusRes.json();
-                        console.log(`Status: $${status}, Output: $${output}`);
-                        if (status === 'SUCCEEDED') {
-                            console.log('ECS ready, redirecting to /admin');
-                            window.location.href = '/admin';
-                            return;
-                        }
-                        if (['FAILED', 'TIMED_OUT', 'ABORTED'].includes(status)) {
-                            throw new Error(`Step Functions failed: $${status}, $${output}`);
-                        }
-                        await new Promise(resolve => setTimeout(resolve, 5000));
+                while (true) {
+                    const statusRes = await fetch('https://admin-staging.kconley.com{poll_url}');
+                    const { status, output } = await statusRes.json();
+                    console.log(`Status: $${status}, Output: $${output}`);
+                    if (status === 'SUCCEEDED') {
+                        console.log('ECS ready, redirecting to /admin');
+                        window.location.href = '/admin';
+                        return;
                     }
-                } else {
-                    console.log(`Unexpected response (status: $${response.status}, data: $${JSON.stringify(data)}), redirecting to /admin`);
-                    window.location.href = '/admin';
+                    if (['FAILED', 'TIMED_OUT', 'ABORTED'].includes(status)) {
+                        throw new Error(`Step Functions failed: $${status}, $${output}`);
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 5000));
                 }
             } catch (error) {
                 console.error('Error:', error);
                 document.body.innerHTML = `<div>Error: $${error.message}</div>`;
             }
         }
-        fetchWithWake('/admin');
+        pollStatus();
     </script>
 </body>
 </html>
 """
-    }
-EOF
+        }
+    except Exception as e:
+        logger.error(f"Failed to start Step Function: {e}")
+        return {
+            "statusCode": 500,
+            "headers": {"Content-Type": "text/html"},
+            "body": f"<div>Error: Failed to wake Strapi - {str(e)}</div>"
+        }EOF
 
   status_poller = <<-EOF
     import json
@@ -295,7 +304,8 @@ module "lambdas" {
       memory_size     = 128
       permissions = [
         { Effect = "Allow", Action = "logs:CreateLogStream", Resource = "arn:aws:logs:*:*:*" },
-        { Effect = "Allow", Action = "logs:PutLogEvents", Resource = "arn:aws:logs:*:*:*" }
+        { Effect = "Allow", Action = "logs:PutLogEvents", Resource = "arn:aws:logs:*:*:*" },
+        { Effect = "Allow", Action = "states:StartExecution", Resource = module.step_function[0].state_machine_arn }
       ]
       environment = {
         API_GATEWAY_URL = aws_apigatewayv2_api.this.api_endpoint
@@ -478,7 +488,7 @@ resource "aws_iam_role_policy" "api_gateway_sfn_policy" {
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
-      { Action = "states:StartSyncExecution", Effect = "Allow", Resource = module.step_function[0].state_machine_arn },
+      # { Action = "states:StartSyncExecution", Effect = "Allow", Resource = module.step_function[0].state_machine_arn },
       { Action = "states:StartExecution", Effect = "Allow", Resource = module.step_function[0].state_machine_arn },
       { Action = "states:DescribeExecution", Effect = "Allow", Resource = "*" }
     ]
@@ -528,9 +538,11 @@ resource "aws_apigatewayv2_integration" "sfn_start" {
 }
 
 resource "aws_apigatewayv2_route" "proxy_any" {
-  api_id    = aws_apigatewayv2_api.this.id
-  route_key = "ANY /{proxy+}"
-  target    = "integrations/${aws_apigatewayv2_integration.sfn_start.id}"
+  api_id                 = aws_apigatewayv2_api.this.id
+  route_key              = "ANY /{proxy+}"
+  target                 = "integrations/${aws_apigatewayv2_integration.sfn_start.id}"
+  throttling_burst_limit = 1
+  throttling_rate_limit  = 1
 }
 
 # # Response for 202
