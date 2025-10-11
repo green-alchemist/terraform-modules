@@ -42,7 +42,7 @@ def handler(event, context):
                     window.location.href = '/admin';
                     return;
                 }
-                if (response.status === 202 && data && data.executionArn) {
+                if ((response.status === 200 || response.status === 202) && data && data.executionArn) {
                     const executionArn = data.executionArn;
                     const pollUrl = data.pollUrl || `/status/$${executionArn.split(':').pop()}`;
                     console.log(`ECS waking up, polling $${pollUrl}...`);
