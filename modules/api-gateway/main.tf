@@ -2,7 +2,8 @@ data "aws_partition" "current" {}
 data "aws_region" "current" {}
 data "aws_caller_identity" "current" {}
 locals {
-  strapi_loader = <<-EOF
+  strapi_loader = jsonencode({
+    handler = <<-EOF
 import json
 import os
 import urllib.parse
@@ -76,6 +77,7 @@ def handler(event, context):
 """
     }
 EOF
+  })
 
   status_poller = <<-EOF
     import json

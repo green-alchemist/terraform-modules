@@ -31,7 +31,7 @@ resource "aws_rds_cluster" "this" {
   snapshot_identifier             = try(data.external.latest_snapshot.result.id, "null") == "null" ? null : data.external.latest_snapshot.result.id
   enabled_cloudwatch_logs_exports = var.enabled_cloudwatch_logs_exports
   performance_insights_enabled    = true
-  monitoring_interval = 0
+  monitoring_interval             = 0
 
   serverlessv2_scaling_configuration {
     max_capacity             = var.max_capacity
