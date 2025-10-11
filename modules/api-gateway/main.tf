@@ -350,7 +350,7 @@ module "step_function" {
         "Type" : "Task",
         "Resource" : "arn:aws:states:::lambda:invoke",
         "Parameters" : {
-          "FunctionName" : "${module.lambdas[0].lambda_invoke_arns["wake-proxy"]}",
+          "FunctionName" : "${module.lambdas[0].lambda_function_names["wake-proxy"]}",
           "Payload" : {
             "action" : "checkHealth"
           }
@@ -376,7 +376,7 @@ module "step_function" {
         "Type" : "Task",
         "Resource" : "arn:aws:states:::lambda:invoke",
         "Parameters" : {
-          "FunctionName" : "${module.lambdas[0].lambda_invoke_arns["wake-proxy"]}",
+          "FunctionName" : "${module.lambdas[0].lambda_function_names["wake-proxy"]}",
           "Payload" : {
             "action" : "scaleUp",
             "executionArn.$" : "$$.Execution.Id"
@@ -392,7 +392,7 @@ module "step_function" {
         "Type" : "Task",
         "Resource" : "arn:aws:states:::lambda:invoke",
         "Parameters" : {
-          "FunctionName" : "${module.lambdas[0].lambda_invoke_arns["wake-proxy"]}",
+          "FunctionName" : "${module.lambdas[0].lambda_function_names["wake-proxy"]}",
           "Payload" : {
             "action" : "checkHealth"
           }
@@ -418,7 +418,7 @@ module "step_function" {
         "Type" : "Task",
         "Resource" : "arn:aws:states:::lambda:invoke",
         "Parameters" : {
-          "FunctionName" : "${module.lambdas[0].lambda_invoke_arns["wake-proxy"]}",
+          "FunctionName" : "${module.lambdas[0].lambda_function_names["wake-proxy"]}",
           "Payload" : {
             "action" : "proxy",
             "original_request.$" : "$$.Execution.Input.original_request",
