@@ -152,7 +152,7 @@ resource "aws_iam_role_policy" "this" {
       [
         {
           Effect   = "Allow"
-          Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
+          Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
           Resource = "arn:aws:logs:*:*:*"
         }
       ],
