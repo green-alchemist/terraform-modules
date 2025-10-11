@@ -22,53 +22,53 @@ def handler(event, context):
 <head>
     <title>Loading Strapi Admin</title>
     <style>
-        body {{ display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: Arial; }}
-        .spinner {{ font-size: 24px; }}
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: Arial; }
+        .spinner { font-size: 24px; }
     </style>
 </head>
 <body>
     <div class="spinner">Loading Strapi Admin...</div>
     <script>
-        async function fetchWithWake(url) {{
-            try {{
-                let response = await fetch(url, {{ method: 'POST', body: JSON.stringify({{ action: 'scaleUp' }}) }});
+        async function fetchWithWake(url) {
+            try {
+                let response = await fetch(url, { method: 'POST', body: JSON.stringify({ action: 'scaleUp' }) });
                 console.log(`Response status: $${response.status}`);
                 let data = null;
-                try {{
+                try {
                     data = await response.json();
                     console.log('Response data:', data);
-                }} catch (e) {{
+                } catch (e) {
                     console.log('No JSON response, assuming ECS is healthy');
                     window.location.href = '/admin';
                     return;
-                }}
-                if (response.status === 202 && data && data.executionArn) {{
+                }
+                if (response.status === 202 && data && data.executionArn) {
                     const executionArn = data.executionArn;
                     const pollUrl = data.pollUrl || `/status/$${executionArn.split(':').pop()}`;
                     console.log(`ECS waking up, polling $${pollUrl}...`);
-                    while (true) {{
+                    while (true) {
                         const statusRes = await fetch(`$${process.env.API_GATEWAY_URL}$${pollUrl}`);
-                        const {{ status, output }} = await statusRes.json();
+                        const { status, output } = await statusRes.json();
                         console.log(`Status: $${status}, Output: $${output}`);
-                        if (status === 'SUCCEEDED') {{
+                        if (status === 'SUCCEEDED') {
                             console.log('ECS ready, redirecting to /admin');
                             window.location.href = '/admin';
                             return;
-                        }}
-                        if (['FAILED', 'TIMED_OUT', 'ABORTED'].includes(status)) {{
+                        }
+                        if (['FAILED', 'TIMED_OUT', 'ABORTED'].includes(status)) {
                             throw new Error(`Step Functions failed: $${status}, $${output}`);
-                        }}
+                        }
                         await new Promise(resolve => setTimeout(resolve, 5000));
-                    }}
-                }} else {{
+                    }
+                } else {
                     console.log(`Unexpected response (status: $${response.status}, data: $${JSON.stringify(data)}), redirecting to /admin`);
                     window.location.href = '/admin';
-                }}
-            }} catch (error) {{
+                }
+            } catch (error) {
                 console.error('Error:', error);
                 document.body.innerHTML = `<div>Error: $${error.message}</div>`;
-            }}
-        }}
+            }
+        }
         fetchWithWake('/admin');
     </script>
 </body>
