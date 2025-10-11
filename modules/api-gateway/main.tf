@@ -429,7 +429,28 @@ module "step_function" {
         "ResultSelector" : {
           "body.$" : "$.Payload"
         },
-        "End" : true
+        "Retry" : [
+          {
+            "ErrorEquals": ["States.ALL"],
+            "IntervalSeconds": 2,
+            "MaxAttempts": 3,
+            "BackoffRate": 2.0
+          }
+        ],
+        "Catch": [
+          {
+            "ErrorEquals" : ["States.ALL"],
+            "ResultPath": "$.error",
+            "Next"; "Fail"
+          }
+        ],
+        "Next": "Successs"
+      },
+      "Successs": {
+        "Type": "Succeed"
+      },
+      "Fail": {
+        "Type": "Fail"
       }
     }
   })
