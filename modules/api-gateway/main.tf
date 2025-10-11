@@ -421,8 +421,9 @@ module "step_function" {
           "FunctionName" : "${module.lambdas[0].lambda_function_names["wake-proxy"]}",
           "Payload" : {
             "action" : "proxy",
-            "original_request.$" : "$$.Execution.Input.original_request",
-            "target.$" : "$.health_status.body"
+            "original_request.$" : "$$.Execution.Input.original_request || {}",
+            "target.$" : "$.health_status.body",
+            "body.$" = "$$.Execution.Input.body || ''"
           }
         },
         "ResultPath" : "$.proxy_result",
