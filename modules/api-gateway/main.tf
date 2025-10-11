@@ -36,10 +36,10 @@ locals {
                     }}
                     if (response.status === 202 && data.executionArn) {{
                         const executionArn = data.executionArn;
-                        const pollUrl = data.pollUrl || `/status/${executionArn.split(':').pop()}`;
+                        const pollUrl = data.pollUrl || `/status/$${executionArn.split(':').pop()}`;
                         console.log(`ECS waking up, polling $${pollUrl}...`);
                         while (true) {{
-                            const statusRes = await fetch(`${process.env.API_GATEWAY_URL}${pollUrl}`);
+                            const statusRes = await fetch(`$${process.env.API_GATEWAY_URL}$${pollUrl}`);
                             const {{ status, output }} = await statusRes.json();
                             if (status === 'SUCCEEDED') {{
                                 console.log('ECS ready, redirecting to /admin');
