@@ -16,7 +16,7 @@ def handler(event, context):
     return {
         "statusCode": 200,
         "headers": {"Content-Type": "text/html"},
-        "body": f"""
+        "body": """
 <!DOCTYPE html>
 <html>
 <head>
